@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -17,6 +17,11 @@ let workspace: string;
 test.beforeEach(async () => {
   workspace = await mkdtemp(join(tmpdir(), 'pastecode-e2e-'));
   await writeFile(join(workspace, 'index.ts'), 'const saludo = "hola";\n', 'utf8');
+  await mkdir(join(workspace, 'src'));
+  await writeFile(join(workspace, 'src', 'anidado.ts'), 'export {};\n', 'utf8');
+  // Tiene que quedar fuera del árbol: es la exclusión por defecto que hace
+  // posible el dogfooding sobre este mismo repositorio.
+  await mkdir(join(workspace, 'node_modules'));
 
   // Playwright no puede manejar un diálogo nativo del sistema operativo, así
   // que el main acepta esta variable en lugar de abrirlo. Sólo funciona con
@@ -62,4 +67,23 @@ test('conserva el workspace abierto al recargar la ventana', async () => {
   await expect(window.getByTestId('workspace-name')).toHaveText(
     workspace.split(/[\\/]/).at(-1) ?? ''
   );
+});
+
+test('muestra el árbol de archivos, con las carpetas primero y sin node_modules', async () => {
+  const window = await app.firstWindow();
+  await window.getByRole('button', { name: 'Abrir carpeta' }).click();
+
+  const tree = window.getByRole('tree', { name: 'Archivos del workspace' });
+
+  await expect(tree.getByRole('treeitem')).toHaveText(['▸src', '·index.ts']);
+});
+
+test('despliega una carpeta y muestra lo que hay adentro', async () => {
+  const window = await app.firstWindow();
+  await window.getByRole('button', { name: 'Abrir carpeta' }).click();
+
+  await window.getByRole('treeitem', { name: 'src' }).click();
+
+  // El listado es perezoso: los hijos se piden recién al expandir.
+  await expect(window.getByRole('treeitem', { name: 'anidado.ts' })).toBeVisible();
 });

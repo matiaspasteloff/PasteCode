@@ -151,4 +151,22 @@ describe('flattenVisibleNodes', () => {
   it('acepta un árbol vacío', () => {
     expect(flattenVisibleNodes([], new Set())).toEqual([]);
   });
+
+  it('numera la posición y el tamaño de cada nivel', () => {
+    // Es lo que alimenta aria-posinset y aria-setsize. Con el árbol
+    // virtualizado, el lector de pantalla no puede contar las filas del DOM
+    // porque están casi todas ausentes.
+    const tree = [folder('a', [file('x.ts'), file('y.ts')]), file('b.ts')];
+
+    const visible = flattenVisibleNodes(tree, new Set(['C:\\p\\a']));
+
+    expect(
+      visible.map((item) => [item.node.name, item.positionInLevel, item.levelSize])
+    ).toEqual([
+      ['a', 1, 2],
+      ['x.ts', 1, 2],
+      ['y.ts', 2, 2],
+      ['b.ts', 2, 2],
+    ]);
+  });
 });

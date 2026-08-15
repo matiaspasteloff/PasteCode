@@ -23,6 +23,17 @@ export interface VisibleNode {
   depth: number;
   /** Si la carpeta está desplegada. Alimenta `aria-expanded`. */
   isExpanded: boolean;
+  /**
+   * Posición entre sus hermanos, base 1, y cuántos hermanos hay.
+   *
+   * Van acá porque el árbol es virtualizado: en el DOM hay treinta filas de
+   * cinco mil, así que un lector de pantalla que cuente lo que ve anuncia
+   * "3 de 30" y miente. `aria-posinset` y `aria-setsize` son la forma de
+   * decirle la verdad (RNF-23), y sólo se pueden calcular acá, donde se sabe
+   * quiénes son los hermanos.
+   */
+  positionInLevel: number;
+  levelSize: number;
 }
 
 /**
@@ -78,14 +89,20 @@ export function flattenVisibleNodes(
   const visible: VisibleNode[] = [];
 
   const walk = (nodes: readonly FileTreeNode[], depth: number): void => {
-    for (const node of nodes) {
+    nodes.forEach((node, index) => {
       const isExpanded = node.isDirectory && expandedPaths.has(node.path);
-      visible.push({ node, depth, isExpanded });
+      visible.push({
+        node,
+        depth,
+        isExpanded,
+        positionInLevel: index + 1,
+        levelSize: nodes.length,
+      });
 
       // Una carpeta desplegada cuyos hijos todavía no llegaron simplemente no
       // aporta filas. La carga la dispara la UI al expandir; acá no hay I/O.
       if (isExpanded && node.children !== undefined) walk(node.children, depth + 1);
-    }
+    });
   };
 
   walk(roots, 0);

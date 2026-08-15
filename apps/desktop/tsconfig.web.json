@@ -7,5 +7,8 @@
     // vite/client aporta las declaraciones de los imports de CSS y de assets.
     "types": ["vite/client"]
   },
-  "include": ["src/renderer/**/*.ts", "src/renderer/**/*.tsx"]
+  // El setup de los tests de renderer entra acá y no en el proyecto de Node:
+  // corre en jsdom y toca `HTMLElement`, así que necesita la lib del DOM. Sin
+  // incluirlo, ESLint no lo encuentra en ningún proyecto y no puede lintearlo.
+  "include": ["src/renderer/**/*.ts", "src/renderer/**/*.tsx", "vitest.setup.tsx"]
 }

@@ -10,8 +10,11 @@
   --color-foreground: #1a1a1a;
   --color-muted: #6b6b6b;
   --color-danger: #b3261e;
+  --color-accent: #0b5fa5;
+  --color-selection: #cfe3f7;
   --font-ui: 'Segoe UI', system-ui, sans-serif;
   --sidebar-width: 16rem;
+  --file-tree-row-height: 22px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,6 +25,8 @@
     --color-foreground: #e8e8e8;
     --color-muted: #9a9a9a;
     --color-danger: #f2b8b5;
+    --color-accent: #6cb6ff;
+    --color-selection: #04395e;
   }
 }
 
@@ -94,6 +99,69 @@ body {
 .workspace-header__error {
   margin: 0;
   color: var(--color-danger);
+  font-size: 0.8rem;
+}
+
+/*
+ * El contenedor scrolleable que mide el virtualizador. `contain: strict` le
+ * dice al navegador que nada de adentro afecta al layout de afuera, que es lo
+ * que evita recalcular la página entera con cada scroll de 5.000 filas.
+ */
+.file-tree {
+  flex: 1;
+  overflow: auto;
+  contain: strict;
+}
+
+.file-tree__canvas {
+  position: relative;
+  width: 100%;
+}
+
+/* Las filas se posicionan en absoluto: el virtualizador pinta unas pocas. */
+.file-tree__row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  width: 100%;
+  height: var(--file-tree-row-height);
+  cursor: pointer;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.file-tree__row:hover {
+  background: var(--color-background);
+}
+
+.file-tree__row:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.file-tree__row[data-selected='true'] {
+  background: var(--color-selection);
+}
+
+.file-tree__icon {
+  flex: none;
+  width: 0.75rem;
+  color: var(--color-muted);
+}
+
+.file-tree__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-tree__status {
+  margin: 0;
+  padding: 0.75rem;
+  color: var(--color-muted);
   font-size: 0.8rem;
 }
 

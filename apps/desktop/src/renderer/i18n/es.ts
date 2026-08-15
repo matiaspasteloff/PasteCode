@@ -10,6 +10,9 @@
  * para que agregar una no sea una decisión.
  */
 export const es = {
+  'fileTree.empty': 'La carpeta está vacía',
+  'fileTree.label': 'Archivos del workspace',
+  'fileTree.loading': 'Cargando archivos…',
   'workspace.emptyDescription': 'Abrí una carpeta para empezar a editar.',
   'workspace.emptyTitle': 'No hay ninguna carpeta abierta',
   'workspace.open': 'Abrir carpeta',

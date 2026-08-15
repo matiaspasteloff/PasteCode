@@ -64,6 +64,14 @@ export default tseslint.config(
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/consistent-type-definitions': 'off',
 
+      // Un parámetro con guion bajo es "existe porque la firma lo pide, y no
+      // lo uso". Es la misma convención que ya aplica `noUnusedParameters` de
+      // TypeScript; sin esto, las dos herramientas se contradicen.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+
       // Regla 5: nada de enums de TypeScript.
       // Regla 2: nada de aserciones de tipo, salvo `as const`. El escape es un
       // eslint-disable con la justificación al lado, que es lo que la
@@ -154,7 +162,7 @@ export default tseslint.config(
 
   // --- Excepciones acotadas --------------------------------------------
   {
-    files: ['**/*.test.ts', '**/*.spec.ts'],
+    files: ['**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}', '**/test-support/**'],
     rules: {
       // Un archivo de tests con muchos casos es legible; uno partido a la
       // mitad para cumplir un límite pensado para código de producción, no.
