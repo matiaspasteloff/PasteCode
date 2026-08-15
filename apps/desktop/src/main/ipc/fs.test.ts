@@ -14,7 +14,12 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { handleReadFile, handleWriteFile, registerFsIpcHandlers } from './fs.js';
+import {
+  handleReadDirectory,
+  handleReadFile,
+  handleWriteFile,
+  registerFsIpcHandlers,
+} from './fs.js';
 
 /** Ver la explicación del mock en app.test.ts: se captura el cableado, nada más. */
 const electron = vi.hoisted(() => ({
@@ -210,6 +215,80 @@ describe('handleWriteFile', () => {
   });
 });
 
+describe('handleReadDirectory', () => {
+  it('lista un nivel con las carpetas primero y en orden alfabético', async () => {
+    await mkdir(join(workspace, 'src'));
+    await mkdir(join(workspace, 'docs'));
+    await writeFile(join(workspace, 'b.ts'), '', 'utf8');
+    await writeFile(join(workspace, 'a.ts'), '', 'utf8');
+
+    const { entries } = await handleReadDirectory({ path: workspace }, workspace);
+
+    expect(entries.map((item) => item.name)).toEqual(['docs', 'src', 'a.ts', 'b.ts']);
+  });
+
+  it('marca cuáles entradas son directorios y devuelve rutas absolutas', async () => {
+    await mkdir(join(workspace, 'src'));
+
+    const { entries } = await handleReadDirectory({ path: workspace }, workspace);
+
+    expect(entries).toEqual([{ name: 'src', path: join(workspace, 'src'), isDirectory: true }]);
+  });
+
+  it('no lista recursivamente: los hijos se piden al expandir', async () => {
+    await mkdir(join(workspace, 'src', 'nested'), { recursive: true });
+    await writeFile(join(workspace, 'src', 'nested', 'hondo.ts'), '', 'utf8');
+
+    const { entries } = await handleReadDirectory({ path: workspace }, workspace);
+
+    expect(entries.map((item) => item.name)).toEqual(['src']);
+  });
+
+  it.each(['node_modules', '.git', 'dist'])('excluye %s del listado', async (excluded) => {
+    await mkdir(join(workspace, excluded));
+    await writeFile(join(workspace, 'a.ts'), '', 'utf8');
+
+    const { entries } = await handleReadDirectory({ path: workspace }, workspace);
+
+    expect(entries.map((item) => item.name)).toEqual(['a.ts']);
+  });
+
+  it('excluye node_modules también en un subdirectorio', async () => {
+    await mkdir(join(workspace, 'packages', 'core', 'node_modules'), { recursive: true });
+    await mkdir(join(workspace, 'packages', 'core', 'src'), { recursive: true });
+
+    const { entries } = await handleReadDirectory(
+      { path: join(workspace, 'packages', 'core') },
+      workspace
+    );
+
+    expect(entries.map((item) => item.name)).toEqual(['src']);
+  });
+
+  it('devuelve una lista vacía para una carpeta vacía', async () => {
+    await mkdir(join(workspace, 'vacia'));
+
+    const { entries } = await handleReadDirectory(
+      { path: join(workspace, 'vacia') },
+      workspace
+    );
+
+    expect(entries).toEqual([]);
+  });
+
+  it('rechaza path traversal fuera del workspace', async () => {
+    const attempt = handleReadDirectory({ path: join(workspace, '..') }, workspace);
+
+    await expect(attempt).rejects.toMatchObject({ code: 'PATH_OUTSIDE_WORKSPACE' });
+  });
+
+  it('rechaza un directorio que no existe', async () => {
+    const attempt = handleReadDirectory({ path: join(workspace, 'fantasma') }, workspace);
+
+    await expect(attempt).rejects.toMatchObject({ code: 'FILE_ACCESS_DENIED' });
+  });
+});
+
 describe('registerFsIpcHandlers', () => {
   beforeEach(() => {
     electron.handlers.clear();
@@ -221,14 +300,19 @@ describe('registerFsIpcHandlers', () => {
     vi.restoreAllMocks();
   });
 
-  it('registra los dos canales del dominio', () => {
-    expect([...electron.handlers.keys()]).toEqual(['fs:readFile', 'fs:writeFile']);
+  it('registra los tres canales del dominio', () => {
+    expect([...electron.handlers.keys()]).toEqual([
+      'fs:readDirectory',
+      'fs:readFile',
+      'fs:writeFile',
+    ]);
   });
 
   // Cada canal con un payload que sí pasa su schema: la validación Zod corre
   // antes que el chequeo de workspace, y con un payload inválido este test
   // pasaría por el motivo equivocado.
   it.each([
+    ['fs:readDirectory', { path: 'C:\\Windows' }],
     ['fs:readFile', { path: 'C:\\Windows\\notepad.exe' }],
     ['fs:writeFile', { path: 'C:\\Windows\\notepad.exe', content: 'x' }],
   ])('%s se niega a operar sin un workspace abierto', async (channel, payload) => {

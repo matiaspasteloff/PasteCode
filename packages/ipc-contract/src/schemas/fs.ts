@@ -49,3 +49,35 @@ export const WriteFileRequestSchema = z.strictObject({
 export const WriteFileResponseSchema = z.strictObject({
   mtimeMs: z.number(),
 });
+
+/** Una entrada de directorio. La `path` absoluta es la clave de todo el árbol. */
+export const DirectoryEntrySchema = z.strictObject({
+  name: z.string().min(1),
+  path: z.string().min(1),
+  isDirectory: z.boolean(),
+});
+
+/**
+ * Payload de `fs:readDirectory`.
+ *
+ * Lista **un solo nivel**, no recursivo. El árbol pide los hijos al expandir.
+ * Es lo que hace que el criterio de
+ * [RF-001](../../../../docs/03-requerimientos-funcionales.md) —el árbol visible
+ * en menos de 500ms con 5.000 archivos— sea trivial de cumplir en vez de una
+ * pelea: nunca se recorre más de una carpeta por vez.
+ */
+export const ReadDirectoryRequestSchema = z.strictObject({
+  path: z.string().min(1),
+});
+
+/**
+ * Respuesta de `fs:readDirectory`: las entradas ya ordenadas y ya filtradas
+ * por las exclusiones.
+ *
+ * El filtrado ocurre en el main y no en el renderer para que `node_modules` ni
+ * siquiera cruce el IPC. Serializar 40.000 entradas para que la UI las tire es
+ * pagar el costo dos veces.
+ */
+export const ReadDirectoryResponseSchema = z.strictObject({
+  entries: z.array(DirectoryEntrySchema),
+});

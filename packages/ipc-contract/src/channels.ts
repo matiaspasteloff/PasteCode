@@ -2,6 +2,8 @@ import type { z } from 'zod';
 
 import type { GetVersionRequestSchema, GetVersionResponseSchema } from './schemas/app.js';
 import type {
+  ReadDirectoryRequestSchema,
+  ReadDirectoryResponseSchema,
   ReadFileRequestSchema,
   ReadFileResponseSchema,
   WriteFileRequestSchema,
@@ -29,6 +31,10 @@ export interface IpcChannels {
   'app:getVersion': {
     request: z.infer<typeof GetVersionRequestSchema>;
     response: z.infer<typeof GetVersionResponseSchema>;
+  };
+  'fs:readDirectory': {
+    request: z.infer<typeof ReadDirectoryRequestSchema>;
+    response: z.infer<typeof ReadDirectoryResponseSchema>;
   };
   'fs:readFile': {
     request: z.infer<typeof ReadFileRequestSchema>;

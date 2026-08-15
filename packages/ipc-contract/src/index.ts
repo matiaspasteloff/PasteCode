@@ -3,6 +3,9 @@ export type { ChannelName, IpcChannels, Request, RequestSchema, Response } from 
 export type { IpcResult, SerializedError } from './result.js';
 export { GetVersionRequestSchema, GetVersionResponseSchema } from './schemas/app.js';
 export {
+  DirectoryEntrySchema,
+  ReadDirectoryRequestSchema,
+  ReadDirectoryResponseSchema,
   ReadFileRequestSchema,
   ReadFileResponseSchema,
   WriteFileRequestSchema,

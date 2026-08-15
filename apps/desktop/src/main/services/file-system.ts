@@ -1,12 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import type { FileHandle } from 'node:fs/promises';
-import { open, rename, rm, stat } from 'node:fs/promises';
-import { basename, dirname, join } from 'node:path';
+import { open, readdir, rename, rm, stat } from 'node:fs/promises';
+import { basename, dirname, join, relative } from 'node:path';
 
+import type { DirectoryEntry } from '@pastecode/core';
 import {
   BinaryFileUnsupportedError,
+  createExclusionMatcher,
+  DEFAULT_EXCLUDES,
   FileAccessError,
   FileTooLargeError,
+  sortEntries,
   StaleFileError,
 } from '@pastecode/core';
 
@@ -27,6 +31,53 @@ const BINARY_SNIFF_BYTES = 8 * 1024;
 export interface ReadFileResult {
   content: string;
   mtimeMs: number;
+}
+
+/**
+ * Las exclusiones son una constante y no un setting hasta la Etapa 3. Se
+ * compila una sola vez porque el predicado corre una vez por entrada.
+ */
+const isExcluded = createExclusionMatcher(DEFAULT_EXCLUDES);
+
+/**
+ * Lista **un nivel** de un directorio, ya ordenado y ya filtrado.
+ *
+ * No es recursivo a propósito: el árbol pide los hijos al expandir. Es lo que
+ * hace que el criterio de [RF-001](../../../../../docs/03-requerimientos-funcionales.md)
+ * —árbol visible en menos de 500ms con 5.000 archivos— se cumpla solo, porque
+ * nunca se recorre más de una carpeta por vez.
+ *
+ * Las entradas que no son ni archivo ni directorio —sockets, FIFOs, y los
+ * symlinks colgados, que `withFileTypes` no puede clasificar— se descartan.
+ * Mostrar algo que al abrirlo va a fallar es peor que no mostrarlo.
+ *
+ * @param path Ruta absoluta, ya resuelta por `resolveInsideWorkspace`.
+ * @param workspaceRoot Raíz del workspace, para evaluar las exclusiones.
+ * @returns Las entradas visibles, carpetas primero y alfabéticas.
+ * @throws {FileAccessError} Si el directorio no existe o no se puede leer.
+ * @example
+ * const entries = await readDirectoryLevel('C:\\p\\src', 'C:\\p');
+ */
+export async function readDirectoryLevel(
+  path: string,
+  workspaceRoot: string
+): Promise<DirectoryEntry[]> {
+  const found = await readdir(path, { withFileTypes: true }).catch((cause: unknown) => {
+    throw new FileAccessError(path, cause);
+  });
+
+  const entries = found
+    .filter((item) => item.isDirectory() || item.isFile())
+    .map((item) => ({
+      name: item.name,
+      path: join(path, item.name),
+      isDirectory: item.isDirectory(),
+    }))
+    // Las exclusiones se evalúan contra la ruta relativa a la raíz, que es lo
+    // que los patrones describen: `**/node_modules`, no `C:\p\node_modules`.
+    .filter((item) => !isExcluded(relative(workspaceRoot, item.path)));
+
+  return sortEntries(entries);
 }
 
 /**

@@ -1,7 +1,15 @@
 import type { Request, Response } from '@pastecode/ipc-contract';
-import { ReadFileRequestSchema, WriteFileRequestSchema } from '@pastecode/ipc-contract';
+import {
+  ReadDirectoryRequestSchema,
+  ReadFileRequestSchema,
+  WriteFileRequestSchema,
+} from '@pastecode/ipc-contract';
 
-import { readTextFile, writeTextFileAtomically } from '../services/file-system.js';
+import {
+  readDirectoryLevel,
+  readTextFile,
+  writeTextFileAtomically,
+} from '../services/file-system.js';
 import { resolveInsideWorkspace } from '../services/path-guard.js';
 import { requireWorkspaceRoot } from '../services/workspace.js';
 
@@ -47,12 +55,34 @@ export async function handleWriteFile(
 }
 
 /**
+ * Lista un nivel de un directorio del workspace.
+ *
+ * @param payload Request ya validado por el schema.
+ * @param workspaceRoot Raíz contra la que se valida la ruta y las exclusiones.
+ * @returns Las entradas visibles, ya ordenadas.
+ * @example
+ * await handleReadDirectory({ path: 'C:\\p\\src' }, 'C:\\p');
+ */
+export async function handleReadDirectory(
+  payload: Request<'fs:readDirectory'>,
+  workspaceRoot: string
+): Promise<Response<'fs:readDirectory'>> {
+  const path = await resolveInsideWorkspace(payload.path, workspaceRoot);
+
+  return { entries: await readDirectoryLevel(path, workspaceRoot) };
+}
+
+/**
  * Registra los handlers del dominio `fs`.
  *
  * @example
  * registerFsIpcHandlers(); // antes de app.whenReady()
  */
 export function registerFsIpcHandlers(): void {
+  registerHandler('fs:readDirectory', ReadDirectoryRequestSchema, (payload) =>
+    handleReadDirectory(payload, requireWorkspaceRoot())
+  );
+
   registerHandler('fs:readFile', ReadFileRequestSchema, (payload) =>
     handleReadFile(payload, requireWorkspaceRoot())
   );
