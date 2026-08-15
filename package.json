@@ -1,0 +1,58 @@
+{
+  "name": "pastecode",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "IDE de escritorio liviano y extensible, construido con Electron, TypeScript y React.",
+  "license": "MIT",
+  "author": "Matías Pasteloff",
+  "packageManager": "pnpm@11.21.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "package": "turbo run package",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "coverage": "turbo run coverage",
+    "typecheck": "turbo run typecheck",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "knip": "knip",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "prepare": "husky"
+  },
+  "//pins": {
+    "typescript": "Fijado en 6.0.3, NO subir a 7.x. typescript-eslint@8.67.0 declara el peer `typescript: >=4.8.4 <6.1.0` y las reglas type-aware son obligatorias por convenciones/codigo.md. Se revisa cuando typescript-eslint soporte 7.x. Ver docs/adr/0009-pinear-typescript-y-vite.md.",
+    "vite": "Fijado en 7.3.6 en apps/desktop, NO subir a 8.x. electron-vite@5.0.0 declara el peer `vite: ^5 || ^6 || ^7`. Mismo ADR.",
+    "comoSeVerifica": "`strict-peer-dependencies=true` en .npmrc hace que violar cualquiera de los dos rompa el install, no el runtime."
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.2",
+    "@commitlint/config-conventional": "21.2.2",
+    "@eslint/js": "10.0.1",
+    "@types/node": "26.2.0",
+    "eslint": "10.8.1",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-import-x": "4.17.1",
+    "husky": "9.1.7",
+    "knip": "6.32.2",
+    "lint-staged": "17.3.0",
+    "prettier": "3.9.6",
+    "turbo": "2.10.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.67.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "*.{js,jsx,json,md,yml,yaml,css,html}": [
+      "prettier --write"
+    ]
+  }
+}
