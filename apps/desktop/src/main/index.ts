@@ -1,9 +1,11 @@
 import { app, BrowserWindow } from 'electron';
 
 import { registerAppIpcHandlers } from './ipc/app.js';
+import { registerFsIpcHandlers } from './ipc/fs.js';
 import { createMainWindow } from './windows/create-window.js';
 
 registerAppIpcHandlers();
+registerFsIpcHandlers();
 
 void app.whenReady().then(() => {
   createMainWindow();

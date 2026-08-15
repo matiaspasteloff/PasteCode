@@ -1,21 +1,20 @@
-import { z } from 'zod';
+import type { z } from 'zod';
 
-/**
- * Payload de `app:getVersion`. El canal no recibe datos, pero el objeto vacío
- * estricto no es ceremonia: hace que mandar cualquier cosa desde el renderer
- * sea un error de validación en vez de un campo que el handler ignora en
- * silencio. Ver docs/convenciones/seguridad.md — el renderer no es de confianza.
- */
-export const GetVersionRequestSchema = z.strictObject({});
-
-/** Respuesta de `app:getVersion`: la versión del `package.json` de la app. */
-export const GetVersionResponseSchema = z.strictObject({
-  version: z.string().min(1),
-});
+import type { GetVersionRequestSchema, GetVersionResponseSchema } from './schemas/app.js';
+import type {
+  ReadFileRequestSchema,
+  ReadFileResponseSchema,
+  WriteFileRequestSchema,
+  WriteFileResponseSchema,
+} from './schemas/fs.js';
 
 /**
  * Mapa de canales de IPC. **Es la fuente de verdad**: agregar un canal empieza
  * acá y recién después toca el main, el preload y el renderer.
+ *
+ * El `response` de cada entrada es el valor **en caso de éxito**. El envoltorio
+ * `IpcResult` lo agrega `PasteCodeApi` una sola vez, para todos los canales;
+ * ver [ADR-0011](../../../docs/adr/0011-resultado-tipado-en-el-limite-de-ipc.md).
  *
  * @example
  * type V = Response<'app:getVersion'>; // { version: string }
@@ -24,6 +23,14 @@ export interface IpcChannels {
   'app:getVersion': {
     request: z.infer<typeof GetVersionRequestSchema>;
     response: z.infer<typeof GetVersionResponseSchema>;
+  };
+  'fs:readFile': {
+    request: z.infer<typeof ReadFileRequestSchema>;
+    response: z.infer<typeof ReadFileResponseSchema>;
+  };
+  'fs:writeFile': {
+    request: z.infer<typeof WriteFileRequestSchema>;
+    response: z.infer<typeof WriteFileResponseSchema>;
   };
 }
 
