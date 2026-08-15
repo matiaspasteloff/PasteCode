@@ -12,14 +12,15 @@ Cada fase tiene un entregable demostrable. La regla: **no se empieza una fase si
 
 **Entregable:** una ventana de Electron vacía que arranca, con todo el tooling funcionando.
 
-- [ ] Monorepo configurado (pnpm workspaces + Turborepo)
-- [ ] Electron + Vite + TypeScript strict compilando
-- [ ] ESLint, Prettier, Husky, commitlint configurados
-- [ ] Vitest y Playwright corriendo con un test de humo cada uno
-- [ ] CI en GitHub Actions verde en las 3 plataformas
-- [ ] `electron-builder` produciendo un `.exe` instalable
-- [ ] [ADR-0001](./adr/0001-electron-typescript.md), [0002](./adr/0002-monaco-editor.md) y [0003](./adr/0003-extension-host-aislado.md) escritos
-- [ ] Esta documentación en el repo
+- [x] Monorepo configurado (pnpm workspaces + Turborepo)
+- [x] Electron + Vite + TypeScript strict compilando
+- [x] ESLint, Prettier, Husky, commitlint configurados
+- [x] Vitest y Playwright corriendo con un test de humo cada uno
+- [ ] CI en GitHub Actions verde en las 3 plataformas — el workflow está escrito y sus pasos pasan localmente, pero **no se marca hasta que corra de verdad en GitHub**
+- [x] `electron-builder` produciendo un `.exe` instalable
+- [x] [ADR-0001](./adr/0001-electron-typescript.md), [0002](./adr/0002-monaco-editor.md) y [0003](./adr/0003-extension-host-aislado.md) escritos
+- [x] [ADR-0006](./adr/0006-electron-vite-como-build.md), [0009](./adr/0009-pinear-typescript-y-vite.md) y [0010](./adr/0010-import-x-no-cycle.md), que aparecieron al montar el andamio
+- [x] Esta documentación en el repo
 
 **Criterio de salida:** `git push` → CI verde → `.exe` descargable desde el artifact.
 
@@ -78,7 +79,7 @@ Cada fase tiene un entregable demostrable. La regla: **no se empieza una fase si
 - [ ] Accesibilidad auditada (RNF-21 a RNF-25)
 - [ ] Todos los RNF verificados y documentados
 - [ ] README con capturas, GIF de demo y sección de arquitectura
-- [ ] Landing page simple *(opcional, pero suma mucho al portfolio)*
+- [ ] Landing page simple _(opcional, pero suma mucho al portfolio)_
 - [ ] Post técnico explicando una decisión difícil del proyecto
 
 **Criterio de salida:** un desconocido descarga el `.exe`, lo instala y lo usa sin leer nada.
@@ -87,13 +88,13 @@ Cada fase tiene un entregable demostrable. La regla: **no se empieza una fase si
 
 ## Riesgos identificados
 
-| Riesgo | Impacto | Probabilidad | Mitigación |
-|---|---|---|---|
-| Scope creep — "una feature más" | Alto | **Alta** | La [lista de fuera de alcance](./01-vision-y-alcance.md#alcance--fuera-out-of-scope) es un contrato. Toda feature nueva requiere sacar otra |
-| Monaco no permite alguna customización necesaria | Medio | Media | Prototipar las integraciones riesgosas en Fase 1, antes de comprometerse |
-| Performance de Electron insuficiente para archivos grandes | Alto | Baja | RNF-03 se mide desde Fase 2, no al final |
-| Complejidad del extension host consume la Fase 4 entera | Medio | Media | Empezar por una API mínima (comandos + status bar) y crecer |
-| Pérdida de motivación en un proyecto largo | **Alto** | **Alta** | Cada fase entrega algo demostrable y publicable. El dogfooding desde Fase 1 mantiene el interés |
+| Riesgo                                                     | Impacto  | Probabilidad | Mitigación                                                                                                                                  |
+| ---------------------------------------------------------- | -------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Scope creep — "una feature más"                            | Alto     | **Alta**     | La [lista de fuera de alcance](./01-vision-y-alcance.md#alcance--fuera-out-of-scope) es un contrato. Toda feature nueva requiere sacar otra |
+| Monaco no permite alguna customización necesaria           | Medio    | Media        | Prototipar las integraciones riesgosas en Fase 1, antes de comprometerse                                                                    |
+| Performance de Electron insuficiente para archivos grandes | Alto     | Baja         | RNF-03 se mide desde Fase 2, no al final                                                                                                    |
+| Complejidad del extension host consume la Fase 4 entera    | Medio    | Media        | Empezar por una API mínima (comandos + status bar) y crecer                                                                                 |
+| Pérdida de motivación en un proyecto largo                 | **Alto** | **Alta**     | Cada fase entrega algo demostrable y publicable. El dogfooding desde Fase 1 mantiene el interés                                             |
 
 ### Cómo revisar los riesgos
 
