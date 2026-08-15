@@ -1,9 +1,11 @@
+import { activeTab } from '@pastecode/core';
 import { useEffect } from 'react';
 
 import { StatusBar } from './components/StatusBar.js';
 import { ConflictDialog } from './features/editor/ConflictDialog.js';
 import { EditorArea } from './features/editor/EditorArea.js';
-import { OpenFileBar } from './features/editor/OpenFileBar.js';
+import { releaseAllModels, releaseModelsExcept } from './features/editor/model-registry.js';
+import { TabStrip } from './features/editor/TabStrip.js';
 import { useSaveShortcut } from './features/editor/use-save-shortcut.js';
 import { FileTree } from './features/file-tree/FileTree.js';
 import { WorkspaceHeader } from './features/workspace/WorkspaceHeader.js';
@@ -20,9 +22,10 @@ export function App(): React.JSX.Element {
   const loadRoot = useFileTreeStore((state) => state.loadRoot);
   const clearTree = useFileTreeStore((state) => state.clear);
 
-  const openFilePath = useEditorStore((state) => state.file?.path ?? null);
+  const openTabs = useEditorStore((state) => state.tabs.tabs);
+  const activePath = useEditorStore((state) => activeTab(state.tabs)?.path ?? null);
   const openFile = useEditorStore((state) => state.open);
-  const closeFile = useEditorStore((state) => state.close);
+  const closeAll = useEditorStore((state) => state.closeAll);
 
   useSaveShortcut();
 
@@ -33,11 +36,23 @@ export function App(): React.JSX.Element {
   }, [restore]);
 
   useEffect(() => {
-    closeFile();
+    // Cambiar de workspace cierra todo. Los modelos se desechan a mano: no los
+    // recoge el recolector de basura mientras Monaco los tenga indexados.
+    closeAll();
+    releaseAllModels();
 
     if (workspace === null) clearTree();
     else void loadRoot(workspace.root);
-  }, [workspace, loadRoot, clearTree, closeFile]);
+  }, [workspace, loadRoot, clearTree, closeAll]);
+
+  useEffect(() => {
+    // El registro se acomoda a las pestañas abiertas. Va acá y no en el editor
+    // porque al cerrar la última pestaña el editor se desmonta, y entonces su
+    // efecto ya no correría justo cuando hay algo que liberar. Un modelo que
+    // sobrevive al cierre no sólo ocupa memoria (RNF-04): al reabrir el
+    // archivo se devolvería ese modelo viejo en vez de leer el disco.
+    releaseModelsExcept(openTabs.map((tab) => tab.path));
+  }, [openTabs]);
 
   return (
     <div className="app">
@@ -45,7 +60,7 @@ export function App(): React.JSX.Element {
         <WorkspaceHeader />
         {workspace !== null && (
           <FileTree
-            selectedPath={openFilePath}
+            selectedPath={activePath}
             onSelectFile={(path) => {
               void openFile(path);
             }}
@@ -54,7 +69,7 @@ export function App(): React.JSX.Element {
       </aside>
 
       <main className="editor-area">
-        <OpenFileBar />
+        <TabStrip />
         <EditorArea />
       </main>
 

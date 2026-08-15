@@ -32,6 +32,25 @@ test.afterEach(async () => {
   await rm(workspace, { recursive: true, force: true });
 });
 
+/**
+ * Texto que se escribe para ensuciar el buffer.
+ *
+ * Sin espacios ni operadores a propósito: al tipear `const x = 1;` el popup de
+ * sugerencias por palabra se abre y acepta completados solo, y lo que termina
+ * en el buffer no es lo que se escribió. Los tests quedaban no deterministas
+ * por eso, no por el editor.
+ */
+const MARKER = 'ZZMARCAZZ';
+
+/** Escribe el marcador al final del archivo activo y cierra el popup. */
+async function typeMarker(window: Page): Promise<void> {
+  await window.keyboard.press('Control+End');
+  await window.keyboard.type(MARKER);
+  // Escape cierra el popup de sugerencias: con el popup abierto, Monaco
+  // enruta las teclas siguientes al popup y no al editor.
+  await window.keyboard.press('Escape');
+}
+
 /** Abre el workspace y el archivo, y deja el cursor dentro del editor. */
 async function openFile(): Promise<Page> {
   const window = await app.firstWindow();
@@ -48,20 +67,18 @@ test('editar marca el archivo como sucio y Ctrl+S lo limpia', async () => {
 
   await expect(window.getByTestId('tab-dirty-indicator')).toBeHidden();
 
-  await window.keyboard.press('Control+End');
-  await window.keyboard.type('\nconst extra = 1;');
+  await typeMarker(window);
   await expect(window.getByTestId('tab-dirty-indicator')).toBeVisible();
 
   await window.keyboard.press('Control+S');
   await expect(window.getByTestId('tab-dirty-indicator')).toBeHidden();
 
-  expect(await readFile(target, 'utf8')).toContain('const extra = 1;');
+  expect(await readFile(target, 'utf8')).toContain(MARKER);
 });
 
 test('el guardado es atómico y no deja temporales', async () => {
   const window = await openFile();
-  await window.keyboard.press('Control+End');
-  await window.keyboard.type('x');
+  await typeMarker(window);
   await window.keyboard.press('Control+S');
   await expect(window.getByTestId('tab-dirty-indicator')).toBeHidden();
 
@@ -74,8 +91,7 @@ test('el guardado es atómico y no deja temporales', async () => {
 
 test('ofrece sobrescribir o descartar cuando el archivo cambió en el disco', async () => {
   const window = await openFile();
-  await window.keyboard.press('Control+End');
-  await window.keyboard.type('\nconst mio = 1;');
+  await typeMarker(window);
 
   // Otro proceso toca el archivo entre la lectura y el guardado.
   await writeFile(target, 'const deOtro = 2;\n', 'utf8');
@@ -91,21 +107,19 @@ test('ofrece sobrescribir o descartar cuando el archivo cambió en el disco', as
 
 test('sobrescribir aplica los cambios locales sobre el archivo de disco', async () => {
   const window = await openFile();
-  await window.keyboard.press('Control+End');
-  await window.keyboard.type('\nconst mio = 1;');
+  await typeMarker(window);
   await writeFile(target, 'const deOtro = 2;\n', 'utf8');
   await window.keyboard.press('Control+S');
 
   await window.getByRole('button', { name: 'Sobrescribir el archivo' }).click();
 
   await expect(window.getByTestId('conflict-dialog')).toBeHidden();
-  expect(await readFile(target, 'utf8')).toContain('const mio = 1;');
+  expect(await readFile(target, 'utf8')).toContain(MARKER);
 });
 
 test('descartar recupera lo que hay en el disco', async () => {
   const window = await openFile();
-  await window.keyboard.press('Control+End');
-  await window.keyboard.type('\nconst mio = 1;');
+  await typeMarker(window);
   await writeFile(target, 'const deOtro = 2;\n', 'utf8');
   await window.keyboard.press('Control+S');
 

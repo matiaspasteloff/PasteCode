@@ -21,6 +21,8 @@ export const es = {
   'fileTree.empty': 'La carpeta está vacía',
   'fileTree.label': 'Archivos del workspace',
   'fileTree.loading': 'Cargando archivos…',
+  'tabs.close': 'Cerrar',
+  'tabs.label': 'Archivos abiertos',
   'workspace.emptyDescription': 'Abrí una carpeta para empezar a editar.',
   'workspace.emptyTitle': 'No hay ninguna carpeta abierta',
   'workspace.open': 'Abrir carpeta',

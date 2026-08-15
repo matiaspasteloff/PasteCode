@@ -1,86 +1,80 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { useEditorStore } from '../../stores/editor-store.js';
+import { resetEditorStore, tabsWith } from '../../test-support/editor-state.js';
 import { installFakeApi } from '../../test-support/fake-api.js';
 
 import { ConflictDialog } from './ConflictDialog.js';
-import { OpenFileBar } from './OpenFileBar.js';
+import { TabStrip } from './TabStrip.js';
 import { useSaveShortcut } from './use-save-shortcut.js';
 
-const FILE = { path: 'C:\\p\\saludo.ts', content: 'viejo', mtimeMs: 100 };
+const A = 'C:\\p\\saludo.ts';
+const B = 'C:\\p\\otro.ts';
 const CONFLICT = { code: 'STALE_FILE', userMessage: 'Cambió en el disco.' };
 
 beforeEach(() => {
-  useEditorStore.setState({
-    file: null,
-    isLoading: false,
-    isSaving: false,
-    isDirty: false,
-    error: null,
-    conflict: null,
-    readContent: null,
-  });
+  resetEditorStore();
 });
 
-afterEach(() => {
-  vi.useRealTimers();
-});
-
-describe('OpenFileBar', () => {
-  it('no muestra nada si no hay archivo abierto', () => {
-    const { container } = render(<OpenFileBar />);
+describe('TabStrip', () => {
+  it('no muestra nada sin pestañas abiertas', () => {
+    const { container } = render(<TabStrip />);
 
     expect(container.firstChild).toBeNull();
   });
 
-  it('muestra el nombre del archivo, sin la ruta', () => {
-    useEditorStore.setState({ file: FILE });
+  it('muestra una pestaña por archivo, con el nombre y sin la ruta', () => {
+    useEditorStore.setState({ tabs: tabsWith([A, B]) });
 
-    render(<OpenFileBar />);
+    render(<TabStrip />);
 
-    expect(screen.getByText('saludo.ts')).toBeDefined();
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+      'saludo.ts×',
+      'otro.ts×',
+    ]);
   });
 
-  it('muestra el punto de cambios sin guardar sólo cuando está sucio', () => {
-    useEditorStore.setState({ file: FILE });
-    const { rerender } = render(<OpenFileBar />);
-    expect(screen.queryByTestId('tab-dirty-indicator')).toBeNull();
+  it('marca cuál es la pestaña seleccionada', () => {
+    useEditorStore.setState({ tabs: tabsWith([A, B], 1) });
 
-    useEditorStore.setState({ isDirty: true });
-    rerender(<OpenFileBar />);
+    render(<TabStrip />);
 
-    expect(screen.getByTestId('tab-dirty-indicator')).toBeDefined();
+    expect(screen.getAllByRole('tab').map((tab) => tab.getAttribute('aria-selected'))).toEqual([
+      'false',
+      'true',
+    ]);
   });
 
-  it('no avisa nada si el guardado termina rápido', () => {
-    // RNF-24 pide feedback para lo que pasa de 500ms, y sólo para eso: un
-    // "Guardando…" que parpadea da sensación de lentitud justo cuando fue
-    // rápido.
-    vi.useFakeTimers();
-    useEditorStore.setState({ file: FILE, isSaving: true });
+  it('cambia de pestaña al hacer click', async () => {
+    useEditorStore.setState({ tabs: tabsWith([A, B], 0) });
+    render(<TabStrip />);
 
-    render(<OpenFileBar />);
-    act(() => {
-      vi.advanceTimersByTime(400);
-    });
+    await userEvent.click(screen.getByTestId('tab-otro.ts'));
 
-    expect(screen.queryByText('Guardando…')).toBeNull();
+    expect(useEditorStore.getState().tabs.activeTabIndex).toBe(1);
   });
 
-  it('avisa que está guardando cuando pasa de 500ms', async () => {
-    vi.useFakeTimers();
-    useEditorStore.setState({ file: FILE, isSaving: true });
-    render(<OpenFileBar />);
+  it('muestra el punto de cambios sin guardar sólo en la pestaña sucia', () => {
+    useEditorStore.setState({ tabs: tabsWith([A, B], 1) });
+    useEditorStore.getState().markDirty();
 
-    // `act` porque el temporizador dispara un `setState`: sin envolverlo,
-    // React no llega a aplicar el re-render antes de la aserción.
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(600);
-    });
+    render(<TabStrip />);
 
-    expect(screen.getByText('Guardando…')).toBeDefined();
+    expect(screen.getAllByTestId('tab-dirty-indicator')).toHaveLength(1);
+  });
+
+  it('cierra la pestaña sin activarla primero', async () => {
+    // Sin `stopPropagation`, cerrar la pestaña de la derecha activaría esa
+    // misma pestaña antes de cerrarla, y quedaría la activa equivocada.
+    useEditorStore.setState({ tabs: tabsWith([A, B], 0) });
+    render(<TabStrip />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar otro.ts' }));
+
+    expect(useEditorStore.getState().tabs.tabs.map((tab) => tab.path)).toEqual([A]);
+    expect(useEditorStore.getState().tabs.activeTabIndex).toBe(0);
   });
 });
 
@@ -90,12 +84,11 @@ describe('ConflictDialog', () => {
     // sin pasar por `close()` y nunca abandona la top layer.
     render(<ConflictDialog />);
 
-    const dialog = screen.getByTestId('conflict-dialog');
-    expect(dialog.hasAttribute('open')).toBe(false);
+    expect(screen.getByTestId('conflict-dialog').hasAttribute('open')).toBe(false);
   });
 
   it('ofrece las dos salidas cuando hay conflicto', () => {
-    useEditorStore.setState({ file: FILE, conflict: CONFLICT });
+    useEditorStore.setState({ tabs: tabsWith([A]), conflict: CONFLICT });
 
     render(<ConflictDialog />);
 
@@ -106,16 +99,18 @@ describe('ConflictDialog', () => {
 
   it('sobrescribir guarda sin mandar el expectedMtimeMs', async () => {
     const invoke = installFakeApi({ 'fs:writeFile': { ok: true, value: { mtimeMs: 300 } } });
-    useEditorStore.setState({ file: FILE, conflict: CONFLICT, readContent: () => 'mio' });
+    useEditorStore.setState({
+      tabs: tabsWith([A]),
+      mtimes: { [A]: 100 },
+      conflict: CONFLICT,
+      readContent: () => 'mio',
+    });
     render(<ConflictDialog />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Sobrescribir el archivo' }));
 
     await waitFor(() => {
-      expect(invoke).toHaveBeenCalledWith('fs:writeFile', {
-        path: FILE.path,
-        content: 'mio',
-      });
+      expect(invoke).toHaveBeenCalledWith('fs:writeFile', { path: A, content: 'mio' });
     });
   });
 
@@ -123,13 +118,17 @@ describe('ConflictDialog', () => {
     installFakeApi({
       'fs:readFile': { ok: true, value: { content: 'del disco', mtimeMs: 900 } },
     });
-    useEditorStore.setState({ file: FILE, conflict: CONFLICT, readContent: () => 'mio' });
+    useEditorStore.setState({
+      tabs: tabsWith([A]),
+      conflict: CONFLICT,
+      readContent: () => 'mio',
+    });
     render(<ConflictDialog />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Descartar mis cambios' }));
 
     await waitFor(() => {
-      expect(useEditorStore.getState().file?.content).toBe('del disco');
+      expect(useEditorStore.getState().pendingFile?.content).toBe('del disco');
     });
     expect(useEditorStore.getState().conflict).toBeNull();
   });
@@ -145,14 +144,18 @@ function SaveShortcutHost(): React.JSX.Element {
 describe('useSaveShortcut', () => {
   it('guarda con Ctrl+S', async () => {
     const invoke = installFakeApi({ 'fs:writeFile': { ok: true, value: { mtimeMs: 200 } } });
-    useEditorStore.setState({ file: FILE, isDirty: true, readContent: () => 'nuevo' });
+    useEditorStore.setState({
+      tabs: tabsWith([A]),
+      mtimes: { [A]: 100 },
+      readContent: () => 'nuevo',
+    });
     render(<SaveShortcutHost />);
 
     await userEvent.keyboard('{Control>}s{/Control}');
 
     await waitFor(() => {
       expect(invoke).toHaveBeenCalledWith('fs:writeFile', {
-        path: FILE.path,
+        path: A,
         content: 'nuevo',
         expectedMtimeMs: 100,
       });
@@ -161,7 +164,7 @@ describe('useSaveShortcut', () => {
 
   it('ignora las teclas que no son Ctrl+S', async () => {
     const invoke = installFakeApi({});
-    useEditorStore.setState({ file: FILE, readContent: () => 'nuevo' });
+    useEditorStore.setState({ tabs: tabsWith([A]), readContent: () => 'nuevo' });
     render(<SaveShortcutHost />);
 
     await userEvent.keyboard('s');

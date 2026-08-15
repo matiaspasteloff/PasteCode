@@ -1,3 +1,5 @@
+import { activeTab } from '@pastecode/core';
+
 import { t } from '../../i18n/index.js';
 import { useEditorStore } from '../../stores/editor-store.js';
 
@@ -12,13 +14,14 @@ import { MonacoEditor } from './MonacoEditor.js';
  * hace evidente que no quedó ninguno afuera.
  */
 export function EditorArea(): React.JSX.Element {
-  const file = useEditorStore((state) => state.file);
+  const tabs = useEditorStore((state) => state.tabs);
   const isLoading = useEditorStore((state) => state.isLoading);
   const error = useEditorStore((state) => state.error);
+  const active = activeTab(tabs);
 
-  // El editor va primero: mientras haya un archivo abierto, lo que pase con
-  // una carga posterior no tiene que sacarlo de la pantalla.
-  if (file !== null) return <MonacoEditor key={file.path} file={file} />;
+  // El editor va primero: mientras haya una pestaña abierta, lo que pase con
+  // una carga posterior no tiene que sacarla de la pantalla.
+  if (active !== undefined) return <MonacoEditor activePath={active.path} />;
 
   // Sin este estado, abrir un archivo grande deja la pantalla diciendo "abrí
   // una carpeta" mientras se lee, y parece que el click no hizo nada.

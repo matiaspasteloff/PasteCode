@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useEditorStore } from '../../stores/editor-store.js';
+import { resetEditorStore, tabsWith } from '../../test-support/editor-state.js';
 
 import { EditorArea } from './EditorArea.js';
 
@@ -9,27 +10,19 @@ import { EditorArea } from './EditorArea.js';
 // levanta un worker. Un test que lo montara verificaría el mock de jsdom, no
 // el editor. Lo real lo ejerce el E2E.
 vi.mock('./MonacoEditor.js', () => ({
-  MonacoEditor: ({ file }: { file: { path: string } }) => (
-    <div data-testid="monaco-stub">{file.path}</div>
+  MonacoEditor: ({ activePath }: { activePath: string }) => (
+    <div data-testid="monaco-stub">{activePath}</div>
   ),
 }));
 
-const FILE = { path: 'C:\\p\\a.ts', content: 'x', mtimeMs: 1 };
+const A = 'C:\\p\\a.ts';
 
 beforeEach(() => {
-  useEditorStore.setState({
-    file: null,
-    isLoading: false,
-    isSaving: false,
-    isDirty: false,
-    error: null,
-    conflict: null,
-    readContent: null,
-  });
+  resetEditorStore();
 });
 
 describe('EditorArea', () => {
-  it('muestra el estado vacío cuando no hay nada abierto', () => {
+  it('muestra el estado vacío cuando no hay pestañas', () => {
     render(<EditorArea />);
 
     expect(screen.getByText('Abrí una carpeta para empezar a editar.')).toBeDefined();
@@ -57,17 +50,17 @@ describe('EditorArea', () => {
     expect(alert.textContent).not.toContain('BINARY');
   });
 
-  it('muestra el editor cuando hay un archivo abierto', () => {
-    useEditorStore.setState({ file: FILE });
+  it('muestra el editor con la pestaña activa', () => {
+    useEditorStore.setState({ tabs: tabsWith([A]) });
 
     render(<EditorArea />);
 
-    expect(screen.getByTestId('monaco-stub').textContent).toBe('C:\\p\\a.ts');
+    expect(screen.getByTestId('monaco-stub').textContent).toBe(A);
   });
 
   it('mantiene el editor en pantalla si se está abriendo otro archivo', () => {
     // Sacarlo dejaría la pantalla en blanco entre archivo y archivo.
-    useEditorStore.setState({ file: FILE, isLoading: true });
+    useEditorStore.setState({ tabs: tabsWith([A]), isLoading: true });
 
     render(<EditorArea />);
 

@@ -1,10 +1,9 @@
 import type * as MonacoApi from 'monaco-editor/editor/editor.api';
 import { useEffect, useRef, useState } from 'react';
 
-import type { OpenFile } from '../../stores/editor-store.js';
 import { useEditorStore } from '../../stores/editor-store.js';
 
-import { languageOverrideFor } from './language.js';
+import { syncModelWithDisk, rememberViewState, savedViewState } from './model-registry.js';
 
 /** En qué estado está el montaje de Monaco. */
 type EditorStatus = 'loading' | 'ready' | 'failed';
@@ -15,28 +14,96 @@ interface MonacoEditorHandle {
 }
 
 /**
- * Monta Monaco en un contenedor y le pone el archivo abierto.
+ * Monta **un solo** editor de Monaco y le va cambiando el modelo.
  *
  * Monaco entra por `import()` dinámico y no por un import estático, y eso es
- * un requisito y no una preferencia: son varios megabytes, y
+ * un requisito y no una preferencia: son casi 4MB, y
  * [RNF-01](../../../../../../docs/04-requerimientos-no-funcionales.md#performance)
  * pide arrancar en menos de 1,5s. Con import estático, la ventana no pinta
  * nada hasta que el editor entero esté parseado, incluso si lo que se abre es
  * una carpeta vacía.
  *
- * @param file El archivo a mostrar, o `null` si no hay ninguno.
+ * @param activePath Ruta de la pestaña activa, o `null` si no hay ninguna.
  * @returns El ref del contenedor y el estado del montaje.
  * @example
- * const { containerRef, status } = useMonacoEditor(file);
+ * const { containerRef, status } = useMonacoEditor(activePath);
  */
-export function useMonacoEditor(file: OpenFile | null): MonacoEditorHandle {
+export function useMonacoEditor(activePath: string | null): MonacoEditorHandle {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<MonacoApi.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof MonacoApi | null>(null);
+  const shownPathRef = useRef<string | null>(null);
   const [status, setStatus] = useState<EditorStatus>('loading');
+
+  const pendingFile = useEditorStore((state) => state.pendingFile);
+  const consumePendingFile = useEditorStore((state) => state.consumePendingFile);
   const setContentReader = useEditorStore((state) => state.setContentReader);
   const markDirty = useEditorStore((state) => state.markDirty);
 
+  useMountedEditor(containerRef, editorRef, monacoRef, setStatus);
+
+  // El contenido recién leído se convierte en modelo una sola vez: de ahí en
+  // más la fuente de verdad es el modelo, no el store.
+  useEffect(() => {
+    const monaco = monacoRef.current;
+    if (monaco === null || pendingFile === null) return;
+
+    syncModelWithDisk(monaco, pendingFile.path, pendingFile.content);
+    consumePendingFile();
+  }, [pendingFile, status, consumePendingFile]);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+    if (editor === null || monaco === null) return;
+
+    showActiveModel({ editor, monaco, activePath, shownPathRef });
+  }, [activePath, status, pendingFile]);
+
+  // La suscripción a los cambios va en su propio efecto y no adentro del que
+  // cambia el modelo. Cuando estaban juntos, cualquier re-render volvía a
+  // correr el efecto: React ejecutaba la limpieza —que desuscribía— y el
+  // cuerpo salía temprano por ser la misma ruta, así que la pestaña dejaba de
+  // marcarse como sucia para siempre.
+  useEffect(() => {
+    const monaco = monacoRef.current;
+    if (monaco === null || activePath === null) return undefined;
+
+    const model = monaco.editor.getModel(monaco.Uri.file(activePath));
+    if (model === null) return undefined;
+
+    const subscription = model.onDidChangeContent(() => {
+      markDirty();
+    });
+
+    return () => {
+      subscription.dispose();
+    };
+  }, [activePath, status, pendingFile, markDirty]);
+
+  useEffect(() => {
+    setContentReader(() => editorRef.current?.getValue() ?? '');
+
+    return () => {
+      setContentReader(null);
+    };
+  }, [setContentReader]);
+
+  return { containerRef, status };
+}
+
+/**
+ * Carga Monaco y crea la única instancia de editor.
+ *
+ * Está separado del hook principal porque el montaje y el cambio de modelo son
+ * dos ciclos de vida distintos: uno corre una vez, el otro en cada pestaña.
+ */
+function useMountedEditor(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  editorRef: React.RefObject<MonacoApi.editor.IStandaloneCodeEditor | null>,
+  monacoRef: React.RefObject<typeof MonacoApi | null>,
+  setStatus: (status: EditorStatus) => void
+): void {
   useEffect(() => {
     let isCancelled = false;
 
@@ -58,52 +125,48 @@ export function useMonacoEditor(file: OpenFile | null): MonacoEditorHandle {
 
     return () => {
       isCancelled = true;
-      // El modelo se dispone aparte: `editor.dispose()` no se lleva el modelo,
-      // y un modelo huérfano queda retenido para siempre. Es la fuga que
-      // RNF-04 va a hacer visible en cuanto haya pestañas.
-      editorRef.current?.getModel()?.dispose();
+      // Se desecha el editor pero **no** los modelos: son del registro, que
+      // los mantiene vivos mientras la pestaña esté abierta. Desecharlos acá
+      // perdería el historial de undo al desmontar el componente.
       editorRef.current?.dispose();
       editorRef.current = null;
     };
-  }, []);
-
-  useEffect(() => {
-    const monaco = monacoRef.current;
-    const editor = editorRef.current;
-    if (monaco === null || editor === null || file === null) return undefined;
-
-    // El anterior se desecha **antes** de crear el nuevo. Monaco indexa los
-    // modelos por URI y lanza "Cannot add model because it already exists" si
-    // aparecen dos con la misma, que es exactamente lo que pasa al reabrir el
-    // mismo archivo —descartar cambios, por ejemplo—. La excepción sale de un
-    // efecto, así que se lleva puesto el árbol de React entero y la ventana
-    // queda en blanco. Un modelo por archivo abierto y uno solo abierto: el
-    // registro que los reutiliza entre pestañas llega en el paso 16.
-    const previous = editor.getModel();
-    editor.setModel(null);
-    previous?.dispose();
-    editor.setModel(createModel(monaco, file));
-
-    // El store no guarda el texto, guarda cómo pedirlo: copiar el buffer en
-    // cada tecla sería copiar el archivo entero por pulsación.
-    setContentReader(() => editor.getValue());
-    const subscription = editor.onDidChangeModelContent(() => {
-      markDirty();
-    });
-
-    return () => {
-      subscription.dispose();
-      setContentReader(null);
-    };
-  }, [file, status, setContentReader, markDirty]);
-
-  return { containerRef, status };
+  }, [containerRef, editorRef, monacoRef, setStatus]);
 }
 
-/** Crea el modelo del archivo, dejando que Monaco deduzca el lenguaje. */
-function createModel(monaco: typeof MonacoApi, file: OpenFile): MonacoApi.editor.ITextModel {
-  const uri = monaco.Uri.file(file.path);
-  const fileName = file.path.split(/[\\/]/).at(-1) ?? '';
+interface ShowModelOptions {
+  editor: MonacoApi.editor.IStandaloneCodeEditor;
+  monaco: typeof MonacoApi;
+  activePath: string | null;
+  shownPathRef: React.RefObject<string | null>;
+}
 
-  return monaco.editor.createModel(file.content, languageOverrideFor(fileName), uri);
+/**
+ * Pone en el editor el modelo de la pestaña activa, conservando cursor y
+ * scroll de la que se abandona.
+ *
+ * El undo se conserva solo porque vive en el modelo; el cursor y el scroll no,
+ * porque son del editor. De ahí el `saveViewState` / `restoreViewState`.
+ */
+function showActiveModel(options: ShowModelOptions): void {
+  const { editor, monaco, activePath, shownPathRef } = options;
+  const previousPath = shownPathRef.current;
+
+  if (activePath === previousPath) return;
+  if (previousPath !== null) rememberViewState(previousPath, editor.saveViewState());
+
+  if (activePath === null) {
+    editor.setModel(null);
+    shownPathRef.current = null;
+    return;
+  }
+
+  const model = monaco.editor.getModel(monaco.Uri.file(activePath));
+  // Todavía no llegó el contenido: el efecto vuelve a correr cuando el
+  // registro lo cree.
+  if (model === null) return;
+
+  editor.setModel(model);
+  editor.restoreViewState(savedViewState(activePath));
+  shownPathRef.current = activePath;
 }

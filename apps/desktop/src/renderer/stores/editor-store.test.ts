@@ -1,186 +1,145 @@
+import { activeTab } from '@pastecode/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { resetEditorStore, tabsWith } from '../test-support/editor-state.js';
 import { installFakeApi } from '../test-support/fake-api.js';
 
 import { useEditorStore } from './editor-store.js';
 
-const PATH = 'C:\\p\\a.ts';
+const A = 'C:\\p\\a.ts';
+const B = 'C:\\p\\b.ts';
+
+/** El estado actual, para que las aserciones no repitan `getState()`. */
+function state() {
+  return useEditorStore.getState();
+}
 
 beforeEach(() => {
-  // El store es de módulo y no tiene provider. Ver ADR-0004.
-  useEditorStore.setState({
-    file: null,
-    isLoading: false,
-    isSaving: false,
-    isDirty: false,
-    error: null,
-    conflict: null,
-    readContent: null,
-  });
+  resetEditorStore();
 });
 
-describe('useEditorStore', () => {
-  it('guarda el contenido y el mtime de la lectura', async () => {
-    installFakeApi({
-      'fs:readFile': {
-        ok: true,
-        value: { content: 'const x = 1;', mtimeMs: 1_700_000_000_000 },
-      },
-    });
+describe('abrir archivos', () => {
+  it('abre una pestaña y deja el contenido listo para el editor', async () => {
+    installFakeApi({ 'fs:readFile': { ok: true, value: { content: 'hola', mtimeMs: 10 } } });
 
-    await useEditorStore.getState().open(PATH);
+    await state().open(A);
 
-    expect(useEditorStore.getState().file).toEqual({
-      path: PATH,
-      content: 'const x = 1;',
-      mtimeMs: 1_700_000_000_000,
-    });
+    expect(state().tabs.tabs.map((tab) => tab.path)).toEqual([A]);
+    expect(state().pendingFile).toEqual({ path: A, content: 'hola' });
+    expect(state().mtimes[A]).toBe(10);
   });
 
-  it('conserva el mtime porque es lo que detecta el conflicto al guardar', async () => {
-    // Sin el mtime de la lectura no hay `expectedMtimeMs` que mandar, y sin
-    // eso `fs:writeFile` pisa en silencio lo que otro proceso haya escrito.
-    installFakeApi({
-      'fs:readFile': { ok: true, value: { content: '', mtimeMs: 42 } },
-    });
-
-    await useEditorStore.getState().open(PATH);
-
-    expect(useEditorStore.getState().file?.mtimeMs).toBe(42);
-  });
-
-  it('deja el error del IPC en el estado, sin lanzarlo', async () => {
-    installFakeApi({
-      'fs:readFile': {
-        ok: false,
-        error: { code: 'BINARY_FILE_UNSUPPORTED', userMessage: 'Es binario.' },
-      },
-    });
-
-    await useEditorStore.getState().open('C:\\p\\logo.png');
-
-    expect(useEditorStore.getState().error).toEqual({
-      code: 'BINARY_FILE_UNSUPPORTED',
-      userMessage: 'Es binario.',
-    });
-  });
-
-  it('descarta el archivo anterior cuando el nuevo falla', async () => {
-    // Dejarlo en pantalla mientras el mensaje habla de otro archivo confunde
-    // más de lo que ayuda.
+  it('no relee un archivo que ya está abierto', async () => {
+    // El modelo tiene las ediciones sin guardar y el historial de undo:
+    // releerlo al volver a la pestaña las tiraría.
     const invoke = installFakeApi({
-      'fs:readFile': { ok: true, value: { content: 'viejo', mtimeMs: 1 } },
+      'fs:readFile': { ok: true, value: { content: 'hola', mtimeMs: 10 } },
     });
-    await useEditorStore.getState().open(PATH);
+    await state().open(A);
+    await state().open(B);
+    invoke.mockClear();
+
+    await state().open(A);
+
+    expect(invoke).not.toHaveBeenCalled();
+    expect(activeTab(state().tabs)?.path).toBe(A);
+  });
+
+  it('deja el error en el estado sin cerrar lo que ya estaba abierto', async () => {
+    const invoke = installFakeApi({
+      'fs:readFile': { ok: true, value: { content: 'hola', mtimeMs: 10 } },
+    });
+    await state().open(A);
 
     invoke.mockResolvedValueOnce({
       ok: false,
-      error: { code: 'FILE_ACCESS_DENIED', userMessage: 'No se pudo.' },
+      error: { code: 'BINARY_FILE_UNSUPPORTED', userMessage: 'Es binario.' },
     });
-    await useEditorStore.getState().open('C:\\p\\otro.ts');
+    await state().open('C:\\p\\logo.png');
 
-    expect(useEditorStore.getState().file).toBeNull();
-  });
-
-  it('limpia el error al abrir un archivo nuevo con éxito', async () => {
-    const invoke = installFakeApi({
-      'fs:readFile': { ok: false, error: { code: 'X', userMessage: 'Falló.' } },
-    });
-    await useEditorStore.getState().open(PATH);
-
-    invoke.mockResolvedValueOnce({ ok: true, value: { content: 'ok', mtimeMs: 2 } });
-    await useEditorStore.getState().open(PATH);
-
-    expect(useEditorStore.getState().error).toBeNull();
-  });
-
-  it('cierra el archivo abierto', () => {
-    useEditorStore.setState({ file: { path: PATH, content: 'x', mtimeMs: 1 } });
-
-    useEditorStore.getState().close();
-
-    expect(useEditorStore.getState().file).toBeNull();
+    expect(state().error?.code).toBe('BINARY_FILE_UNSUPPORTED');
+    expect(state().tabs.tabs.map((tab) => tab.path)).toEqual([A]);
   });
 });
 
-describe('guardado', () => {
-  /** Deja el store como si hubiera un archivo abierto y editado. */
-  function withOpenFile(content: string) {
+describe('cerrar pestañas', () => {
+  it('olvida el mtime del archivo cerrado', async () => {
+    installFakeApi({ 'fs:readFile': { ok: true, value: { content: 'hola', mtimeMs: 10 } } });
+    await state().open(A);
+
+    state().closeTab(0);
+
+    expect(state().mtimes[A]).toBeUndefined();
+    expect(state().tabs.activeTabIndex).toBe(-1);
+  });
+
+  it('ignora un índice que no existe', () => {
+    useEditorStore.setState({ tabs: tabsWith([A]) });
+
+    state().closeTab(7);
+
+    expect(state().tabs.tabs).toHaveLength(1);
+  });
+});
+
+describe('guardar', () => {
+  /** Deja una pestaña activa, sucia y con contenido para escribir. */
+  function withDirtyTab(content: string): void {
     useEditorStore.setState({
-      file: { path: PATH, content: 'viejo', mtimeMs: 100 },
-      isDirty: true,
+      tabs: tabsWith([A, B], 0),
+      mtimes: { [A]: 100 },
       readContent: () => content,
     });
+    state().markDirty();
   }
 
-  it('manda el expectedMtimeMs de la última lectura', async () => {
-    const invoke = installFakeApi({
-      'fs:writeFile': { ok: true, value: { mtimeMs: 200 } },
-    });
-    withOpenFile('nuevo');
+  it('manda el expectedMtimeMs de la última lectura de la pestaña activa', async () => {
+    const invoke = installFakeApi({ 'fs:writeFile': { ok: true, value: { mtimeMs: 200 } } });
+    withDirtyTab('nuevo');
 
-    await useEditorStore.getState().save();
+    await state().save();
 
     expect(invoke).toHaveBeenCalledWith('fs:writeFile', {
-      path: PATH,
+      path: A,
       content: 'nuevo',
       expectedMtimeMs: 100,
     });
   });
 
-  it('deja de estar sucio y adopta el mtime nuevo al guardar bien', async () => {
+  it('limpia el estado sucio y adopta el mtime nuevo', async () => {
     installFakeApi({ 'fs:writeFile': { ok: true, value: { mtimeMs: 200 } } });
-    withOpenFile('nuevo');
+    withDirtyTab('nuevo');
 
-    await useEditorStore.getState().save();
+    await state().save();
 
-    expect(useEditorStore.getState().isDirty).toBe(false);
-    expect(useEditorStore.getState().file).toEqual({
-      path: PATH,
-      content: 'nuevo',
-      mtimeMs: 200,
-    });
+    expect(state().tabs.tabs[0]?.isDirty).toBe(false);
+    expect(state().mtimes[A]).toBe(200);
   });
 
   it('omite el expectedMtimeMs al forzar, en vez de mandarlo en undefined', async () => {
     // Con exactOptionalPropertyTypes no son lo mismo, y el schema del canal es
     // estricto: mandar la propiedad en undefined sería un error de validación.
-    const invoke = installFakeApi({
-      'fs:writeFile': { ok: true, value: { mtimeMs: 300 } },
-    });
-    withOpenFile('nuevo');
+    const invoke = installFakeApi({ 'fs:writeFile': { ok: true, value: { mtimeMs: 300 } } });
+    withDirtyTab('nuevo');
 
-    await useEditorStore.getState().save({ force: true });
+    await state().save({ force: true });
 
-    expect(invoke).toHaveBeenCalledWith('fs:writeFile', { path: PATH, content: 'nuevo' });
+    expect(invoke).toHaveBeenCalledWith('fs:writeFile', { path: A, content: 'nuevo' });
   });
 
-  it('manda un conflicto a su propio campo y no al de error', async () => {
+  it('manda un conflicto a su propio campo y conserva el estado sucio', async () => {
     installFakeApi({
-      'fs:writeFile': {
-        ok: false,
-        error: { code: 'STALE_FILE', userMessage: 'Cambió en el disco.' },
-      },
+      'fs:writeFile': { ok: false, error: { code: 'STALE_FILE', userMessage: 'Cambió.' } },
     });
-    withOpenFile('nuevo');
+    withDirtyTab('nuevo');
 
-    await useEditorStore.getState().save();
+    await state().save();
 
-    expect(useEditorStore.getState().conflict?.code).toBe('STALE_FILE');
-    expect(useEditorStore.getState().error).toBeNull();
-  });
-
-  it('conserva el estado sucio cuando el guardado falla', async () => {
-    // Perder la marca haría creer que se guardó, y el próximo Ctrl+S no
+    expect(state().conflict?.code).toBe('STALE_FILE');
+    expect(state().error).toBeNull();
+    // Perder la marca haría creer que se guardó y el próximo Ctrl+S no
     // reintentaría.
-    installFakeApi({
-      'fs:writeFile': { ok: false, error: { code: 'STALE_FILE', userMessage: 'x' } },
-    });
-    withOpenFile('nuevo');
-
-    await useEditorStore.getState().save();
-
-    expect(useEditorStore.getState().isDirty).toBe(true);
+    expect(state().tabs.tabs[0]?.isDirty).toBe(true);
   });
 
   it('trata cualquier otro fallo como error normal', async () => {
@@ -190,32 +149,53 @@ describe('guardado', () => {
         error: { code: 'FILE_ACCESS_DENIED', userMessage: 'Sin permisos.' },
       },
     });
-    withOpenFile('nuevo');
+    withDirtyTab('nuevo');
 
-    await useEditorStore.getState().save();
+    await state().save();
 
-    expect(useEditorStore.getState().conflict).toBeNull();
-    expect(useEditorStore.getState().error?.code).toBe('FILE_ACCESS_DENIED');
+    expect(state().conflict).toBeNull();
+    expect(state().error?.code).toBe('FILE_ACCESS_DENIED');
   });
 
-  it('no hace nada si no hay archivo abierto', async () => {
+  it('no hace nada si no hay pestaña activa', async () => {
     const invoke = installFakeApi({});
 
-    await useEditorStore.getState().save();
+    await state().save();
 
     expect(invoke).not.toHaveBeenCalled();
   });
 
-  it('descarta los cambios releyendo el archivo del disco', async () => {
+  it('sólo marca sucia la pestaña activa', () => {
+    useEditorStore.setState({ tabs: tabsWith([A, B], 1) });
+
+    state().markDirty();
+
+    expect(state().tabs.tabs.map((tab) => tab.isDirty)).toEqual([false, true]);
+  });
+});
+
+describe('descartar cambios', () => {
+  it('relee el archivo y limpia el conflicto', async () => {
     installFakeApi({
       'fs:readFile': { ok: true, value: { content: 'del disco', mtimeMs: 900 } },
     });
-    withOpenFile('lo que escribí');
+    useEditorStore.setState({
+      tabs: tabsWith([A]),
+      conflict: { code: 'STALE_FILE', userMessage: 'Cambió.' },
+    });
 
-    await useEditorStore.getState().discardAndReload();
+    await state().discardAndReload();
 
-    expect(useEditorStore.getState().file?.content).toBe('del disco');
-    expect(useEditorStore.getState().isDirty).toBe(false);
-    expect(useEditorStore.getState().conflict).toBeNull();
+    expect(state().pendingFile).toEqual({ path: A, content: 'del disco' });
+    expect(state().conflict).toBeNull();
+    expect(state().tabs.tabs[0]?.isDirty).toBe(false);
+  });
+
+  it('no hace nada sin pestaña activa', async () => {
+    const invoke = installFakeApi({});
+
+    await state().discardAndReload();
+
+    expect(invoke).not.toHaveBeenCalled();
   });
 });
