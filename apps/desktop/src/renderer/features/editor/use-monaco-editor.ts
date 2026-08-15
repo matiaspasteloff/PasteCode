@@ -2,6 +2,7 @@ import type * as MonacoApi from 'monaco-editor/editor/editor.api';
 import { useEffect, useRef, useState } from 'react';
 
 import type { OpenFile } from '../../stores/editor-store.js';
+import { useEditorStore } from '../../stores/editor-store.js';
 
 import { languageOverrideFor } from './language.js';
 
@@ -33,6 +34,8 @@ export function useMonacoEditor(file: OpenFile | null): MonacoEditorHandle {
   const editorRef = useRef<MonacoApi.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof MonacoApi | null>(null);
   const [status, setStatus] = useState<EditorStatus>('loading');
+  const setContentReader = useEditorStore((state) => state.setContentReader);
+  const markDirty = useEditorStore((state) => state.markDirty);
 
   useEffect(() => {
     let isCancelled = false;
@@ -67,14 +70,32 @@ export function useMonacoEditor(file: OpenFile | null): MonacoEditorHandle {
   useEffect(() => {
     const monaco = monacoRef.current;
     const editor = editorRef.current;
-    if (monaco === null || editor === null || file === null) return;
+    if (monaco === null || editor === null || file === null) return undefined;
 
+    // El anterior se desecha **antes** de crear el nuevo. Monaco indexa los
+    // modelos por URI y lanza "Cannot add model because it already exists" si
+    // aparecen dos con la misma, que es exactamente lo que pasa al reabrir el
+    // mismo archivo —descartar cambios, por ejemplo—. La excepción sale de un
+    // efecto, así que se lleva puesto el árbol de React entero y la ventana
+    // queda en blanco. Un modelo por archivo abierto y uno solo abierto: el
+    // registro que los reutiliza entre pestañas llega en el paso 16.
     const previous = editor.getModel();
-    editor.setModel(createModel(monaco, file));
-    // Un modelo por archivo abierto, y sólo uno abierto por ahora. El registro
-    // que los reutiliza entre pestañas llega en el paso 16.
+    editor.setModel(null);
     previous?.dispose();
-  }, [file, status]);
+    editor.setModel(createModel(monaco, file));
+
+    // El store no guarda el texto, guarda cómo pedirlo: copiar el buffer en
+    // cada tecla sería copiar el archivo entero por pulsación.
+    setContentReader(() => editor.getValue());
+    const subscription = editor.onDidChangeModelContent(() => {
+      markDirty();
+    });
+
+    return () => {
+      subscription.dispose();
+      setContentReader(null);
+    };
+  }, [file, status, setContentReader, markDirty]);
 
   return { containerRef, status };
 }

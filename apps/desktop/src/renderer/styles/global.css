@@ -168,8 +168,71 @@ body {
 .editor-area {
   display: flex;
   overflow: hidden;
+  flex-direction: column;
+}
+
+/* Los estados de texto —vacío, cargando, error— se centran; el editor ocupa
+   todo. El contenedor es columna para que la barra del archivo quede arriba. */
+.editor-area > .editor-area__empty {
+  margin: auto;
+}
+
+.open-file {
+  display: flex;
   align-items: center;
-  justify-content: center;
+  padding: 0.3rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  gap: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.open-file__dirty {
+  color: var(--color-accent);
+  font-size: 0.7rem;
+}
+
+.open-file__saving {
+  color: var(--color-muted);
+}
+
+.conflict {
+  max-width: 26rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.4rem;
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+
+.conflict::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.conflict__title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.conflict__message {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+}
+
+.conflict__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.conflict__actions button {
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background: var(--color-surface);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
 }
 
 .editor-area__empty {

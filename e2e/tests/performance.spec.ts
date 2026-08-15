@@ -42,6 +42,17 @@ test.afterEach(async () => {
 });
 
 test('RNF-01: la ventana pinta el primer contenido en menos de 1,5s', async () => {
+  // Se arranca dos veces y se mide la segunda, por el mismo motivo que en
+  // RNF-03: la primera vez que se abre un bundle recién construido, Windows lo
+  // escanea entero, y eso mide al antivirus y no al arranque de la app. En una
+  // instalación real el escaneo pasa una vez y no en cada arranque.
+  const warmup = await electron.launch({
+    args: [DESKTOP_ROOT],
+    env: { ...process.env, PASTECODE_E2E_WORKSPACE: workspace },
+  });
+  await (await warmup.firstWindow()).getByRole('button', { name: 'Abrir carpeta' }).waitFor();
+  await warmup.close();
+
   const startedAt = Date.now();
   app = await electron.launch({
     args: [DESKTOP_ROOT],

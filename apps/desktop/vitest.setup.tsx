@@ -56,6 +56,17 @@ beforeEach(() => {
   Element.prototype.scrollIntoView = function scrollIntoView(): void {
     // jsdom no scrollea; alcanza con que exista y no explote.
   };
+
+  // jsdom no implementa el `<dialog>` modal: `showModal` no existe. El stub
+  // sólo refleja el estado en el atributo `open`, que es lo que los tests
+  // consultan. La top layer y el foco atrapado de verdad los ejerce el E2E.
+  HTMLDialogElement.prototype.showModal = function showModal(): void {
+    this.open = true;
+  };
+
+  HTMLDialogElement.prototype.close = function close(): void {
+    this.open = false;
+  };
 });
 
 afterEach(() => {

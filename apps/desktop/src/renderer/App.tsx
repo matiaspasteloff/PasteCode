@@ -1,7 +1,10 @@
 import { useEffect } from 'react';
 
 import { StatusBar } from './components/StatusBar.js';
+import { ConflictDialog } from './features/editor/ConflictDialog.js';
 import { EditorArea } from './features/editor/EditorArea.js';
+import { OpenFileBar } from './features/editor/OpenFileBar.js';
+import { useSaveShortcut } from './features/editor/use-save-shortcut.js';
 import { FileTree } from './features/file-tree/FileTree.js';
 import { WorkspaceHeader } from './features/workspace/WorkspaceHeader.js';
 import { useEditorStore } from './stores/editor-store.js';
@@ -20,6 +23,8 @@ export function App(): React.JSX.Element {
   const openFilePath = useEditorStore((state) => state.file?.path ?? null);
   const openFile = useEditorStore((state) => state.open);
   const closeFile = useEditorStore((state) => state.close);
+
+  useSaveShortcut();
 
   useEffect(() => {
     // El main puede tener un workspace abierto de antes que la ventana se
@@ -49,10 +54,12 @@ export function App(): React.JSX.Element {
       </aside>
 
       <main className="editor-area">
+        <OpenFileBar />
         <EditorArea />
       </main>
 
       <StatusBar />
+      <ConflictDialog />
     </div>
   );
 }

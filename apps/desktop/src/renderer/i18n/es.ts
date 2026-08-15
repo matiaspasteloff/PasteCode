@@ -10,7 +10,12 @@
  * para que agregar una no sea una decisión.
  */
 export const es = {
+  'conflict.discard': 'Descartar mis cambios',
+  'conflict.overwrite': 'Sobrescribir el archivo',
+  'conflict.title': 'El archivo cambió en el disco',
+  'editor.dirty': 'Sin guardar',
   'editor.failed': 'No se pudo cargar el editor.',
+  'editor.saving': 'Guardando…',
   'editor.loading': 'Cargando el editor…',
   'editor.openingFile': 'Abriendo el archivo…',
   'fileTree.empty': 'La carpeta está vacía',
