@@ -1,0 +1,30 @@
+appId: com.pasteloff.pastecode
+productName: PasteCode
+copyright: Copyright © 2026 Matías Pasteloff
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - out/**
+  - package.json
+
+# Sin firma de código por ahora, con el workaround de SmartScreen documentado
+# en el README. Es la decisión provisional de convenciones/build-y-release.md;
+# cuando se compre un certificado se registra como ADR.
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  # Instalación per-user: no pide elevación, que es lo que build-y-release.md
+  # pide para bajar la fricción de instalar un .exe sin firmar.
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: PasteCode

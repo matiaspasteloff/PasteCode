@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PasteCode</title>
+    <!--
+      Sin <meta http-equiv="Content-Security-Policy"> a propósito.
+      La CSP la emite el main como header (src/main/security/content-security-policy.ts)
+      para que haya una sola fuente de verdad, y en el proceso privilegiado.
+      Declararla también acá haría que el navegador aplique la intersección de
+      ambas, y en desarrollo eso rompe el HMR de formas difíciles de diagnosticar.
+    -->
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>
