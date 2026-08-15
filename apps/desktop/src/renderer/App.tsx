@@ -4,12 +4,11 @@ import { useEffect } from 'react';
 import { StatusBar } from './components/StatusBar.js';
 import { CommandPalette } from './features/commands/CommandPalette.js';
 import { useAppCommands } from './features/commands/use-app-commands.js';
-import { usePaletteShortcut } from './features/commands/use-palette-shortcut.js';
+import { useKeybindings } from './features/commands/use-keybindings.js';
 import { ConflictDialog } from './features/editor/ConflictDialog.js';
 import { EditorArea } from './features/editor/EditorArea.js';
 import { releaseAllModels, releaseModelsExcept } from './features/editor/model-registry.js';
 import { TabStrip } from './features/editor/TabStrip.js';
-import { useSaveShortcut } from './features/editor/use-save-shortcut.js';
 import { FileTree } from './features/file-tree/FileTree.js';
 import { WorkspaceHeader } from './features/workspace/WorkspaceHeader.js';
 import { useEditorStore } from './stores/editor-store.js';
@@ -31,8 +30,7 @@ export function App(): React.JSX.Element {
   const closeAll = useEditorStore((state) => state.closeAll);
 
   useAppCommands();
-  useSaveShortcut();
-  usePaletteShortcut();
+  useKeybindings();
 
   useEffect(() => {
     // El main puede tener un workspace abierto de antes que la ventana se

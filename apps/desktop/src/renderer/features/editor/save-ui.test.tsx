@@ -8,7 +8,6 @@ import { installFakeApi } from '../../test-support/fake-api.js';
 
 import { ConflictDialog } from './ConflictDialog.js';
 import { TabStrip } from './TabStrip.js';
-import { useSaveShortcut } from './use-save-shortcut.js';
 
 const A = 'C:\\p\\saludo.ts';
 const B = 'C:\\p\\otro.ts';
@@ -131,45 +130,5 @@ describe('ConflictDialog', () => {
       expect(useEditorStore.getState().pendingFile?.content).toBe('del disco');
     });
     expect(useEditorStore.getState().conflict).toBeNull();
-  });
-});
-
-/** Componente mínimo cuyo único trabajo es instalar el atajo. */
-function SaveShortcutHost(): React.JSX.Element {
-  useSaveShortcut();
-
-  return <div data-testid="host" />;
-}
-
-describe('useSaveShortcut', () => {
-  it('guarda con Ctrl+S', async () => {
-    const invoke = installFakeApi({ 'fs:writeFile': { ok: true, value: { mtimeMs: 200 } } });
-    useEditorStore.setState({
-      tabs: tabsWith([A]),
-      mtimes: { [A]: 100 },
-      readContent: () => 'nuevo',
-    });
-    render(<SaveShortcutHost />);
-
-    await userEvent.keyboard('{Control>}s{/Control}');
-
-    await waitFor(() => {
-      expect(invoke).toHaveBeenCalledWith('fs:writeFile', {
-        path: A,
-        content: 'nuevo',
-        expectedMtimeMs: 100,
-      });
-    });
-  });
-
-  it('ignora las teclas que no son Ctrl+S', async () => {
-    const invoke = installFakeApi({});
-    useEditorStore.setState({ tabs: tabsWith([A]), readContent: () => 'nuevo' });
-    render(<SaveShortcutHost />);
-
-    await userEvent.keyboard('s');
-    await userEvent.keyboard('{Control>}a{/Control}');
-
-    expect(invoke).not.toHaveBeenCalled();
   });
 });
