@@ -93,9 +93,7 @@ export type Settings = z.infer<typeof SettingsSchema>;
   "activationEvents": ["onLanguage:markdown"],
   "capabilities": ["statusBar", "documentRead"],
   "contributes": {
-    "commands": [
-      { "command": "wordCount.toggle", "title": "Word Count: Toggle" }
-    ],
+    "commands": [{ "command": "wordCount.toggle", "title": "Word Count: Toggle" }],
     "configuration": {
       "wordCount.enabled": { "type": "boolean", "default": true }
     }

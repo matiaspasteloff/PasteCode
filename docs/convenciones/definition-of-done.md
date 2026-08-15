@@ -41,7 +41,7 @@ Una tarea está terminada cuando **todo** esto es cierto. No es una lista de des
 
 ---
 
-> **Sobre trabajar solo:** es tentador saltear este checklist cuando no hay nadie revisando. No lo hagas. El checklist *es* el revisor. Y el historial de Git que produce es exactamente lo que un evaluador va a mirar.
+> **Sobre trabajar solo:** es tentador saltear este checklist cuando no hay nadie revisando. No lo hagas. El checklist _es_ el revisor. Y el historial de Git que produce es exactamente lo que un evaluador va a mirar.
 
 ---
 

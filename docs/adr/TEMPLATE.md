@@ -16,11 +16,11 @@ Qué elegimos, en una frase clara.
 
 ## Alternativas consideradas
 
-| Opción | Pros | Contras | Por qué no |
-|---|---|---|---|
-| **Alternativa A** | | | |
-| **Alternativa B** | | | |
-| **Elegida** ✅ | | | — |
+| Opción            | Pros | Contras | Por qué no |
+| ----------------- | ---- | ------- | ---------- |
+| **Alternativa A** |      |         |            |
+| **Alternativa B** |      |         |            |
+| **Elegida** ✅    |      |         | —          |
 
 ## Consecuencias
 

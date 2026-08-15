@@ -12,10 +12,10 @@
 // apps/desktop/src/main/windows/create-window.ts
 const window = new BrowserWindow({
   webPreferences: {
-    nodeIntegration: false,        // NUNCA true
-    contextIsolation: true,        // NUNCA false
-    sandbox: true,                 // NUNCA false
-    webSecurity: true,             // NUNCA false
+    nodeIntegration: false, // NUNCA true
+    contextIsolation: true, // NUNCA false
+    sandbox: true, // NUNCA false
+    webSecurity: true, // NUNCA false
     allowRunningInsecureContent: false,
     preload: join(__dirname, '../preload/index.js'),
   },
@@ -40,15 +40,17 @@ Satisface [RNF-12](../04-requerimientos-no-funcionales.md#seguridad). **Sin exce
 ## Content Security Policy
 
 ```html
-<meta http-equiv="Content-Security-Policy"
-      content="default-src 'self';
+<meta
+  http-equiv="Content-Security-Policy"
+  content="default-src 'self';
                script-src 'self';
                style-src 'self' 'unsafe-inline';
                img-src 'self' data:;
                connect-src 'self';
                font-src 'self';
                object-src 'none';
-               base-uri 'none';">
+               base-uri 'none';"
+/>
 ```
 
 `unsafe-inline` en `style-src` es una concesión a Monaco, que inyecta estilos dinámicamente. Se documenta como **excepción conocida** y se revisa en cada actualización de Monaco. Ver [ADR-0002](../adr/0002-monaco-editor.md).
@@ -88,7 +90,7 @@ export async function assertInsideWorkspace(
 }
 ```
 
-> **Por qué `realpath`:** sin resolver symlinks, un atacante puede crear `workspace/link → /etc` y escapar pasando una ruta que *parece* estar adentro.
+> **Por qué `realpath`:** sin resolver symlinks, un atacante puede crear `workspace/link → /etc` y escapar pasando una ruta que _parece_ estar adentro.
 
 ---
 
@@ -116,13 +118,13 @@ ipcMain.handle('fs:readFile', async (_event, raw: unknown) => {
 
 Las extensiones son código de terceros con acceso a la API. El modelo de seguridad:
 
-| Amenaza | Mitigación |
-|---|---|
-| Extensión que lee archivos fuera del workspace | Toda operación de fs pasa por el main, que valida contra el workspace |
-| Extensión que exfiltra código | Capability `network` requerida y declarada en el manifest; el usuario la ve al instalar |
-| Extensión que congela el IDE | Proceso separado + timeout de 5s en toda llamada de API |
-| Extensión que tumba la app | Proceso separado; el crash se contiene y el host se reinicia |
-| Extensión maliciosa en el manifest | Validación de schema; capabilities no declaradas = acceso denegado |
+| Amenaza                                        | Mitigación                                                                              |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Extensión que lee archivos fuera del workspace | Toda operación de fs pasa por el main, que valida contra el workspace                   |
+| Extensión que exfiltra código                  | Capability `network` requerida y declarada en el manifest; el usuario la ve al instalar |
+| Extensión que congela el IDE                   | Proceso separado + timeout de 5s en toda llamada de API                                 |
+| Extensión que tumba la app                     | Proceso separado; el crash se contiene y el host se reinicia                            |
+| Extensión maliciosa en el manifest             | Validación de schema; capabilities no declaradas = acceso denegado                      |
 
 Ver [ADR-0003](../adr/0003-extension-host-aislado.md) y el [manifest de extensión](../05-modelo-de-datos.md#manifest-de-extensión).
 

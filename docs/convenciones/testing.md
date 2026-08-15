@@ -30,17 +30,13 @@ import { resolveKeybinding } from './resolver';
 
 describe('resolveKeybinding', () => {
   it('resuelve un binding simple cuando el contexto coincide', () => {
-    const bindings = [
-      { key: 'ctrl+s', command: 'file.save', when: 'editorFocus' },
-    ];
+    const bindings = [{ key: 'ctrl+s', command: 'file.save', when: 'editorFocus' }];
     const result = resolveKeybinding(bindings, 'ctrl+s', { editorFocus: true });
     expect(result).toEqual({ command: 'file.save' });
   });
 
   it('devuelve null cuando la cláusula when no se cumple', () => {
-    const bindings = [
-      { key: 'ctrl+s', command: 'file.save', when: 'editorFocus' },
-    ];
+    const bindings = [{ key: 'ctrl+s', command: 'file.save', when: 'editorFocus' }];
     const result = resolveKeybinding(bindings, 'ctrl+s', { editorFocus: false });
     expect(result).toBeNull();
   });
@@ -151,13 +147,13 @@ test('abrir workspace, editar archivo y guardar', async () => {
 
 ## Cobertura
 
-| Paquete | Mínimo |
-|---|---|
-| `packages/core` | 80% |
-| `packages/ipc-contract` | N/A (sólo tipos) |
-| `apps/desktop/src/main` | 70% |
-| `apps/desktop/src/renderer` | 50% |
-| **Global** | **60%** |
+| Paquete                     | Mínimo           |
+| --------------------------- | ---------------- |
+| `packages/core`             | 80%              |
+| `packages/ipc-contract`     | N/A (sólo tipos) |
+| `apps/desktop/src/main`     | 70%              |
+| `apps/desktop/src/renderer` | 50%              |
+| **Global**                  | **60%**          |
 
 El CI falla si la cobertura baja respecto de `main`. Ver [RNF-17](../04-requerimientos-no-funcionales.md#mantenibilidad).
 

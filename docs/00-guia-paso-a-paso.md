@@ -10,18 +10,18 @@
 
 ## Etapa 0 — Antes de escribir código
 
-*~2 días*
+_~2 días_
 
 **1. Elegí el nombre.** ✅ **`PasteCode`.** Aparece en el package name, el repo, el binario, el instalador y el protocolo de deep links. Cambiarlo en la semana 10 es una tarde perdida. `Forge` era el placeholder y estaba tomado por varias cosas; `pastecode` está libre en npm, así que el scope del monorepo es `@pastecode/*`.
 
 La identidad derivada queda fijada acá y no se toca más:
 
-| Elemento | Valor |
-|---|---|
-| Scope de npm | `@pastecode/*` |
-| `appId` del instalador | `com.pasteloff.pastecode` |
-| Protocolo de deep link | `pastecode://` |
-| Directorio de datos del usuario | `~/.pastecode/` |
+| Elemento                        | Valor                     |
+| ------------------------------- | ------------------------- |
+| Scope de npm                    | `@pastecode/*`            |
+| `appId` del instalador          | `com.pasteloff.pastecode` |
+| Protocolo de deep link          | `pastecode://`            |
+| Directorio de datos del usuario | `~/.pastecode/`           |
 
 **2. Leé tu propia documentación de una sentada.** En serio. Vas a encontrar contradicciones y cosas que ya no querés. Corregilas ahora, mientras cambiar de opinión es gratis.
 
@@ -35,7 +35,7 @@ La identidad derivada queda fijada acá y no se toca más:
 
 ## Etapa 1 — Andamio
 
-*~1 semana*
+_~1 semana_
 
 Esta etapa no produce ninguna feature y es la más importante del proyecto. Un tooling flojo te va a sangrar tiempo durante seis meses.
 
@@ -63,7 +63,7 @@ La estructura del monorepo se scaffoldea **sólo con lo que estas dos etapas usa
 
 ## Etapa 2 — Editor mínimo
 
-*~3 semanas*
+_~3 semanas_
 
 Objetivo: abrir una carpeta, editar un archivo, guardarlo.
 
@@ -91,7 +91,7 @@ Es tentador arrancar por la pantalla porque se ve. No lo hagas: si el patrón de
 
 ## Etapa 3 — Herramientas de desarrollo
 
-*~4 semanas*
+_~4 semanas_
 
 **20. Terminal integrada.** `node-pty` en el main, `xterm.js` en el renderer. Es tu primer proceso hijo de verdad: escribí acá el patrón de supervisión (spawn, resize, kill, limpieza al cerrar) porque lo vas a reutilizar para LSP y DAP. Verificá con el Administrador de tareas que no quedan procesos huérfanos.
 
@@ -113,7 +113,7 @@ Esto va acá, no al final. Si medís en la semana 24 vas a descubrir una regresi
 
 ## Etapa 4 — Inteligencia de lenguaje y Git
 
-*~6 semanas*
+_~6 semanas_
 
 **26. Generalizá el supervisor de procesos.** Antes de tocar LSP, extraé lo que aprendiste con el PTY a un supervisor reutilizable: spawn, health check, reinicio con backoff, límite de 3 intentos, logging.
 
@@ -131,7 +131,7 @@ Esto va acá, no al final. Si medís en la semana 24 vas a descubrir una regresi
 
 ## Etapa 5 — Extensiones y debugging
 
-*~8 semanas*
+_~8 semanas_
 
 Esta es la etapa que justifica el proyecto. Todo lo anterior lo tiene cualquier editor de tutorial; esto no.
 
@@ -155,7 +155,7 @@ Esta es la etapa que justifica el proyecto. Todo lo anterior lo tiene cualquier 
 
 ## Etapa 6 — Lanzamiento
 
-*~4 semanas*
+_~4 semanas_
 
 **38. Auto-update.** `electron-updater` + GitHub Releases. Con consentimiento explícito, nunca silencioso.
 
