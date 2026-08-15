@@ -141,7 +141,7 @@ test('abrir workspace, editar archivo y guardar', async () => {
 ## Reglas de testing
 
 1. Los tests describen **comportamiento**, no implementación. Si un refactor interno rompe tests sin cambiar comportamiento, los tests estaban mal.
-2. Nombres de test en formato "hace X cuando Y". En español o inglés, pero consistente en todo el repo.
+2. Nombres de test en formato "hace X cuando Y", **en español**. Los identificadores del código de test —variables, helpers, fixtures— van en inglés, como todo el código del repo. Es la misma división que usa el resto del proyecto: el código se escribe en inglés, lo que se lee como prosa se escribe en español.
 3. **Cero tests flaky tolerados.** Un test flaky se arregla o se borra, no se reintenta.
 4. Todo bug reportado se convierte primero en un test que falla, y después se arregla.
 5. Los tests no dependen del orden de ejecución ni comparten estado.

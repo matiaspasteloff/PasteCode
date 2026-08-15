@@ -225,7 +225,7 @@ Se aplican vía ESLint. Superarlos falla el CI.
 | **Vitest** | Tests unitarios y de integración |
 | **Playwright** | Tests E2E sobre Electron |
 | **Knip** | Detección de código muerto y dependencias sin usar |
-| **madge** | Detección de dependencias circulares — falla el CI si encuentra alguna |
+| **`eslint-plugin-import-x`** | Detección de dependencias circulares vía la regla `no-cycle` — falla el CI si encuentra alguna. Ver [ADR-0010](../adr/0010-import-x-no-cycle.md) |
 | **size-limit** | Presupuesto de tamaño de bundle |
 | **Husky** + **lint-staged** | Hooks de pre-commit |
 

@@ -39,7 +39,11 @@ La identidad derivada queda fijada acá y no se toca más:
 
 Esta etapa no produce ninguna feature y es la más importante del proyecto. Un tooling flojo te va a sangrar tiempo durante seis meses.
 
-**5. Monorepo vacío.** `pnpm-workspace.yaml` + las carpetas de la [estructura](./02-arquitectura.md#estructura-del-monorepo), cada una con un `package.json` mínimo. Vacías está bien.
+**5. Monorepo vacío.** `pnpm-workspace.yaml` + `turbo.json` + las carpetas de la [estructura](./02-arquitectura.md#estructura-del-monorepo), cada una con un `package.json` mínimo. Vacías está bien.
+
+Turborepo entra desde el arranque, como ya declaraba la [Fase 0 del roadmap](./06-roadmap-y-riesgos.md#fase-0--fundaciones). Los scripts de la raíz siguen llamándose igual que en [`CLAUDE.md`](../CLAUDE.md#comandos-del-proyecto); lo que cambia es que delegan en `turbo`, que resuelve el orden de build entre paquetes y cachea lo que no cambió. Agregarlo después implica reescribir todos los scripts y el CI.
+
+La estructura del monorepo se scaffoldea **sólo con lo que estas dos etapas usan** — `apps/desktop`, `packages/core`, `packages/ipc-contract` y `e2e/`. `extension-api`, `extension-host`, `ui` y `extensions/` aparecen en la [arquitectura](./02-arquitectura.md#estructura-del-monorepo) como destino, pero crear carpetas vacías que nadie importa sólo le da trabajo a Knip.
 
 **6. `tsconfig.base.json` con `strict` y todos los flags.** Ponelos **ahora**. Activar `noUncheckedIndexedAccess` con 8.000 líneas escritas es un infierno; con 0 líneas es gratis.
 

@@ -16,11 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - typecheck        # tsc --noEmit en todos los paquetes
-      - lint             # eslint sin warnings permitidos
+      - lint             # eslint sin warnings permitidos; incluye la
+                         # detección de ciclos vía import-x/no-cycle
       - format:check     # prettier --check
-      - circular-deps    # madge --circular
       - dead-code        # knip
-      - audit            # npm audit --audit-level=high
+      - audit            # pnpm audit --audit-level=high
 
   test:
     strategy:

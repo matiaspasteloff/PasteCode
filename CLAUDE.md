@@ -49,10 +49,20 @@ pnpm build            # Compila todos los paquetes
 pnpm package          # Genera los instaladores
 pnpm test             # Tests unitarios y de integración
 pnpm test:e2e         # Tests E2E con Playwright
-pnpm lint             # ESLint sobre todo el monorepo
+pnpm lint             # ESLint sobre todo el monorepo (incluye ciclos de import)
 pnpm typecheck        # tsc --noEmit en todos los paquetes
 pnpm check            # lint + typecheck + test — correr antes de todo commit
 ```
+
+Los que usa el CI además de los de arriba:
+
+```bash
+pnpm format:check     # prettier --check
+pnpm coverage         # tests con reporte de cobertura y umbrales
+pnpm knip             # código y dependencias sin usar
+```
+
+`build`, `test`, `lint` y `typecheck` delegan en **Turborepo**, que resuelve el orden entre paquetes y cachea lo que no cambió. Correr el script de un paquete suelto funciona, pero salteás el grafo de dependencias: si tocaste `packages/core`, `turbo` sabe que hay que recompilarlo antes de `apps/desktop` y correr el script directo no.
 
 ## Referencias rápidas
 

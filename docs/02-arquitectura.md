@@ -94,7 +94,8 @@ renderer ──▶ ipc-contract ◀── main
 
 - `packages/core` **no puede** importar nada de Electron, ni de React, ni de Node fuera de módulos puros. Debe poder correr en un test de Vitest sin ningún mock.
 - `renderer` **no puede** importar de `main`. Nunca. Si necesita algo, se agrega al `ipc-contract`.
-- Las dependencias circulares fallan el CI (`madge --circular`).
+- Las dependencias circulares fallan el CI, vía la regla `import-x/no-cycle` de ESLint. Ver [ADR-0010](./adr/0010-import-x-no-cycle.md).
+- Esta regla de dependencias no vive sólo en este documento: está codificada como `no-restricted-imports` en la configuración de ESLint, así que violarla es un error de lint y no una cuestión de disciplina.
 
 ## Patrón de IPC
 

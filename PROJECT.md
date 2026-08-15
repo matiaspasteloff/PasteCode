@@ -2,10 +2,11 @@
 
 > **Proyecto:** `PasteCode`
 > **Tipo:** IDE de escritorio multiplataforma
-> **Estado:** Fase 0 — Definición
-> **Autor:** *(tu nombre)*
-> **Versión de la documentación:** 1.0
-> **Última actualización:** 2026-08-14
+> **Estado:** Fase 0 — Fundaciones (en curso)
+> **Autor:** Matías Pasteloff
+> **Licencia:** MIT
+> **Versión de la documentación:** 1.1
+> **Última actualización:** 2026-08-15
 
 Este archivo es el punto de entrada. Cada documento vive por separado en [`docs/`](./docs/).
 

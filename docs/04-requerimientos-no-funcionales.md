@@ -38,7 +38,7 @@
 |---|---|
 | RNF-11 | Toda ruta recibida vía IPC se normaliza y valida contra la raíz del workspace. Se rechaza cualquier path traversal (`../../etc/passwd`) |
 | RNF-12 | `nodeIntegration: false`, `contextIsolation: true`, `sandbox: true` en todos los `BrowserWindow`. Sin excepciones |
-| RNF-13 | Content Security Policy estricta, sin `unsafe-eval` ni `unsafe-inline` |
+| RNF-13 | Content Security Policy estricta con `default-src 'self'` y `object-src 'none'`. Prohibido `unsafe-eval` en cualquier directiva y prohibido `unsafe-inline` en `script-src`. **Única excepción:** `style-src 'unsafe-inline'`, que Monaco requiere para inyectar estilos dinámicamente — documentada en [ADR-0002](./adr/0002-monaco-editor.md) y revisada en cada actualización de Monaco |
 | RNF-14 | Las extensiones declaran capabilities en su manifest. Sin declaración, sin acceso |
 | RNF-15 | Cero dependencias con vulnerabilidades críticas o altas. `npm audit` corre en CI y bloquea el merge |
 
