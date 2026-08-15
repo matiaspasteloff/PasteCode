@@ -1,0 +1,20 @@
+{
+  "name": "@pastecode/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Lógica pura del IDE. Sin Electron, sin React, sin I/O.",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "4.1.10",
+    "vitest": "4.1.10"
+  }
+}
