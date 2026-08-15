@@ -2,6 +2,9 @@ import { activeTab } from '@pastecode/core';
 import { useEffect } from 'react';
 
 import { StatusBar } from './components/StatusBar.js';
+import { CommandPalette } from './features/commands/CommandPalette.js';
+import { useAppCommands } from './features/commands/use-app-commands.js';
+import { usePaletteShortcut } from './features/commands/use-palette-shortcut.js';
 import { ConflictDialog } from './features/editor/ConflictDialog.js';
 import { EditorArea } from './features/editor/EditorArea.js';
 import { releaseAllModels, releaseModelsExcept } from './features/editor/model-registry.js';
@@ -27,7 +30,9 @@ export function App(): React.JSX.Element {
   const openFile = useEditorStore((state) => state.open);
   const closeAll = useEditorStore((state) => state.closeAll);
 
+  useAppCommands();
   useSaveShortcut();
+  usePaletteShortcut();
 
   useEffect(() => {
     // El main puede tener un workspace abierto de antes que la ventana se
@@ -75,6 +80,7 @@ export function App(): React.JSX.Element {
 
       <StatusBar />
       <ConflictDialog />
+      <CommandPalette />
     </div>
   );
 }

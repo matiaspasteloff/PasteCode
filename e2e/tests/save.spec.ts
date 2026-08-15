@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -51,6 +51,21 @@ async function typeMarker(window: Page): Promise<void> {
   await window.keyboard.press('Escape');
 }
 
+/**
+ * Simula que otro proceso modificó el archivo.
+ *
+ * El `utimes` no es adorno: el conflicto se detecta comparando `mtimeMs`, y si
+ * la escritura externa cae en el mismo milisegundo que la lectura del editor
+ * los dos tiempos coinciden y no hay conflicto que detectar. Forzar un mtime
+ * claramente distinto hace que el test verifique la lógica de conflicto en vez
+ * de la resolución del reloj del filesystem.
+ */
+async function changeOnDisk(path: string, content: string): Promise<void> {
+  await writeFile(path, content, 'utf8');
+  const future = new Date(Date.now() + 2000);
+  await utimes(path, future, future);
+}
+
 /** Abre el workspace y el archivo, y deja el cursor dentro del editor. */
 async function openFile(): Promise<Page> {
   const window = await app.firstWindow();
@@ -94,7 +109,7 @@ test('ofrece sobrescribir o descartar cuando el archivo cambió en el disco', as
   await typeMarker(window);
 
   // Otro proceso toca el archivo entre la lectura y el guardado.
-  await writeFile(target, 'const deOtro = 2;\n', 'utf8');
+  await changeOnDisk(target, 'const deOtro = 2;\n');
 
   await window.keyboard.press('Control+S');
 
@@ -108,19 +123,22 @@ test('ofrece sobrescribir o descartar cuando el archivo cambió en el disco', as
 test('sobrescribir aplica los cambios locales sobre el archivo de disco', async () => {
   const window = await openFile();
   await typeMarker(window);
-  await writeFile(target, 'const deOtro = 2;\n', 'utf8');
+  await changeOnDisk(target, 'const deOtro = 2;\n');
   await window.keyboard.press('Control+S');
 
   await window.getByRole('button', { name: 'Sobrescribir el archivo' }).click();
 
-  await expect(window.getByTestId('conflict-dialog')).toBeHidden();
+  // Se espera a que el punto de "sin guardar" desaparezca y no sólo a que el
+  // diálogo se cierre: el diálogo se cierra apenas arranca el guardado, así
+  // que leer el disco en ese momento es una carrera contra la escritura.
+  await expect(window.getByTestId('tab-dirty-indicator')).toBeHidden();
   expect(await readFile(target, 'utf8')).toContain(MARKER);
 });
 
 test('descartar recupera lo que hay en el disco', async () => {
   const window = await openFile();
   await typeMarker(window);
-  await writeFile(target, 'const deOtro = 2;\n', 'utf8');
+  await changeOnDisk(target, 'const deOtro = 2;\n');
   await window.keyboard.press('Control+S');
 
   await window.getByRole('button', { name: 'Descartar mis cambios' }).click();

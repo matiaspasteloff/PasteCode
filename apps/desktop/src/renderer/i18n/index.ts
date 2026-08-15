@@ -25,3 +25,20 @@ export type TranslationKey = keyof typeof es;
 export function t(key: TranslationKey): string {
   return es[key];
 }
+
+/**
+ * Si una cadena cualquiera es una clave del diccionario.
+ *
+ * Hace falta porque no todo lo que se muestra sale de nuestro código: desde la
+ * Etapa 5, el título de un comando puede venir de una extensión y no estar en
+ * el diccionario. Preguntarle al diccionario es mejor que mantener una segunda
+ * lista de claves conocidas, que se desincroniza el primer día.
+ *
+ * @param value La cadena a verificar.
+ * @returns `true` si `t` la puede traducir.
+ * @example
+ * const label = isTranslationKey(command.title) ? t(command.title) : command.title;
+ */
+export function isTranslationKey(value: string): value is TranslationKey {
+  return value in es;
+}

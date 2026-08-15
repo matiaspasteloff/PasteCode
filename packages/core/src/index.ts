@@ -1,3 +1,11 @@
+export { fuzzyMatch, rankByFuzzyMatch } from './commands/fuzzy.js';
+export type { FuzzyMatch } from './commands/fuzzy.js';
+export {
+  CommandRegistry,
+  DuplicateCommandError,
+  UnknownCommandError,
+} from './commands/registry.js';
+export type { Command } from './commands/registry.js';
 export {
   BinaryFileUnsupportedError,
   FileAccessError,

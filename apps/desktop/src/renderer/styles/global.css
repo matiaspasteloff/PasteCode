@@ -317,3 +317,67 @@ body {
   color: var(--color-muted);
   font-variant-numeric: tabular-nums;
 }
+
+/*
+ * La paleta se superpone a todo. Es un overlay propio y no un `<dialog>`
+ * porque no bloquea la app: se cierra con Escape o clickeando afuera, y no
+ * necesita atrapar el foco más allá del input.
+ */
+.palette {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  padding-top: 12vh;
+  background: rgb(0 0 0 / 30%);
+}
+
+.palette__panel {
+  overflow: hidden;
+  width: min(36rem, 90vw);
+  height: fit-content;
+  border: 1px solid var(--color-border);
+  border-radius: 0.4rem;
+  background: var(--color-surface);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 30%);
+}
+
+.palette__input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: inherit;
+  font: inherit;
+}
+
+.palette__input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.palette__list {
+  overflow-y: auto;
+  max-height: 50vh;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.palette__item {
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.palette__item[data-highlighted='true'] {
+  background: var(--color-selection);
+}
+
+.palette__empty {
+  padding: 0.6rem 0.8rem;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}

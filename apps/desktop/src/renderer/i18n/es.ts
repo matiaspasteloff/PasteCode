@@ -10,6 +10,10 @@
  * para que agregar una no sea una decisión.
  */
 export const es = {
+  'command.fileCloseAll': 'Cerrar todas las pestañas',
+  'command.fileCloseTab': 'Cerrar la pestaña',
+  'command.fileSave': 'Guardar el archivo',
+  'command.workspaceOpen': 'Abrir carpeta como workspace',
   'conflict.discard': 'Descartar mis cambios',
   'conflict.overwrite': 'Sobrescribir el archivo',
   'conflict.title': 'El archivo cambió en el disco',
@@ -21,6 +25,9 @@ export const es = {
   'fileTree.empty': 'La carpeta está vacía',
   'fileTree.label': 'Archivos del workspace',
   'fileTree.loading': 'Cargando archivos…',
+  'palette.empty': 'Ningún comando coincide',
+  'palette.label': 'Paleta de comandos',
+  'palette.placeholder': 'Escribí para buscar un comando…',
   'tabs.close': 'Cerrar',
   'tabs.label': 'Archivos abiertos',
   'workspace.emptyDescription': 'Abrí una carpeta para empezar a editar.',
