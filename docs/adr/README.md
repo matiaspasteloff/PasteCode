@@ -8,19 +8,20 @@ Un ADR registra una decisión técnica relevante, el contexto en el que se tomó
 
 ## Registro
 
-| #                                                      | Título                                                                              | Estado       |
-| ------------------------------------------------------ | ----------------------------------------------------------------------------------- | ------------ |
-| [0001](./0001-electron-typescript.md)                  | Usar Electron + TypeScript como runtime de escritorio                               | ✅ Aceptado  |
-| [0002](./0002-monaco-editor.md)                        | Usar Monaco Editor como núcleo de edición                                           | ✅ Aceptado  |
-| [0003](./0003-extension-host-aislado.md)               | Extension host en un proceso separado                                               | ✅ Aceptado  |
-| [0004](./0004-zustand-para-el-estado-del-renderer.md)  | Usar Zustand con stores chicos por dominio para el estado del renderer              | ✅ Aceptado  |
-| 0005                                                   | Formato de persistencia de settings (JSON con schema vs. TOML)                      | ⏳ Pendiente |
-| [0006](./0006-electron-vite-como-build.md)             | Usar electron-vite como herramienta de build                                        | ✅ Aceptado  |
-| 0007                                                   | Modelo de threading para búsqueda en workspace (worker threads vs. ripgrep externo) | ⏳ Pendiente |
-| 0008                                                   | Mecanismo de auto-update (electron-updater + GitHub Releases)                       | ⏳ Pendiente |
-| [0009](./0009-pinear-typescript-y-vite.md)             | Fijar TypeScript en 6.0.3 y Vite en 7.3.6                                           | ✅ Aceptado  |
-| [0010](./0010-import-x-no-cycle.md)                    | Detectar dependencias circulares con `import-x/no-cycle` en vez de madge            | ✅ Aceptado  |
-| [0011](./0011-resultado-tipado-en-el-limite-de-ipc.md) | Devolver un resultado tipado y errores serializados en el límite de IPC             | ✅ Aceptado  |
+| #                                                              | Título                                                                              | Estado       |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------ |
+| [0001](./0001-electron-typescript.md)                          | Usar Electron + TypeScript como runtime de escritorio                               | ✅ Aceptado  |
+| [0002](./0002-monaco-editor.md)                                | Usar Monaco Editor como núcleo de edición                                           | ✅ Aceptado  |
+| [0003](./0003-extension-host-aislado.md)                       | Extension host en un proceso separado                                               | ✅ Aceptado  |
+| [0004](./0004-zustand-para-el-estado-del-renderer.md)          | Usar Zustand con stores chicos por dominio para el estado del renderer              | ✅ Aceptado  |
+| 0005                                                           | Formato de persistencia de settings (JSON con schema vs. TOML)                      | ⏳ Pendiente |
+| [0006](./0006-electron-vite-como-build.md)                     | Usar electron-vite como herramienta de build                                        | ✅ Aceptado  |
+| 0007                                                           | Modelo de threading para búsqueda en workspace (worker threads vs. ripgrep externo) | ⏳ Pendiente |
+| 0008                                                           | Mecanismo de auto-update (electron-updater + GitHub Releases)                       | ⏳ Pendiente |
+| [0009](./0009-pinear-typescript-y-vite.md)                     | Fijar TypeScript en 6.0.3 y Vite en 7.3.6                                           | ✅ Aceptado  |
+| [0010](./0010-import-x-no-cycle.md)                            | Detectar dependencias circulares con `import-x/no-cycle` en vez de madge            | ✅ Aceptado  |
+| [0011](./0011-resultado-tipado-en-el-limite-de-ipc.md)         | Devolver un resultado tipado y errores serializados en el límite de IPC             | ✅ Aceptado  |
+| [0012](./0012-servir-el-renderer-desde-un-protocolo-propio.md) | Servir el renderer desde un protocolo propio en vez de `file://`                    | ✅ Aceptado  |
 
 **Estados posibles:** `Propuesto` · `Aceptado` · `Reemplazado por ADR-NNNN` · `Obsoleto`
 

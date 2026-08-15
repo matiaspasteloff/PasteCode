@@ -10,6 +10,9 @@
  * para que agregar una no sea una decisión.
  */
 export const es = {
+  'editor.failed': 'No se pudo cargar el editor.',
+  'editor.loading': 'Cargando el editor…',
+  'editor.openingFile': 'Abriendo el archivo…',
   'fileTree.empty': 'La carpeta está vacía',
   'fileTree.label': 'Archivos del workspace',
   'fileTree.loading': 'Cargando archivos…',

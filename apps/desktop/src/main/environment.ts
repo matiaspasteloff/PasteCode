@@ -16,7 +16,7 @@ const rendererDevUrl = process.env.ELECTRON_RENDERER_URL;
  * `isPackaged`, cualquiera que pueda setear una variable de entorno en la
  * máquina de un usuario le baja las defensas a la app instalada.
  */
-const isDevelopment = !app.isPackaged && rendererDevUrl !== undefined;
+export const isDevelopment = !app.isPackaged && rendererDevUrl !== undefined;
 
 /** URL que carga la ventana en desarrollo. `undefined` en producción. */
 export const devServerUrl = isDevelopment ? rendererDevUrl : undefined;

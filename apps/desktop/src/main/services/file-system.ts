@@ -91,6 +91,14 @@ export async function readDirectoryLevel(
  * llamadas por ruta habría una ventana entre el chequeo de tamaño y la lectura
  * en la que el archivo puede cambiar, y el límite dejaría de ser un límite.
  *
+ * **Una sola lectura, con posición y longitud explícitas.** La alternativa
+ * —olfatear los primeros 8KB con `handle.read` y después pedir el resto con
+ * `handle.readFile`— hace dos pasadas y deja el resultado atado a dónde quedó
+ * la posición del descriptor tras el olfateo, que es una semántica que no
+ * conviene tener que recordar. Con `size` sacado del `stat` del mismo
+ * descriptor se lee exactamente eso, de una, y el buffer sirve para las dos
+ * cosas.
+ *
  * @param path Ruta absoluta, ya resuelta por `resolveInsideWorkspace`.
  * @returns El contenido y el `mtimeMs` con el que se leyó.
  * @throws {FileAccessError} Si no se puede abrir.
@@ -105,9 +113,14 @@ export async function readTextFile(path: string): Promise<ReadFileResult> {
   try {
     const { size, mtimeMs } = await handle.stat();
     if (size > MAX_FILE_BYTES) throw new FileTooLargeError(path, size, MAX_FILE_BYTES);
-    if (await hasNullByte(handle, size)) throw new BinaryFileUnsupportedError(path);
+    if (size === 0) return { content: '', mtimeMs };
 
-    return { content: await handle.readFile('utf8'), mtimeMs };
+    const buffer = Buffer.alloc(size);
+    await handle.read(buffer, 0, size, 0);
+
+    if (hasNullByte(buffer)) throw new BinaryFileUnsupportedError(path);
+
+    return { content: buffer.toString('utf8'), mtimeMs };
   } finally {
     await handle.close();
   }
@@ -190,14 +203,8 @@ async function writeAndFlush(temporary: string, content: string): Promise<void> 
 }
 
 /** La heurística de Git: un byte nulo en los primeros 8KB y es binario. */
-async function hasNullByte(handle: FileHandle, size: number): Promise<boolean> {
-  const length = Math.min(size, BINARY_SNIFF_BYTES);
-  if (length === 0) return false;
-
-  const buffer = Buffer.alloc(length);
-  const { bytesRead } = await handle.read(buffer, 0, length, 0);
-
-  return buffer.subarray(0, bytesRead).includes(0);
+function hasNullByte(content: Buffer): boolean {
+  return content.subarray(0, BINARY_SNIFF_BYTES).includes(0);
 }
 
 /** Traduce el `errno` crudo a un error del proyecto antes de que se propague. */

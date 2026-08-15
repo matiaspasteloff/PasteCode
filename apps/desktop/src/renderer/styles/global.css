@@ -178,6 +178,30 @@ body {
   font-size: 0.9rem;
 }
 
+.editor {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Monaco mide su contenedor al crearse, así que necesita alto real desde el
+   primer momento y no puede depender de que el contenido lo estire. */
+.editor__surface {
+  width: 100%;
+  height: 100%;
+}
+
+.editor__status {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  transform: translate(-50%, -50%);
+}
+
 .status-bar {
   display: flex;
   grid-column: 1 / -1;

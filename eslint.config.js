@@ -171,6 +171,15 @@ export default tseslint.config(
     },
   },
   {
+    files: ['e2e/**/*.spec.ts'],
+    rules: {
+      // Los tests de presupuestos existen para reportar un número, y el lugar
+      // donde ese número tiene que aparecer es la salida del CI. `console.warn`
+      // diría que algo anda mal cuando el test está pasando.
+      'no-console': 'off',
+    },
+  },
+  {
     // Archivos de configuración y scripts de build: fuera del grafo de tipos
     // del proyecto, así que las reglas type-aware no tienen de dónde agarrarse.
     files: [
