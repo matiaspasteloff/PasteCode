@@ -1,0 +1,17 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    "apps/desktop": {
+      "entry": ["src/renderer/main.tsx", "scripts/*.mjs"],
+    },
+    "e2e": {
+      "entry": ["tests/**/*.spec.ts"],
+      // El E2E no importa nada de @pastecode/desktop: lanza la app por ruta.
+      // La dependencia igual es real y hace falta, porque es lo que le dice a
+      // Turborepo que tiene que buildear la app antes de correr los tests
+      // (el `dependsOn: ["^build"]` de turbo.json). Sacarla haría que el E2E
+      // corriera contra el `out/` de la corrida anterior, o contra nada.
+      "ignoreDependencies": ["@pastecode/desktop"],
+    },
+  },
+}
