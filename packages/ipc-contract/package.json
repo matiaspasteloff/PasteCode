@@ -1,0 +1,17 @@
+{
+  "name": "@pastecode/ipc-contract",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Contrato tipado del IPC entre main y renderer. Fuente de verdad de todo canal.",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "4.4.3"
+  }
+}
