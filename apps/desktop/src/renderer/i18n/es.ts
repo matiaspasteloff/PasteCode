@@ -14,6 +14,7 @@ export const es = {
   'command.fileCloseTab': 'Cerrar la pestaña',
   'command.fileSave': 'Guardar el archivo',
   'command.workspaceOpen': 'Abrir carpeta como workspace',
+  'command.viewCycleTheme': 'Cambiar el tema (claro, oscuro, sistema)',
   'conflict.discard': 'Descartar mis cambios',
   'conflict.overwrite': 'Sobrescribir el archivo',
   'conflict.title': 'El archivo cambió en el disco',

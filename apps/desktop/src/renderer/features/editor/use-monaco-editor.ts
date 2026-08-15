@@ -2,8 +2,10 @@ import type * as MonacoApi from 'monaco-editor/editor/editor.api';
 import { useEffect, useRef, useState } from 'react';
 
 import { useEditorStore } from '../../stores/editor-store.js';
+import { currentResolvedTheme, monacoThemeFor } from '../theme/use-theme.js';
 
-import { syncModelWithDisk, rememberViewState, savedViewState } from './model-registry.js';
+import { rememberViewState, savedViewState, syncModelWithDisk } from './model-registry.js';
+import { setLoadedMonaco } from './monaco-instance.js';
 
 /** En qué estado está el montaje de Monaco. */
 type EditorStatus = 'loading' | 'ready' | 'failed';
@@ -112,10 +114,14 @@ function useMountedEditor(
         if (isCancelled || containerRef.current === null) return;
 
         monacoRef.current = monaco;
+        setLoadedMonaco(monaco);
         editorRef.current = monaco.editor.create(containerRef.current, {
           automaticLayout: true,
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
+          // Nace con el tema ya aplicado en vez de parpadear en claro y
+          // corregirse en el efecto del tema.
+          theme: monacoThemeFor(currentResolvedTheme()),
         });
         setStatus('ready');
       })

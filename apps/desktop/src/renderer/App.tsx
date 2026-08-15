@@ -10,6 +10,7 @@ import { EditorArea } from './features/editor/EditorArea.js';
 import { releaseAllModels, releaseModelsExcept } from './features/editor/model-registry.js';
 import { TabStrip } from './features/editor/TabStrip.js';
 import { FileTree } from './features/file-tree/FileTree.js';
+import { useTheme } from './features/theme/use-theme.js';
 import { WorkspaceHeader } from './features/workspace/WorkspaceHeader.js';
 import { useEditorStore } from './stores/editor-store.js';
 import { useFileTreeStore } from './stores/file-tree-store.js';
@@ -31,6 +32,7 @@ export function App(): React.JSX.Element {
 
   useAppCommands();
   useKeybindings();
+  useTheme();
 
   useEffect(() => {
     // El main puede tener un workspace abierto de antes que la ventana se

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 import { useCommandStore } from '../../stores/command-store.js';
 import { useEditorStore } from '../../stores/editor-store.js';
+import { useThemeStore } from '../../stores/theme-store.js';
 import { useWorkspaceStore } from '../../stores/workspace-store.js';
 
 /**
@@ -46,6 +47,14 @@ export function useAppCommands(): void {
       handler: () => {
         const { tabs, closeTab } = useEditorStore.getState();
         if (tabs.activeTabIndex !== -1) closeTab(tabs.activeTabIndex);
+      },
+    });
+
+    register({
+      id: 'view.cycleTheme',
+      title: 'command.viewCycleTheme',
+      handler: () => {
+        useThemeStore.getState().cycleTheme();
       },
     });
 
