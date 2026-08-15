@@ -12,7 +12,16 @@
 
 *~2 días*
 
-**1. Elegí el nombre.** Aparece en el package name, el repo, el binario, el instalador y el protocolo de deep links. Cambiarlo en la semana 10 es una tarde perdida. `Forge` es un placeholder — y está tomado por varias cosas, así que buscá en npm y GitHub antes de casarte.
+**1. Elegí el nombre.** ✅ **`PasteCode`.** Aparece en el package name, el repo, el binario, el instalador y el protocolo de deep links. Cambiarlo en la semana 10 es una tarde perdida. `Forge` era el placeholder y estaba tomado por varias cosas; `pastecode` está libre en npm, así que el scope del monorepo es `@pastecode/*`.
+
+La identidad derivada queda fijada acá y no se toca más:
+
+| Elemento | Valor |
+|---|---|
+| Scope de npm | `@pastecode/*` |
+| `appId` del instalador | `com.pasteloff.pastecode` |
+| Protocolo de deep link | `pastecode://` |
+| Directorio de datos del usuario | `~/.pastecode/` |
 
 **2. Leé tu propia documentación de una sentada.** En serio. Vas a encontrar contradicciones y cosas que ya no querés. Corregilas ahora, mientras cambiar de opinión es gratis.
 
@@ -72,7 +81,7 @@ Es tentador arrancar por la pantalla porque se ve. No lo hagas: si el patrón de
 
 **19. Temas claro y oscuro.** Variables CSS, no clases condicionales.
 
-> **Checkpoint:** abrís el código de Forge con Forge y editás un archivo. **A partir de acá usá tu propio editor todos los días.** El dogfooding es lo que va a mantener el proyecto vivo y lo que te va a mostrar los bugs que importan.
+> **Checkpoint:** abrís el código de PasteCode con PasteCode y editás un archivo. **A partir de acá usá tu propio editor todos los días.** El dogfooding es lo que va a mantener el proyecto vivo y lo que te va a mostrar los bugs que importan.
 
 ---
 

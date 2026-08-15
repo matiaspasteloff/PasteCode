@@ -1,4 +1,4 @@
-# Documentación de Forge
+# Documentación de PasteCode
 
 Índice de la carpeta `docs/`. El punto de entrada general del proyecto es [`../PROJECT.md`](../PROJECT.md).
 

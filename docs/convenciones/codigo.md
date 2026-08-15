@@ -146,12 +146,12 @@ const filtered = useMemo(
 
 ## Manejo de errores
 
-### Toda clase de error hereda de `ForgeError`
+### Toda clase de error hereda de `PasteCodeError`
 
 Con un `code` estable y un `userMessage` legible.
 
 ```typescript
-export class ForgeError extends Error {
+export class PasteCodeError extends Error {
   constructor(
     message: string,
     readonly code: string,
@@ -163,7 +163,7 @@ export class ForgeError extends Error {
   }
 }
 
-export class FileAccessError extends ForgeError {
+export class FileAccessError extends PasteCodeError {
   constructor(path: string, cause?: unknown) {
     super(
       `File access denied: ${path}`,

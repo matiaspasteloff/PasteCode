@@ -9,7 +9,7 @@
 | **ADR** | Architecture Decision Record. Documento corto que registra una decisión técnica, su contexto y sus consecuencias. Ver [`adr/`](./adr/) |
 | **Capability** | Permiso que una extensión declara en su manifest. Sin declaración, sin acceso |
 | **DAP** | Debug Adapter Protocol. Protocolo de Microsoft que estandariza la comunicación entre un IDE y un debugger |
-| **Dogfooding** | Usar el propio producto para desarrollarlo. Acá: editar el código de Forge con Forge |
+| **Dogfooding** | Usar el propio producto para desarrollarlo. Acá: editar el código de PasteCode con PasteCode |
 | **Extension host** | Proceso aislado donde corren las extensiones de terceros |
 | **IPC** | Inter-Process Communication. En Electron, el mecanismo por el que renderer y main se comunican |
 | **LSP** | Language Server Protocol. Protocolo que estandariza features de lenguaje (completado, diagnósticos, go-to-definition) entre editores y servidores de lenguaje |

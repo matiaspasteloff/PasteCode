@@ -5,7 +5,7 @@
 
 ## Contexto del proyecto
 
-`Forge` es un IDE de escritorio construido con **Electron + TypeScript + React**, distribuido como `.exe`. Es un proyecto de portfolio con ambición de producto: el código, los tests, los ADRs y el CI son parte del entregable, no accesorios.
+`PasteCode` es un IDE de escritorio construido con **Electron + TypeScript + React**, distribuido como `.exe`. Es un proyecto de portfolio con ambición de producto: el código, los tests, los ADRs y el CI son parte del entregable, no accesorios.
 
 La arquitectura tiene **tres procesos**:
 

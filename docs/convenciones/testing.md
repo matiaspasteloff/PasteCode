@@ -77,7 +77,7 @@ describe('handleReadFile', () => {
   let workspace: string;
 
   beforeEach(async () => {
-    workspace = await mkdtemp(join(tmpdir(), 'forge-test-'));
+    workspace = await mkdtemp(join(tmpdir(), 'pastecode-test-'));
   });
 
   afterEach(async () => {

@@ -28,7 +28,7 @@
 | ID | Requerimiento |
 |---|---|
 | RNF-07 | Nunca perder datos del usuario. Todo guardado es atómico: escribir a un archivo temporal, luego `rename()`. Un corte de energía a mitad de guardado no puede corromper el archivo original |
-| RNF-08 | Auto-guardado de recuperación cada 30s en `~/.forge/backups/`. Al reabrir después de un crash, se ofrece restaurar |
+| RNF-08 | Auto-guardado de recuperación cada 30s en `~/.pastecode/backups/`. Al reabrir después de un crash, se ofrece restaurar |
 | RNF-09 | El crash de cualquier proceso hijo (LSP, DAP, PTY, extension host) es recuperable y no tumba el IDE |
 | RNF-10 | Cero procesos huérfanos. Al cerrar la app, todos los hijos reciben `SIGTERM` y luego `SIGKILL` tras 3s. Verificado con test automatizado |
 

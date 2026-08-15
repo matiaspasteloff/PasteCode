@@ -36,7 +36,7 @@ interface TabState {
 }
 ```
 
-**Persistencia:** `~/.forge/workspaces/<hash-de-rootPath>.json`, guardado con debounce de 2s tras cualquier cambio. Satisface [RF-707](./03-requerimientos-funcionales.md#comandos-atajos-y-configuración).
+**Persistencia:** `~/.pastecode/workspaces/<hash-de-rootPath>.json`, guardado con debounce de 2s tras cualquier cambio. Satisface [RF-707](./03-requerimientos-funcionales.md#comandos-atajos-y-configuración).
 
 ## Schema de settings
 
@@ -77,8 +77,8 @@ export type Settings = z.infer<typeof SettingsSchema>;
 **Precedencia de settings** (de menor a mayor):
 
 1. Valores por defecto del schema
-2. `~/.forge/settings.json` (usuario)
-3. `<workspace>/.forge/settings.json` (workspace)
+2. `~/.pastecode/settings.json` (usuario)
+3. `<workspace>/.pastecode/settings.json` (workspace)
 
 ## Manifest de extensión
 
@@ -88,7 +88,7 @@ export type Settings = z.infer<typeof SettingsSchema>;
   "displayName": "Word Count",
   "version": "1.0.0",
   "publisher": "tu-usuario",
-  "engines": { "forge": "^1.0.0" },
+  "engines": { "pastecode": "^1.0.0" },
   "main": "./dist/extension.js",
   "activationEvents": ["onLanguage:markdown"],
   "capabilities": ["statusBar", "documentRead"],

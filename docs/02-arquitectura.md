@@ -40,7 +40,7 @@ Las extensiones son código de terceros. Si corren en el renderer, una extensió
 ## Estructura del monorepo
 
 ```
-forge/
+pastecode/
 ├── apps/
 │   └── desktop/                 # Aplicación Electron
 │       ├── src/
@@ -125,14 +125,14 @@ export type Response<C extends ChannelName> = IpcChannels[C]['response'];
 ```typescript
 // apps/desktop/src/preload/index.ts
 import { contextBridge, ipcRenderer } from 'electron';
-import type { ChannelName, Request, Response } from '@forge/ipc-contract';
+import type { ChannelName, Request, Response } from '@pastecode/ipc-contract';
 
 const api = {
   invoke: <C extends ChannelName>(channel: C, payload: Request<C>): Promise<Response<C>> =>
     ipcRenderer.invoke(channel, payload),
 };
 
-contextBridge.exposeInMainWorld('forge', api);
+contextBridge.exposeInMainWorld('pastecode', api);
 ```
 
 ### Reglas de IPC

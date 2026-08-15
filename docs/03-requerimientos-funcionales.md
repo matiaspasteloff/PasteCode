@@ -129,7 +129,7 @@ Los IDs son estables y no se reciclan. Si un requerimiento se elimina, su ID que
 | RF-702 | M | Sistema de keybindings configurable | Archivo `keybindings.json` editable; detecta y reporta conflictos |
 | RF-703 | M | Keybindings contextuales (`when` clauses) | `"when": "editorFocus && !terminalFocus"` funciona correctamente |
 | RF-704 | M | Settings en JSON con schema y validación | Autocompletado y validación al editar `settings.json` dentro del propio IDE |
-| RF-705 | M | Settings de usuario y de workspace | Los de workspace (`.forge/settings.json`) tienen precedencia |
+| RF-705 | M | Settings de usuario y de workspace | Los de workspace (`.pastecode/settings.json`) tienen precedencia |
 | RF-706 | S | UI de settings gráfica | Además del JSON |
 | RF-707 | M | Persistir estado de sesión | Al reabrir: mismas pestañas, mismo scroll, mismo workspace |
 
@@ -149,11 +149,11 @@ Los IDs son estables y no se reciclan. Si un requerimiento se elimina, su ID que
 
 | ID | Prioridad | Requerimiento | Criterio de aceptación |
 |---|---|---|---|
-| RF-901 | M | Cargar extensiones desde una carpeta local | Escanea `~/.forge/extensions/` al arrancar |
+| RF-901 | M | Cargar extensiones desde una carpeta local | Escanea `~/.pastecode/extensions/` al arrancar |
 | RF-902 | M | Manifest de extensión (`package.json`) validado | Manifest inválido → extensión no carga + error visible, sin tumbar la app |
-| RF-903 | M | API: registrar comandos | `forge.commands.registerCommand(id, handler)` |
-| RF-904 | M | API: contribuir ítems a la status bar | `forge.window.createStatusBarItem()` |
-| RF-905 | M | API: leer y modificar el documento activo | `forge.window.activeTextEditor.edit()` |
+| RF-903 | M | API: registrar comandos | `pastecode.commands.registerCommand(id, handler)` |
+| RF-904 | M | API: contribuir ítems a la status bar | `pastecode.window.createStatusBarItem()` |
+| RF-905 | M | API: leer y modificar el documento activo | `pastecode.window.activeTextEditor.edit()` |
 | RF-906 | M | API: contribuir temas | Vía el campo `contributes.themes` del manifest |
 | RF-907 | M | Aislamiento de fallas | Extensión que crashea → host se reinicia en < 2s, IDE sigue funcionando |
 | RF-908 | M | Activation events | `onLanguage:python`, `onCommand:x`, `onStartupFinished` |

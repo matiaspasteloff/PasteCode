@@ -1,6 +1,6 @@
-# Forge — Documentación del proyecto
+# PasteCode — Documentación del proyecto
 
-> **Proyecto:** `Forge` *(nombre provisional — reemplazar)*
+> **Proyecto:** `PasteCode`
 > **Tipo:** IDE de escritorio multiplataforma
 > **Estado:** Fase 0 — Definición
 > **Autor:** *(tu nombre)*
