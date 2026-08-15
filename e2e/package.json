@@ -1,0 +1,16 @@
+{
+  "name": "@pastecode/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Tests E2E de PasteCode sobre Electron, con Playwright.",
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@pastecode/desktop": "workspace:*",
+    "@playwright/test": "1.62.1"
+  }
+}

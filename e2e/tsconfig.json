@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    // DOM porque los callbacks de `window.evaluate` corren en el renderer,
+    // aunque el archivo que los contiene corra en Node.
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["**/*.ts"]
+}
