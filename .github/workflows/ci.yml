@@ -1,0 +1,147 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Un push nuevo a la misma rama cancela la corrida anterior: no tiene sentido
+# pagar 4 jobs por un commit que ya quedó viejo.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+
+jobs:
+  quality:
+    name: Calidad
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      # Electron pesa ~100MB por job y ya no se descarga solo (su postinstall
+      # desapareció en la 43). Cachearlo es lo que separa un CI de 2 minutos
+      # de uno de 6.
+      - name: Cachear el binario de Electron
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/electron
+          key: electron-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Cachear Turborepo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-quality-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-quality-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        # Incluye import-x/no-cycle, que reemplaza al job de madge (ADR-0010).
+        run: pnpm lint
+
+      - name: Formato
+        run: pnpm format:check
+
+      - name: Código y dependencias muertas
+        run: pnpm knip
+
+      - name: Auditoría de dependencias
+        # RNF-15: cero vulnerabilidades altas o críticas. Bloquea el merge.
+        run: pnpm audit --audit-level=high
+
+  test:
+    name: Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Que falle en Windows no cancela la corrida de macOS: cuando un test es
+      # específico de una plataforma, querés ver en cuáles pasa y en cuáles no.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Tests unitarios y de integración con cobertura
+        # Los umbrales de convenciones/testing.md están en los vitest.config.ts
+        # de cada paquete: si la cobertura baja, esto falla acá.
+        run: pnpm coverage
+
+  e2e:
+    name: E2E
+    # Windows es la plataforma primaria (RNF-26).
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Tests E2E
+        # Corren contra el build de producción, así que verifican la política
+        # de seguridad estricta y no la relajada de desarrollo.
+        run: pnpm test:e2e
+
+      - name: Subir el reporte si falló
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7
+
+  build:
+    name: Instalador
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Generar el .exe
+        run: pnpm package
+
+      - name: Subir el instalador
+        uses: actions/upload-artifact@v4
+        with:
+          name: pastecode-windows-x64
+          path: apps/desktop/release/*.exe
+          retention-days: 14

@@ -20,7 +20,10 @@ docs/
 │   ├── TEMPLATE.md                    Plantilla obligatoria
 │   ├── 0001-electron-typescript.md
 │   ├── 0002-monaco-editor.md
-│   └── 0003-extension-host-aislado.md
+│   ├── 0003-extension-host-aislado.md
+│   ├── 0006-electron-vite-como-build.md
+│   ├── 0009-pinear-typescript-y-vite.md
+│   └── 0010-import-x-no-cycle.md
 └── convenciones/                      Cómo se trabaja en este repo
     ├── codigo.md
     ├── git.md
@@ -33,12 +36,14 @@ docs/
 ## Orden de lectura sugerido
 
 **Si venís a evaluar el proyecto** (revisor técnico, reclutador):
+
 1. [Visión y alcance](./01-vision-y-alcance.md) — qué es y por qué
 2. [ADRs](./adr/) — las decisiones difíciles y su justificación
 3. [Arquitectura](./02-arquitectura.md) — cómo está construido
 4. [Requerimientos no funcionales](./04-requerimientos-no-funcionales.md) — los presupuestos medibles
 
 **Si venís a escribir código:**
+
 1. [Guía paso a paso](./00-guia-paso-a-paso.md) — qué hacer y en qué orden
 2. [Arquitectura](./02-arquitectura.md) — el modelo de procesos y la regla de dependencias
 3. [Reglas de código](./convenciones/codigo.md)

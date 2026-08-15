@@ -30,15 +30,15 @@ main ─────●──────●──────●─────
 <tipo>/<issue>-<descripción-corta>
 ```
 
-| Tipo | Uso |
-|---|---|
-| `feat` | Funcionalidad nueva |
-| `fix` | Corrección de bug |
+| Tipo       | Uso                                       |
+| ---------- | ----------------------------------------- |
+| `feat`     | Funcionalidad nueva                       |
+| `fix`      | Corrección de bug                         |
 | `refactor` | Cambio interno sin alterar comportamiento |
-| `perf` | Mejora de performance |
-| `docs` | Sólo documentación |
-| `test` | Sólo tests |
-| `chore` | Build, deps, tooling |
+| `perf`     | Mejora de performance                     |
+| `docs`     | Sólo documentación                        |
+| `test`     | Sólo tests                                |
+| `chore`    | Build, deps, tooling                      |
 
 ```
 ✅ feat/42-terminal-split-panes
@@ -104,15 +104,19 @@ Guardar como `.github/pull_request_template.md`.
 
 ```markdown
 ## Qué cambia
+
 <!-- Descripción en una o dos frases -->
 
 ## Por qué
+
 <!-- Contexto: qué problema resuelve. Linkear el issue -->
 
 ## Cómo probarlo
+
 <!-- Pasos concretos para verificar manualmente -->
 
 ## Checklist
+
 - [ ] Los tests pasan localmente (`pnpm test`)
 - [ ] Sin warnings de lint (`pnpm lint`)
 - [ ] Agregué tests para el comportamiento nuevo
@@ -130,11 +134,11 @@ El checklist completo de cierre está en [Definition of Done](./definition-of-do
 
 SemVer estricto: `MAJOR.MINOR.PATCH`
 
-| Incremento | Cuándo |
-|---|---|
-| **MAJOR** | Breaking change en la API de extensiones o en el formato de settings |
-| **MINOR** | Funcionalidad nueva retrocompatible |
-| **PATCH** | Correcciones de bugs |
+| Incremento | Cuándo                                                               |
+| ---------- | -------------------------------------------------------------------- |
+| **MAJOR**  | Breaking change en la API de extensiones o en el formato de settings |
+| **MINOR**  | Funcionalidad nueva retrocompatible                                  |
+| **PATCH**  | Correcciones de bugs                                                 |
 
 El `CHANGELOG.md` se genera automáticamente desde los conventional commits con `changesets`.
 

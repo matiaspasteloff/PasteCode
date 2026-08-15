@@ -1,0 +1,47 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  - 'e2e'
+
+# electron-builder no resuelve bien el node_modules con symlinks de pnpm al
+# empaquetar: las dependencias de producción quedan fuera del asar y la app
+# instalada falla al arrancar con un "Cannot find module". `hoisted` produce un
+# layout plano equivalente al de npm.
+#
+# El costo es real: se pierden las garantías de aislamiento de pnpm, así que un
+# paquete puede importar algo que no declaró como dependencia y funcionar
+# igual. Knip en el CI es lo que compensa eso.
+nodeLinker: hoisted
+
+# Los conflictos de peers son errores, no advertencias. Es lo que convierte los
+# pines de TypeScript 6.0.3 y Vite 7.3.6 (ADR-0009) en una restricción
+# verificada en cada install en vez de un comentario que alguien va a ignorar
+# dentro de seis meses.
+strictPeerDependencies: true
+
+# pnpm bloquea los scripts de postinstall por defecto, que es lo correcto: un
+# postinstall es ejecución de código arbitrario en la máquina de quien instala.
+# Cada `true` de acá abajo es una decisión, no un trámite.
+allowBuilds:
+  # Descarga el binario de Electron. Sin esto no hay app.
+  electron: true
+  # Instala el binario de su plataforma. Lo usan Vite y electron-vite.
+  esbuild: true
+  # Resolver nativo de eslint-plugin-import-x; es lo que hace usable a
+  # `no-cycle` en un monorepo (ADR-0010).
+  unrs-resolver: true
+  # Sólo hace falta para el target Squirrel.Windows, que no usamos: el
+  # instalador es NSIS (apps/desktop/electron-builder.yml).
+  electron-winstaller: false
+
+# pnpm 11 retiene por defecto los paquetes publicados hace muy poco, como
+# defensa ante una versión comprometida que se despublica a las horas. Estas
+# entradas son las que se aceptaron explícitamente al instalar.
+minimumReleaseAgeExclude:
+  - '@turbo/darwin-64@2.10.10'
+  - '@turbo/darwin-arm64@2.10.10'
+  - '@turbo/linux-64@2.10.10'
+  - '@turbo/linux-arm64@2.10.10'
+  - '@turbo/windows-64@2.10.10'
+  - '@turbo/windows-arm64@2.10.10'
+  - turbo@2.10.10

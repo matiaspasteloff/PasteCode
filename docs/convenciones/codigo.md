@@ -61,9 +61,7 @@ Las excepciones son para bugs, no para flujo de control.
 
 ```typescript
 // ✅ BIEN — el resultado es parte del tipo
-type Result<T, E = Error> =
-  | { ok: true; value: T }
-  | { ok: false; error: E };
+type Result<T, E = Error> = { ok: true; value: T } | { ok: false; error: E };
 
 async function readFile(path: string): Promise<Result<string, FileError>> {
   try {
@@ -93,30 +91,33 @@ Se usan uniones de literales o const objects.
 
 ```typescript
 // ❌ MAL — genera código en runtime, mala interoperabilidad
-enum Theme { Light, Dark }
+enum Theme {
+  Light,
+  Dark,
+}
 
 // ✅ BIEN
 const THEMES = ['light', 'dark', 'system'] as const;
-type Theme = typeof THEMES[number];
+type Theme = (typeof THEMES)[number];
 ```
 
 ---
 
 ## Convenciones de nombres
 
-| Elemento | Convención | Ejemplo |
-|---|---|---|
-| Archivos de código | `kebab-case.ts` | `file-watcher.ts` |
-| Componentes React | `PascalCase.tsx` | `FileTree.tsx` |
-| Clases e interfaces | `PascalCase` | `WorkspaceService` |
-| Funciones y variables | `camelCase` | `resolveWorkspacePath` |
-| Constantes globales | `SCREAMING_SNAKE_CASE` | `DEFAULT_TAB_SIZE` |
-| Tipos genéricos | `T` + nombre descriptivo | `TPayload` |
-| Booleanos | Prefijo `is`/`has`/`should`/`can` | `isDirty`, `hasUnsavedChanges` |
-| Handlers de eventos | Prefijo `handle` | `handleFileClick` |
-| Props de callback | Prefijo `on` | `onFileSelect` |
-| Canales IPC | `dominio:acción` | `fs:readFile` |
-| Comandos | `namespace.acción` | `editor.formatDocument` |
+| Elemento              | Convención                        | Ejemplo                        |
+| --------------------- | --------------------------------- | ------------------------------ |
+| Archivos de código    | `kebab-case.ts`                   | `file-watcher.ts`              |
+| Componentes React     | `PascalCase.tsx`                  | `FileTree.tsx`                 |
+| Clases e interfaces   | `PascalCase`                      | `WorkspaceService`             |
+| Funciones y variables | `camelCase`                       | `resolveWorkspacePath`         |
+| Constantes globales   | `SCREAMING_SNAKE_CASE`            | `DEFAULT_TAB_SIZE`             |
+| Tipos genéricos       | `T` + nombre descriptivo          | `TPayload`                     |
+| Booleanos             | Prefijo `is`/`has`/`should`/`can` | `isDirty`, `hasUnsavedChanges` |
+| Handlers de eventos   | Prefijo `handle`                  | `handleFileClick`              |
+| Props de callback     | Prefijo `on`                      | `onFileSelect`                 |
+| Canales IPC           | `dominio:acción`                  | `fs:readFile`                  |
+| Comandos              | `namespace.acción`                | `editor.formatDocument`        |
 
 ---
 
@@ -132,14 +133,11 @@ type Theme = typeof THEMES[number];
 // ❌ MAL — estado derivado innecesario
 const [filtered, setFiltered] = useState<File[]>([]);
 useEffect(() => {
-  setFiltered(files.filter(f => f.name.includes(query)));
+  setFiltered(files.filter((f) => f.name.includes(query)));
 }, [files, query]);
 
 // ✅ BIEN — derivado en el render
-const filtered = useMemo(
-  () => files.filter(f => f.name.includes(query)),
-  [files, query]
-);
+const filtered = useMemo(() => files.filter((f) => f.name.includes(query)), [files, query]);
 ```
 
 ---
@@ -206,11 +204,11 @@ counter++;
 
 ## Límites de tamaño ([RNF-20](../04-requerimientos-no-funcionales.md#mantenibilidad))
 
-| Límite | Valor |
-|---|---|
-| Líneas por archivo | 400 |
-| Líneas por función | 50 |
-| Complejidad ciclomática | 10 |
+| Límite                  | Valor |
+| ----------------------- | ----- |
+| Líneas por archivo      | 400   |
+| Líneas por función      | 50    |
+| Complejidad ciclomática | 10    |
 
 Se aplican vía ESLint. Superarlos falla el CI.
 
@@ -218,16 +216,16 @@ Se aplican vía ESLint. Superarlos falla el CI.
 
 ## Herramientas de calidad
 
-| Herramienta | Rol |
-|---|---|
-| **ESLint** + `@typescript-eslint` | Linting con reglas type-aware |
-| **Prettier** | Formateo — sin discusiones de estilo |
-| **Vitest** | Tests unitarios y de integración |
-| **Playwright** | Tests E2E sobre Electron |
-| **Knip** | Detección de código muerto y dependencias sin usar |
-| **`eslint-plugin-import-x`** | Detección de dependencias circulares vía la regla `no-cycle` — falla el CI si encuentra alguna. Ver [ADR-0010](../adr/0010-import-x-no-cycle.md) |
-| **size-limit** | Presupuesto de tamaño de bundle |
-| **Husky** + **lint-staged** | Hooks de pre-commit |
+| Herramienta                       | Rol                                                                                                                                              |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **ESLint** + `@typescript-eslint` | Linting con reglas type-aware                                                                                                                    |
+| **Prettier**                      | Formateo — sin discusiones de estilo                                                                                                             |
+| **Vitest**                        | Tests unitarios y de integración                                                                                                                 |
+| **Playwright**                    | Tests E2E sobre Electron                                                                                                                         |
+| **Knip**                          | Detección de código muerto y dependencias sin usar                                                                                               |
+| **`eslint-plugin-import-x`**      | Detección de dependencias circulares vía la regla `no-cycle` — falla el CI si encuentra alguna. Ver [ADR-0010](../adr/0010-import-x-no-cycle.md) |
+| **size-limit**                    | Presupuesto de tamaño de bundle                                                                                                                  |
+| **Husky** + **lint-staged**       | Hooks de pre-commit                                                                                                                              |
 
 ---
 

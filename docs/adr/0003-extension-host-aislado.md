@@ -20,12 +20,12 @@ Las extensiones corren en un **proceso Node aislado**, lanzado con `utilityProce
 
 ## Alternativas consideradas
 
-| Opción | Pros | Contras | Por qué no |
-|---|---|---|---|
-| **En el renderer (Web Worker)** | Sin latencia de IPC hacia la UI, sandbox del navegador gratis | Sin acceso a Node (muchas extensiones lo necesitan); un worker bloqueado igual afecta el hilo principal al postear mensajes | Limita demasiado lo que una extensión puede hacer |
-| **En el main** | Implementación trivial, acceso directo a todo | Un crash tumba la app; sin límite de recursos; superficie de ataque enorme | Inaceptable para código de terceros |
-| **`child_process.fork()`** | Aislamiento real | Más pesado que `utilityProcess`, sin integración con el ciclo de vida de Electron | `utilityProcess` es la primitiva pensada para esto en Electron moderno |
-| **`utilityProcess.fork()`** ✅ | Aislamiento real, acceso a Node, ciclo de vida gestionado por Electron, `MessagePort` eficiente | Latencia de IPC en cada llamada; toda la API debe ser async y serializable | — |
+| Opción                          | Pros                                                                                            | Contras                                                                                                                     | Por qué no                                                             |
+| ------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| **En el renderer (Web Worker)** | Sin latencia de IPC hacia la UI, sandbox del navegador gratis                                   | Sin acceso a Node (muchas extensiones lo necesitan); un worker bloqueado igual afecta el hilo principal al postear mensajes | Limita demasiado lo que una extensión puede hacer                      |
+| **En el main**                  | Implementación trivial, acceso directo a todo                                                   | Un crash tumba la app; sin límite de recursos; superficie de ataque enorme                                                  | Inaceptable para código de terceros                                    |
+| **`child_process.fork()`**      | Aislamiento real                                                                                | Más pesado que `utilityProcess`, sin integración con el ciclo de vida de Electron                                           | `utilityProcess` es la primitiva pensada para esto en Electron moderno |
+| **`utilityProcess.fork()`** ✅  | Aislamiento real, acceso a Node, ciclo de vida gestionado por Electron, `MessagePort` eficiente | Latencia de IPC en cada llamada; toda la API debe ser async y serializable                                                  | —                                                                      |
 
 ## Consecuencias
 

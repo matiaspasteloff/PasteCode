@@ -1,0 +1,12 @@
+{
+  // Config "solución": no compila nada por sí misma, sólo apunta a las dos
+  // reales. Existe para las herramientas —ESLint y el editor— que buscan un
+  // tsconfig.json y necesitan saber a qué proyecto pertenece cada archivo.
+  //
+  // La separación node/web no es burocracia: es lo que hace que el renderer no
+  // typechequee contra los globals de Node. Si hubiera un solo tsconfig con
+  // todo adentro, `import { readFile } from 'node:fs'` en un componente de
+  // React compilaría sin quejarse.
+  "files": [],
+  "references": [{ "path": "./tsconfig.node.json" }, { "path": "./tsconfig.web.json" }]
+}

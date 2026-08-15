@@ -66,15 +66,15 @@ pnpm knip             # código y dependencias sin usar
 
 ## Referencias rápidas
 
-| Necesito... | Está en |
-|---|---|
-| Saber en qué etapa está el proyecto y qué sigue | [`docs/00-guia-paso-a-paso.md`](./docs/00-guia-paso-a-paso.md) |
-| Saber si una feature está en alcance | [`docs/01-vision-y-alcance.md`](./docs/01-vision-y-alcance.md) |
-| Entender el modelo de procesos o el IPC | [`docs/02-arquitectura.md`](./docs/02-arquitectura.md) |
-| Buscar un requerimiento por ID | [`docs/03-requerimientos-funcionales.md`](./docs/03-requerimientos-funcionales.md) |
-| Ver un presupuesto de performance | [`docs/04-requerimientos-no-funcionales.md`](./docs/04-requerimientos-no-funcionales.md) |
-| Ver un schema o contrato | [`docs/05-modelo-de-datos.md`](./docs/05-modelo-de-datos.md) |
-| Reglas de estilo de código | [`docs/convenciones/codigo.md`](./docs/convenciones/codigo.md) |
-| Formato de commits y branches | [`docs/convenciones/git.md`](./docs/convenciones/git.md) |
-| Cómo y qué testear | [`docs/convenciones/testing.md`](./docs/convenciones/testing.md) |
-| Reglas de seguridad de Electron | [`docs/convenciones/seguridad.md`](./docs/convenciones/seguridad.md) |
+| Necesito...                                     | Está en                                                                                  |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Saber en qué etapa está el proyecto y qué sigue | [`docs/00-guia-paso-a-paso.md`](./docs/00-guia-paso-a-paso.md)                           |
+| Saber si una feature está en alcance            | [`docs/01-vision-y-alcance.md`](./docs/01-vision-y-alcance.md)                           |
+| Entender el modelo de procesos o el IPC         | [`docs/02-arquitectura.md`](./docs/02-arquitectura.md)                                   |
+| Buscar un requerimiento por ID                  | [`docs/03-requerimientos-funcionales.md`](./docs/03-requerimientos-funcionales.md)       |
+| Ver un presupuesto de performance               | [`docs/04-requerimientos-no-funcionales.md`](./docs/04-requerimientos-no-funcionales.md) |
+| Ver un schema o contrato                        | [`docs/05-modelo-de-datos.md`](./docs/05-modelo-de-datos.md)                             |
+| Reglas de estilo de código                      | [`docs/convenciones/codigo.md`](./docs/convenciones/codigo.md)                           |
+| Formato de commits y branches                   | [`docs/convenciones/git.md`](./docs/convenciones/git.md)                                 |
+| Cómo y qué testear                              | [`docs/convenciones/testing.md`](./docs/convenciones/testing.md)                         |
+| Reglas de seguridad de Electron                 | [`docs/convenciones/seguridad.md`](./docs/convenciones/seguridad.md)                     |
