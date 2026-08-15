@@ -1,0 +1,37 @@
+# Dependencias
+node_modules/
+
+# Artefactos de build
+dist/
+out/
+release/
+*.tsbuildinfo
+
+# Tests
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# Caché de herramientas
+.turbo/
+.eslintcache
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editores y sistema operativo
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local

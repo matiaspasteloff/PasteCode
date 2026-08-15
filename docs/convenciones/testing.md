@@ -1,0 +1,166 @@
+# Convenciones · Testing
+
+[← Git](./git.md) · [Índice](../README.md) · [Seguridad →](./seguridad.md)
+
+---
+
+## Pirámide de tests
+
+```
+        ╱╲          E2E (Playwright)          ~30 tests
+       ╱  ╲         Flujos críticos completos
+      ╱────╲
+     ╱      ╲       Integración (Vitest)      ~150 tests
+    ╱        ╲      IPC, servicios, LSP mockeado
+   ╱──────────╲
+  ╱            ╲    Unitarios (Vitest)        ~500 tests
+ ╱______________╲   Lógica pura de packages/core
+```
+
+---
+
+## Unitarios
+
+Todo `packages/core`. Lógica pura, sin I/O, sin mocks complejos. **Si un test necesita muchos mocks, la unidad está mal diseñada.**
+
+```typescript
+// packages/core/src/keybindings/resolver.test.ts
+import { describe, it, expect } from 'vitest';
+import { resolveKeybinding } from './resolver';
+
+describe('resolveKeybinding', () => {
+  it('resuelve un binding simple cuando el contexto coincide', () => {
+    const bindings = [
+      { key: 'ctrl+s', command: 'file.save', when: 'editorFocus' },
+    ];
+    const result = resolveKeybinding(bindings, 'ctrl+s', { editorFocus: true });
+    expect(result).toEqual({ command: 'file.save' });
+  });
+
+  it('devuelve null cuando la cláusula when no se cumple', () => {
+    const bindings = [
+      { key: 'ctrl+s', command: 'file.save', when: 'editorFocus' },
+    ];
+    const result = resolveKeybinding(bindings, 'ctrl+s', { editorFocus: false });
+    expect(result).toBeNull();
+  });
+
+  it('prioriza el binding más específico ante conflicto', () => {
+    const bindings = [
+      { key: 'ctrl+f', command: 'editor.find', when: 'editorFocus' },
+      { key: 'ctrl+f', command: 'terminal.find', when: 'editorFocus && terminalFocus' },
+    ];
+    const result = resolveKeybinding(bindings, 'ctrl+f', {
+      editorFocus: true,
+      terminalFocus: true,
+    });
+    expect(result).toEqual({ command: 'terminal.find' });
+  });
+});
+```
+
+---
+
+## Integración
+
+Handlers de IPC, servicios con filesystem real (en `tmpdir`), supervisión de procesos con binarios falsos.
+
+```typescript
+// apps/desktop/src/main/ipc/fs.test.ts
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { handleReadFile } from './fs';
+
+describe('handleReadFile', () => {
+  let workspace: string;
+
+  beforeEach(async () => {
+    workspace = await mkdtemp(join(tmpdir(), 'forge-test-'));
+  });
+
+  afterEach(async () => {
+    await rm(workspace, { recursive: true, force: true });
+  });
+
+  it('lee un archivo dentro del workspace', async () => {
+    const filePath = join(workspace, 'test.txt');
+    await writeFile(filePath, 'hola');
+
+    const result = await handleReadFile({ path: filePath }, workspace);
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.value.content).toBe('hola');
+  });
+
+  it('rechaza path traversal fuera del workspace', async () => {
+    const result = await handleReadFile(
+      { path: join(workspace, '..', '..', 'secreto.txt') },
+      workspace
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.ok === false && result.error.code).toBe('PATH_OUTSIDE_WORKSPACE');
+  });
+});
+```
+
+---
+
+## E2E
+
+Sólo los flujos que un usuario realmente hace. Son lentos y frágiles; se mantienen **pocos y valiosos**.
+
+```typescript
+// e2e/edit-and-save.spec.ts
+import { test, expect, _electron as electron } from '@playwright/test';
+
+test('abrir workspace, editar archivo y guardar', async () => {
+  const app = await electron.launch({ args: ['.'] });
+  const window = await app.firstWindow();
+
+  await window.getByRole('button', { name: 'Abrir carpeta' }).click();
+  // (el diálogo nativo se mockea vía flag de test)
+
+  await window.getByRole('treeitem', { name: 'index.ts' }).click();
+  await expect(window.locator('.monaco-editor')).toBeVisible();
+
+  await window.locator('.monaco-editor textarea').fill('const x = 1;');
+  await expect(window.getByTestId('tab-dirty-indicator')).toBeVisible();
+
+  await window.keyboard.press('Control+S');
+  await expect(window.getByTestId('tab-dirty-indicator')).toBeHidden();
+
+  await app.close();
+});
+```
+
+---
+
+## Reglas de testing
+
+1. Los tests describen **comportamiento**, no implementación. Si un refactor interno rompe tests sin cambiar comportamiento, los tests estaban mal.
+2. Nombres de test en formato "hace X cuando Y". En español o inglés, pero consistente en todo el repo.
+3. **Cero tests flaky tolerados.** Un test flaky se arregla o se borra, no se reintenta.
+4. Todo bug reportado se convierte primero en un test que falla, y después se arregla.
+5. Los tests no dependen del orden de ejecución ni comparten estado.
+6. Tests E2E: máximo 30, todos por debajo de 30s cada uno.
+
+---
+
+## Cobertura
+
+| Paquete | Mínimo |
+|---|---|
+| `packages/core` | 80% |
+| `packages/ipc-contract` | N/A (sólo tipos) |
+| `apps/desktop/src/main` | 70% |
+| `apps/desktop/src/renderer` | 50% |
+| **Global** | **60%** |
+
+El CI falla si la cobertura baja respecto de `main`. Ver [RNF-17](../04-requerimientos-no-funcionales.md#mantenibilidad).
+
+---
+
+[← Git](./git.md) · [Índice](../README.md) · [Seguridad →](./seguridad.md)

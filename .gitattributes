@@ -1,0 +1,26 @@
+# Normalización de fin de línea.
+#
+# Sin esto, Git en Windows hace checkout con CRLF y Prettier y ESLint —que
+# esperan LF— reportan cada archivo del repo como mal formateado. El CI corre
+# en Ubuntu, así que la discrepancia solo aparece localmente y es confusa.
+* text=auto eol=lf
+
+# Binarios: nunca normalizar.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.icns binary
+*.woff binary
+*.woff2 binary
+*.exe binary
+*.dll binary
+*.node binary
+
+# Los scripts de Windows sí necesitan CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Los lockfiles no ensucian el diff de los PRs.
+pnpm-lock.yaml linguist-generated=true -diff
