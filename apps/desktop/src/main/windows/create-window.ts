@@ -6,6 +6,8 @@ import { devServerOrigin, devServerUrl } from '../environment.js';
 import { applyContentSecurityPolicy } from '../security/content-security-policy.js';
 import { isAllowedNavigation, isSafeExternalUrl } from '../security/navigation.js';
 
+import { APP_ORIGIN } from './app-protocol.js';
+
 /**
  * Crea la ventana principal con el hardening completo de
  * docs/convenciones/seguridad.md aplicado desde el primer commit.
@@ -38,7 +40,7 @@ export function createMainWindow(): BrowserWindow {
   });
 
   window.webContents.on('will-navigate', (event, url) => {
-    if (!isAllowedNavigation(url, devServerOrigin)) event.preventDefault();
+    if (!isAllowedNavigation(url, APP_ORIGIN, devServerOrigin)) event.preventDefault();
   });
 
   // Los links externos abren en el navegador del sistema, nunca en la app.
@@ -47,8 +49,10 @@ export function createMainWindow(): BrowserWindow {
     return { action: 'deny' };
   });
 
-  if (devServerUrl !== undefined) void window.loadURL(devServerUrl);
-  else void window.loadFile(join(__dirname, '../renderer/index.html'));
+  // En producción se carga por el esquema propio y no con `loadFile`: bajo
+  // `file://` el origen es opaco, y con eso Chromium no deja construir web
+  // workers ni `default-src 'self'` significa nada. Ver ADR-0012.
+  void window.loadURL(devServerUrl ?? `${APP_ORIGIN}/index.html`);
 
   return window;
 }

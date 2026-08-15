@@ -1,22 +1,7 @@
 /*
- * Variables CSS y no clases condicionales: es la decisión que el paso 19 de la
- * guía necesita para los temas. Acá sólo hay dos colores, pero el mecanismo ya
- * está donde va.
+ * Estilos de la aplicación. Los colores están en `tokens.css`, que es lo único
+ * que cambia entre el tema claro y el oscuro.
  */
-:root {
-  --color-background: #ffffff;
-  --color-foreground: #1a1a1a;
-  --color-muted: #6b6b6b;
-  --font-ui: 'Segoe UI', system-ui, sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: #1e1e1e;
-    --color-foreground: #e8e8e8;
-    --color-muted: #9a9a9a;
-  }
-}
 
 * {
   box-sizing: border-box;
@@ -29,25 +14,343 @@ body {
   font-family: var(--font-ui);
 }
 
+/*
+ * Grilla y no flex: la barra lateral y el área de edición comparten fila, y la
+ * barra de estado cruza las dos columnas. Con flex habría que anidar dos
+ * contenedores para decir lo mismo.
+ */
 .app {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-rows: 1fr auto;
+  height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.workspace-header {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  gap: 0.25rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  gap: 0.5rem;
 }
 
-.app__name {
+.workspace-header__name {
+  overflow: hidden;
   margin: 0;
-  font-size: 2.5rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.app__version {
+.workspace-header__action {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background: var(--color-background);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.workspace-header__action:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.workspace-header__error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 0.8rem;
+}
+
+/*
+ * El contenedor scrolleable que mide el virtualizador. `contain: strict` le
+ * dice al navegador que nada de adentro afecta al layout de afuera, que es lo
+ * que evita recalcular la página entera con cada scroll de 5.000 filas.
+ */
+.file-tree {
+  flex: 1;
+  overflow: auto;
+  contain: strict;
+}
+
+.file-tree__canvas {
+  position: relative;
+  width: 100%;
+}
+
+/* Las filas se posicionan en absoluto: el virtualizador pinta unas pocas. */
+.file-tree__row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  width: 100%;
+  height: var(--file-tree-row-height);
+  cursor: pointer;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.file-tree__row:hover {
+  background: var(--color-background);
+}
+
+.file-tree__row:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.file-tree__row[data-selected='true'] {
+  background: var(--color-selection);
+}
+
+.file-tree__icon {
+  flex: none;
+  width: 0.75rem;
+  color: var(--color-muted);
+}
+
+.file-tree__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-tree__status {
+  margin: 0;
+  padding: 0.75rem;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.editor-area {
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+}
+
+/* Los estados de texto —vacío, cargando, error— se centran; el editor ocupa
+   todo. El contenedor es columna para que la barra del archivo quede arriba. */
+.editor-area > .editor-area__empty {
+  margin: auto;
+}
+
+.tabs {
+  display: flex;
+  overflow-x: auto;
+  flex: none;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.tabs__tab {
+  display: flex;
+  align-items: center;
+  padding: 0.3rem 0.5rem 0.3rem 0.75rem;
+  border-right: 1px solid var(--color-border);
+  cursor: pointer;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.tabs__tab[data-active='true'] {
+  background: var(--color-background);
+  box-shadow: inset 0 2px 0 var(--color-accent);
+}
+
+.tabs__tab:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.tabs__dirty {
+  color: var(--color-accent);
+  font-size: 0.7rem;
+}
+
+.tabs__close {
+  padding: 0 0.2rem;
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+}
+
+.tabs__close:hover {
+  color: var(--color-foreground);
+}
+
+.status-bar__saving {
+  color: var(--color-muted);
+}
+
+.conflict {
+  max-width: 26rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.4rem;
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+
+.conflict::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.conflict__title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.conflict__message {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+}
+
+.conflict__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.conflict__actions button {
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background: var(--color-surface);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.editor-area__empty {
   margin: 0;
   color: var(--color-muted);
   font-size: 0.9rem;
+}
+
+.editor {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Monaco mide su contenedor al crearse, así que necesita alto real desde el
+   primer momento y no puede depender de que el contenido lo estire. */
+.editor__surface {
+  width: 100%;
+  height: 100%;
+}
+
+.editor__status {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  transform: translate(-50%, -50%);
+}
+
+.status-bar {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.75rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.75rem;
+}
+
+.app__name {
+  font-weight: 600;
+}
+
+.status-bar__version {
+  color: var(--color-muted);
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * La paleta se superpone a todo. Es un overlay propio y no un `<dialog>`
+ * porque no bloquea la app: se cierra con Escape o clickeando afuera, y no
+ * necesita atrapar el foco más allá del input.
+ */
+.palette {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  padding-top: 12vh;
+  background: rgb(0 0 0 / 30%);
+}
+
+.palette__panel {
+  overflow: hidden;
+  width: min(36rem, 90vw);
+  height: fit-content;
+  border: 1px solid var(--color-border);
+  border-radius: 0.4rem;
+  background: var(--color-surface);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 30%);
+}
+
+.palette__input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: inherit;
+  font: inherit;
+}
+
+.palette__input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.palette__list {
+  overflow-y: auto;
+  max-height: 50vh;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.palette__item {
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.palette__item[data-highlighted='true'] {
+  background: var(--color-selection);
+}
+
+.palette__empty {
+  padding: 0.6rem 0.8rem;
+  color: var(--color-muted);
+  font-size: 0.9rem;
 }

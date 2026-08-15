@@ -2,10 +2,14 @@
 
 Un IDE de escritorio liviano y extensible, construido con **Electron + TypeScript + React**.
 
-> **Estado: Fase 0 — Fundaciones.** Hoy la app es una ventana en blanco que muestra
-> su nombre y su versión. Eso es exactamente el checkpoint de la Etapa 1: el
-> andamio completo —monorepo, TypeScript strict, linting, tests, CI e instalador—
-> funcionando de punta a punta antes de escribir la primera feature.
+> **Estado: Etapa 2 cerrada — Editor mínimo.** La app abre una carpeta, muestra
+> su árbol de archivos, edita con resaltado de sintaxis en 81 lenguajes, guarda
+> de forma atómica y detecta cambios externos. Tiene pestañas con historial de
+> deshacer por archivo, paleta de comandos, atajos con cláusulas `when` y temas
+> claro y oscuro.
+>
+> El checkpoint de la etapa es el dogfooding: abrir el código de PasteCode con
+> PasteCode y editarlo. Ya se puede.
 >
 > El README que presenta el proyecto, con GIF y capturas, es el paso 41 de la
 > [guía](./docs/00-guia-paso-a-paso.md). Este es el README de trabajo.
@@ -37,6 +41,16 @@ pnpm dev       # levanta la app con HMR
 | `pnpm test:e2e` | Tests E2E sobre el build de producción (Playwright)             |
 | `pnpm check`    | `lint` + `typecheck` + `test` — **correr antes de todo commit** |
 | `pnpm package`  | Genera el instalador en `apps/desktop/release/`                 |
+
+## Atajos
+
+| Atajo          | Qué hace                   |
+| -------------- | -------------------------- |
+| `Ctrl+S`       | Guarda el archivo activo   |
+| `Ctrl+W`       | Cierra la pestaña activa   |
+| `Ctrl+Shift+P` | Abre la paleta de comandos |
+
+La paleta lista todos los comandos registrados, incluido el de cambiar el tema.
 
 ## Estructura
 

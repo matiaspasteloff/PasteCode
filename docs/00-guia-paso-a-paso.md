@@ -61,11 +61,18 @@ La estructura del monorepo se scaffoldea **sólo con lo que estas dos etapas usa
 
 ---
 
-## Etapa 2 — Editor mínimo
+## Etapa 2 — Editor mínimo ✅
 
-_~3 semanas_
+_~3 semanas estimadas_ · **Cerrada**
 
 Objetivo: abrir una carpeta, editar un archivo, guardarlo.
+
+> **Cerrada.** Los ocho pasos están hechos. Lo que salió distinto de lo previsto:
+>
+> - **El paso 14 obligó a cambiar cómo se carga el renderer.** Bajo `file://` el origen es opaco y Chromium no deja construir los web workers que Monaco necesita. Se verificó con un spike antes de decidir y se resolvió sirviendo el renderer desde un esquema propio ([ADR-0012](./adr/0012-servir-el-renderer-desde-un-protocolo-propio.md)).
+> - **El guardado atómico se adelantó del paso 15 al 12.** RNF-07 dice que _todo_ guardado es atómico; escribir primero la versión no atómica era escribir código que ya sabíamos que estaba mal.
+> - **RF-101 se corrigió**: pedía TextMate y Monaco usa Monarch. Ver la nota en [requerimientos funcionales](./03-requerimientos-funcionales.md#editor).
+> - **Los ADRs que produjo:** [0004](./adr/0004-zustand-para-el-estado-del-renderer.md), [0011](./adr/0011-resultado-tipado-en-el-limite-de-ipc.md) y [0012](./adr/0012-servir-el-renderer-desde-un-protocolo-propio.md).
 
 **12. El contrato de IPC y el servicio de filesystem.** Empezá por acá, no por la UI. Definí `packages/ipc-contract` con dos canales (`fs:readFile`, `fs:writeFile`), el handler en el main con validación Zod y [validación de rutas](./convenciones/seguridad.md#validación-de-rutas). Con sus tests.
 

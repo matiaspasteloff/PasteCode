@@ -39,20 +39,23 @@ Los IDs son estables y no se reciclan. Si un requerimiento se elimina, su ID que
 
 ## Editor
 
-| ID     | Prioridad | Requerimiento                                  | Criterio de aceptación                                                                               |
-| ------ | --------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| RF-101 | M         | Editar texto con resaltado de sintaxis         | Soporte para al menos 15 lenguajes vía TextMate grammars                                             |
-| RF-102 | M         | Múltiples archivos abiertos en pestañas        | El estado (cursor, scroll, undo stack) se preserva al cambiar de pestaña                             |
-| RF-103 | M         | Multi-cursor                                   | `Alt+Click` agrega cursor; `Ctrl+D` selecciona siguiente ocurrencia; `Ctrl+Shift+L` selecciona todas |
-| RF-104 | M         | Indicador de cambios sin guardar               | Punto en la pestaña; `Ctrl+S` guarda; cerrar con cambios pide confirmación                           |
-| RF-105 | M         | Buscar y reemplazar en el archivo activo       | Con soporte de regex, case-sensitive y whole-word                                                    |
-| RF-106 | M         | Deshacer/rehacer por archivo                   | Historial independiente por archivo, preservado mientras la pestaña esté abierta                     |
-| RF-107 | S         | Split view horizontal y vertical               | Hasta 3 grupos de editores                                                                           |
-| RF-108 | S         | Minimapa                                       | Toggleable vía settings                                                                              |
-| RF-109 | S         | Code folding                                   | Por indentación y por sintaxis del lenguaje                                                          |
-| RF-110 | S         | Breadcrumbs de navegación de símbolos          | Requiere LSP activo                                                                                  |
-| RF-111 | C         | Modo Zen / pantalla completa sin distracciones | —                                                                                                    |
-| RF-112 | W         | Edición colaborativa en tiempo real            | —                                                                                                    |
+| ID     | Prioridad | Requerimiento                                  | Criterio de aceptación                                                                                                                         |
+| ------ | --------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| RF-101 | M         | Editar texto con resaltado de sintaxis         | Soporte para al menos 15 lenguajes vía las gramáticas incluidas en Monaco                                                                      |
+| RF-102 | M         | Múltiples archivos abiertos en pestañas        | El estado (cursor, scroll, undo stack) se preserva al cambiar de pestaña                                                                       |
+| RF-103 | M         | Multi-cursor                                   | `Alt+Click` agrega cursor; `Ctrl+D` selecciona siguiente ocurrencia; `Ctrl+Shift+L` selecciona todas                                           |
+| RF-104 | M         | Indicador de cambios sin guardar               | Punto en la pestaña; `Ctrl+S` guarda; cerrar con cambios pide confirmación                                                                     |
+| RF-105 | M         | Buscar y reemplazar en el archivo activo       | Con soporte de regex, case-sensitive y whole-word                                                                                              |
+| RF-106 | M         | Deshacer/rehacer por archivo                   | Historial independiente por archivo, preservado mientras la pestaña esté abierta                                                               |
+| RF-107 | S         | Split view horizontal y vertical               | Hasta 3 grupos de editores                                                                                                                     |
+| RF-108 | S         | Minimapa                                       | Toggleable vía settings                                                                                                                        |
+| RF-109 | S         | Code folding                                   | Por indentación y por sintaxis del lenguaje                                                                                                    |
+| RF-110 | S         | Breadcrumbs de navegación de símbolos          | Requiere LSP activo                                                                                                                            |
+| RF-111 | C         | Modo Zen / pantalla completa sin distracciones | —                                                                                                                                              |
+| RF-112 | W         | Edición colaborativa en tiempo real            | —                                                                                                                                              |
+| RF-113 | S         | Resaltado vía TextMate grammars                | Habilita que las extensiones de tema aporten reglas de tokenización. Requiere aceptar `wasm-unsafe-eval` y enmendar RNF-13 con un ADR. Etapa 5 |
+
+> **Nota de corrección (RF-101), Etapa 2.** La redacción original pedía _"vía TextMate grammars"_. Monaco no usa TextMate: usa **Monarch**, su propio formato, y trae 81 gramáticas incluidas. Soportar TextMate de verdad requiere `vscode-textmate` + `vscode-oniguruma`, que son **WASM**, y eso obliga a agregar `wasm-unsafe-eval` a `script-src`, contra [RNF-13](./04-requerimientos-no-funcionales.md#seguridad). Se corrigió el criterio de aceptación a las gramáticas de Monaco, que cumplen el espíritu del requerimiento —muy por encima de 15 lenguajes resaltados— sin dependencias nuevas ni excepciones de CSP. TextMate vuelve como [RF-113](#editor), en la Etapa 5, que es donde de verdad hace falta: sin él, una extensión de tema como `theme-nord` no puede aportar reglas de tokenización.
 
 > **Nota de implementación (RF-102):** Monaco no soporta bien "un editor por pestaña con estado independiente" sin cuidado. Se debe implementar un `EditorModelRegistry` que reutilice modelos. Ver [ADR-0002](./adr/0002-monaco-editor.md).
 

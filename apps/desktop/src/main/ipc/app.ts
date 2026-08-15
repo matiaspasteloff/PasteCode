@@ -1,5 +1,7 @@
-import { GetVersionRequestSchema, type Response } from '@pastecode/ipc-contract';
-import { app, ipcMain } from 'electron';
+import { GetVersionRequestSchema } from '@pastecode/ipc-contract';
+import { app } from 'electron';
+
+import { registerHandler } from './handler.js';
 
 /**
  * Registra los handlers del dominio `app`.
@@ -13,11 +15,9 @@ import { app, ipcMain } from 'electron';
  * registerAppIpcHandlers(); // antes de app.whenReady()
  */
 export function registerAppIpcHandlers(): void {
-  ipcMain.handle('app:getVersion', (_event, raw: unknown): Response<'app:getVersion'> => {
-    // Un canal sin payload igual valida: el schema es estricto, así que mandar
-    // datos de más es un error explícito y no algo que el handler ignora.
-    GetVersionRequestSchema.parse(raw);
-
-    return { version: app.getVersion() };
-  });
+  // Un canal sin payload igual valida: el schema es estricto, así que mandar
+  // datos de más es un error explícito y no algo que el handler ignora.
+  registerHandler('app:getVersion', GetVersionRequestSchema, () => ({
+    version: app.getVersion(),
+  }));
 }

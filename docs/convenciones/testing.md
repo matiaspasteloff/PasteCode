@@ -97,7 +97,10 @@ describe('handleReadFile', () => {
     );
 
     expect(result.ok).toBe(false);
-    expect(result.ok === false && result.error.code).toBe('PATH_OUTSIDE_WORKSPACE');
+    // `!result.ok` y no `result.ok === false`: la regla
+    // `no-unnecessary-boolean-literal-compare` rechaza lo segundo, y el
+    // narrowing funciona igual.
+    expect(!result.ok && result.error.code).toBe('PATH_OUTSIDE_WORKSPACE');
   });
 });
 ```
@@ -141,7 +144,7 @@ test('abrir workspace, editar archivo y guardar', async () => {
 3. **Cero tests flaky tolerados.** Un test flaky se arregla o se borra, no se reintenta.
 4. Todo bug reportado se convierte primero en un test que falla, y después se arregla.
 5. Los tests no dependen del orden de ejecución ni comparten estado.
-6. Tests E2E: máximo 30, todos por debajo de 30s cada uno.
+6. Tests E2E: máximo 30, todos por debajo de 30s cada uno. **Al llegar al tope, se fusionan casos relacionados en vez de subir el número**: el límite existe para que la suite siga siendo rápida y para obligar a elegir qué flujos valen un E2E.
 
 ---
 

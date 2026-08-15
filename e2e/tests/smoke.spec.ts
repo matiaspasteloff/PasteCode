@@ -1,7 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import {
   _electron as electron,
   expect,
@@ -9,32 +5,7 @@ import {
   type ElectronApplication,
 } from '@playwright/test';
 
-const DESKTOP_ROOT = join(
-  dirname(fileURLToPath(import.meta.url)),
-  '..',
-  '..',
-  'apps',
-  'desktop'
-);
-
-/**
- * Lee la versión del package.json de la app sin aserciones de tipo: el
- * contenido de un archivo es `unknown` hasta que alguien lo verifique.
- */
-function readDesktopVersion(): string {
-  const parsed: unknown = JSON.parse(readFileSync(join(DESKTOP_ROOT, 'package.json'), 'utf8'));
-
-  if (
-    typeof parsed === 'object' &&
-    parsed !== null &&
-    'version' in parsed &&
-    typeof parsed.version === 'string'
-  ) {
-    return parsed.version;
-  }
-
-  throw new Error('apps/desktop/package.json no tiene un campo "version" de tipo string');
-}
+import { DESKTOP_ROOT, readDesktopVersion } from './support/desktop.js';
 
 let app: ElectronApplication;
 

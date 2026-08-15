@@ -10,7 +10,7 @@ const DEV_SERVER_PORT = 5173;
 // empaquetado no existe un node_modules donde resolver `@pastecode/core`, así
 // que dejarlos como externals produce un "Cannot find module" que sólo aparece
 // después de instalar, nunca en desarrollo.
-const WORKSPACE_PACKAGES = ['@pastecode/ipc-contract'];
+const WORKSPACE_PACKAGES = ['@pastecode/core', '@pastecode/ipc-contract'];
 
 export default defineConfig({
   main: {
@@ -29,6 +29,15 @@ export default defineConfig({
     root: resolve(__dirname, 'src/renderer'),
     plugins: [react()],
     build: {
+      // electron-vite no minifica por defecto, y sin esto Monaco solo son
+      // 7,5MB de JavaScript con nombres largos y saltos de línea dentro del
+      // .exe. RNF-05 pone el techo del instalador en 120MB.
+      minify: 'esbuild',
+      // El outDir está fuera del root del renderer, así que Vite se niega a
+      // vaciarlo por las suyas y los chunks viejos se acumulan entre builds.
+      // Sin esto, los 18MB de workers que este PR sacó seguirían apareciendo
+      // en el paquete.
+      emptyOutDir: true,
       rollupOptions: { input: resolve(__dirname, 'src/renderer/index.html') },
     },
     server: {

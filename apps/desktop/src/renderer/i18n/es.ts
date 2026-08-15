@@ -1,0 +1,38 @@
+/**
+ * Diccionario de español. Único idioma activo por ahora; `en` llega en la
+ * Etapa 6.
+ *
+ * El `as const` no es decorativo: de él sale el tipo de las claves, y con eso
+ * una clave inexistente pasa a ser un error de compilación en vez de un
+ * `undefined` que se ve recién en pantalla.
+ *
+ * Las claves se ordenan por dominio y alfabéticamente adentro de cada uno,
+ * para que agregar una no sea una decisión.
+ */
+export const es = {
+  'command.fileCloseAll': 'Cerrar todas las pestañas',
+  'command.fileCloseTab': 'Cerrar la pestaña',
+  'command.fileSave': 'Guardar el archivo',
+  'command.workspaceOpen': 'Abrir carpeta como workspace',
+  'command.viewCycleTheme': 'Cambiar el tema (claro, oscuro, sistema)',
+  'conflict.discard': 'Descartar mis cambios',
+  'conflict.overwrite': 'Sobrescribir el archivo',
+  'conflict.title': 'El archivo cambió en el disco',
+  'editor.dirty': 'Sin guardar',
+  'editor.failed': 'No se pudo cargar el editor.',
+  'editor.saving': 'Guardando…',
+  'editor.loading': 'Cargando el editor…',
+  'editor.openingFile': 'Abriendo el archivo…',
+  'fileTree.empty': 'La carpeta está vacía',
+  'fileTree.label': 'Archivos del workspace',
+  'fileTree.loading': 'Cargando archivos…',
+  'palette.empty': 'Ningún comando coincide',
+  'palette.label': 'Paleta de comandos',
+  'palette.placeholder': 'Escribí para buscar un comando…',
+  'tabs.close': 'Cerrar',
+  'tabs.label': 'Archivos abiertos',
+  'workspace.emptyDescription': 'Abrí una carpeta para empezar a editar.',
+  'workspace.emptyTitle': 'No hay ninguna carpeta abierta',
+  'workspace.open': 'Abrir carpeta',
+  'workspace.opening': 'Abriendo…',
+} as const;

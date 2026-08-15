@@ -6,27 +6,48 @@
  * que la ventana del IDE termine mostrando una página remota con el preload
  * ya inyectado.
  *
- * En producción sólo `file://`. En desarrollo se agrega el origen del dev
- * server, que es la única concesión que necesita el HMR de Vite.
+ * En producción sólo el origen propio de la app. En desarrollo se agrega el
+ * origen del dev server, que es la única concesión que necesita el HMR de Vite.
+ *
+ * **`file://` ya no está permitido.** Desde ADR-0012 el renderer se sirve por
+ * un esquema propio, así que una navegación a `file://` dejó de ser el caso
+ * normal y pasó a ser exactamente lo que hay que bloquear: es la forma de que
+ * un link a `file:///c:/...` abra un HTML del disco con el preload inyectado.
  *
  * @param rawUrl URL destino, tal como la reporta `will-navigate`.
+ * @param appOrigin Origen propio de la app.
  * @param devServerOrigin Origen del dev server, o `undefined` en producción.
  * @returns `true` si la navegación es aceptable.
  * @example
- * isAllowedNavigation('file:///c:/app/index.html', undefined);        // true
- * isAllowedNavigation('https://evil.test', undefined);               // false
- * isAllowedNavigation('http://localhost:5173/', 'http://localhost:5173'); // true
+ * isAllowedNavigation('pastecode://app/index.html', 'pastecode://app', undefined); // true
+ * isAllowedNavigation('file:///c:/app/index.html', 'pastecode://app', undefined);  // false
+ * isAllowedNavigation('https://evil.test', 'pastecode://app', undefined);          // false
  */
 export function isAllowedNavigation(
   rawUrl: string,
+  appOrigin: string,
   devServerOrigin: string | undefined
 ): boolean {
   const url = parseUrl(rawUrl);
   if (url === undefined) return false;
 
-  if (url.protocol === 'file:') return true;
+  const origin = originOf(url);
+  if (origin === appOrigin) return true;
 
-  return devServerOrigin !== undefined && url.origin === devServerOrigin;
+  return devServerOrigin !== undefined && origin === devServerOrigin;
+}
+
+/**
+ * El origen de una URL, calculado a mano y no leído de `url.origin`.
+ *
+ * `URL.origin` devuelve la cadena `'null'` para todo esquema que no sea uno de
+ * los especiales del estándar, y `pastecode:` no lo es. En Chromium sí tiene
+ * origen real, porque lo registramos como `standard` (ADR-0012), pero el
+ * `URL` de Node no se entera de eso: acá el origen propio de la app daría
+ * `'null'`, igual que `file://`, y la allow-list dejaría pasar las dos cosas.
+ */
+function originOf(url: URL): string {
+  return `${url.protocol}//${url.host}`;
 }
 
 /**
