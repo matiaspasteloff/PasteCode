@@ -104,27 +104,17 @@ test('el guardado es atómico y no deja temporales', async () => {
   expect(left).toEqual([]);
 });
 
-test('ofrece sobrescribir o descartar cuando el archivo cambió en el disco', async () => {
-  const window = await openFile();
-  await typeMarker(window);
-
-  // Otro proceso toca el archivo entre la lectura y el guardado.
-  await changeOnDisk(target, 'const deOtro = 2;\n');
-
-  await window.keyboard.press('Control+S');
-
-  const dialog = window.getByTestId('conflict-dialog');
-  await expect(dialog).toBeVisible();
-  // Nada se recarga en silencio: las dos salidas destruyen trabajo de alguien.
-  await expect(dialog.getByRole('button', { name: 'Sobrescribir el archivo' })).toBeVisible();
-  await expect(dialog.getByRole('button', { name: 'Descartar mis cambios' })).toBeVisible();
-});
-
 test('sobrescribir aplica los cambios locales sobre el archivo de disco', async () => {
   const window = await openFile();
   await typeMarker(window);
   await changeOnDisk(target, 'const deOtro = 2;\n');
   await window.keyboard.press('Control+S');
+
+  // Nada se recarga en silencio: las dos salidas destruyen trabajo de alguien,
+  // así que las dos se ofrecen y decide la persona.
+  const dialog = window.getByTestId('conflict-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Descartar mis cambios' })).toBeVisible();
 
   await window.getByRole('button', { name: 'Sobrescribir el archivo' }).click();
 

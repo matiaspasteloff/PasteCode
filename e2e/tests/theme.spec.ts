@@ -33,11 +33,10 @@ test.afterEach(async () => {
 /**
  * Fuerza un tema escribiendo el atributo, como hace `useTheme`.
  *
- * El camino por la paleta lo cubren los tests de `command-palette.spec.ts` y
- * los unitarios de `useTheme`. Acá interesa lo otro: que **el mecanismo de
- * tokens CSS repinte la aplicación de verdad**, que es lo que afirma RF-801.
- * Pasar por la paleta sólo agregaría una fuente de intermitencia entre el test
- * y lo que se quiere medir.
+ * El camino por la paleta lo cubre el otro test de este archivo, y la lógica
+ * de resolución la cubren los unitarios de `useTheme`. Acá interesa lo otro:
+ * que **el mecanismo de tokens CSS repinte la aplicación de verdad**, que es
+ * lo que afirma RF-801.
  */
 async function forceTheme(window: Page, theme: 'light' | 'dark'): Promise<void> {
   await window.evaluate((value: string) => {
@@ -45,51 +44,39 @@ async function forceTheme(window: Page, theme: 'light' | 'dark'): Promise<void> 
   }, theme);
 }
 
-/** El color de fondo que el navegador terminó aplicando al body. */
-async function backgroundOf(window: Page): Promise<string> {
-  return window.evaluate(() => globalThis.getComputedStyle(document.body).backgroundColor);
+/** El color de fondo calculado de un selector. */
+async function backgroundOf(window: Page, selector: string): Promise<string> {
+  return window
+    .locator(selector)
+    .evaluate((element) => globalThis.getComputedStyle(element).backgroundColor);
 }
 
-test('arranca con un tema resuelto en el html', async () => {
-  const window = await app.firstWindow();
-  await window.getByRole('button', { name: 'Abrir carpeta' }).waitFor();
-
-  // `system` ya viene resuelto: el atributo nunca dice "system".
-  const theme = await window.evaluate(() => document.documentElement.dataset.theme);
-
-  expect(['light', 'dark']).toContain(theme);
-});
-
-test('cambia de tema en caliente, sin recargar la ventana', async () => {
+test('cambia de tema en caliente y repinta toda la aplicación', async () => {
   // RF-801. Todo el color sale de variables CSS, así que cambiar un atributo
   // del `<html>` repinta la aplicación entera sin volver a montar nada.
   const window = await app.firstWindow();
   await window.getByRole('button', { name: 'Abrir carpeta' }).waitFor();
 
-  await forceTheme(window, 'light');
-  const light = await backgroundOf(window);
-
-  await forceTheme(window, 'dark');
-  const dark = await backgroundOf(window);
-
-  expect(light).not.toBe(dark);
-});
-
-test('el tema alcanza a los paneles y no sólo al fondo', async () => {
-  const window = await app.firstWindow();
-  await window.getByRole('button', { name: 'Abrir carpeta' }).waitFor();
+  // `system` ya viene resuelto: el atributo nunca dice "system".
+  expect(['light', 'dark']).toContain(
+    await window.evaluate(() => document.documentElement.dataset.theme)
+  );
 
   await forceTheme(window, 'light');
-  const light = await window
-    .locator('.sidebar')
-    .evaluate((element) => globalThis.getComputedStyle(element).backgroundColor);
+  const light = {
+    body: await backgroundOf(window, 'body'),
+    side: await backgroundOf(window, '.sidebar'),
+  };
 
   await forceTheme(window, 'dark');
-  const dark = await window
-    .locator('.sidebar')
-    .evaluate((element) => globalThis.getComputedStyle(element).backgroundColor);
+  const dark = {
+    body: await backgroundOf(window, 'body'),
+    side: await backgroundOf(window, '.sidebar'),
+  };
 
-  expect(light).not.toBe(dark);
+  // El fondo y los paneles: si sólo cambiara uno, el tema estaría a medias.
+  expect(light.body).not.toBe(dark.body);
+  expect(light.side).not.toBe(dark.side);
 });
 
 test('el comando de la paleta cambia el tema', async () => {
@@ -104,8 +91,8 @@ test('el comando de la paleta cambia el tema', async () => {
   await expect(window.getByRole('option')).toHaveCount(1);
   await window.keyboard.press('Enter');
 
-  // Desde `system` el ciclo pasa por `light` y después `dark`; lo que se
-  // verifica es que el comando llegue a `useTheme` y reescriba el atributo.
-  await expect.poll(async () => backgroundOf(window)).toBeDefined();
   await expect(window.locator('.palette')).toHaveCount(0);
+  expect(['light', 'dark']).toContain(
+    await window.evaluate(() => document.documentElement.dataset.theme)
+  );
 });

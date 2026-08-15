@@ -47,13 +47,21 @@ async function readyWindow(): Promise<Page> {
   return window;
 }
 
-test('Ctrl+Shift+P abre la paleta con los comandos registrados', async () => {
+test('Ctrl+Shift+P abre la paleta y Escape la cierra sin ejecutar nada', async () => {
   const window = await readyWindow();
 
   await window.keyboard.press('Control+Shift+P');
 
   await expect(window.getByRole('combobox', { name: 'Paleta de comandos' })).toBeVisible();
   await expect(window.getByRole('option')).not.toHaveCount(0);
+
+  await window.keyboard.press('Escape');
+
+  await expect(window.getByRole('combobox')).toBeHidden();
+  // Nada se ejecutó: el workspace sigue sin abrirse.
+  await expect(window.getByTestId('workspace-name')).toHaveText(
+    'No hay ninguna carpeta abierta'
+  );
 });
 
 test('filtra los comandos mientras se tipea', async () => {
@@ -87,16 +95,6 @@ test('ejecuta el comando de guardar desde la paleta', async () => {
 
   await expect(window.getByTestId('tab-dirty-indicator')).toBeHidden();
   expect(await readFile(target, 'utf8')).toContain('ZZMARCAZZ');
-});
-
-test('cierra con Escape sin ejecutar nada', async () => {
-  const window = await readyWindow();
-  await window.keyboard.press('Control+Shift+P');
-  await expect(window.getByRole('combobox')).toBeVisible();
-
-  await window.keyboard.press('Escape');
-
-  await expect(window.getByRole('combobox')).toBeHidden();
 });
 
 test('abre una carpeta desde la paleta', async () => {

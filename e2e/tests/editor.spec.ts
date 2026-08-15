@@ -41,10 +41,19 @@ async function openWorkspaceAndFile(fileName: string): Promise<Page> {
   return window;
 }
 
-test('abre un archivo del árbol y muestra su contenido', async () => {
-  const window = await openWorkspaceAndFile('saludo.ts');
+test('abre un archivo del árbol y muestra su contenido, sin errores de consola', async () => {
+  const window = await app.firstWindow();
+  const errors: string[] = [];
+  window.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+
+  await window.getByRole('button', { name: 'Abrir carpeta' }).click();
+  await window.getByRole('treeitem', { name: 'saludo.ts' }).click();
+  await expect(window.locator('.monaco-editor')).toBeVisible();
 
   await expect(window.locator('.monaco-editor')).toContainText('const saludo = "hola";');
+  expect(errors).toEqual([]);
 });
 
 test('resalta la sintaxis con la gramática del lenguaje', async () => {
@@ -79,18 +88,4 @@ test('el web worker de Monaco arranca bajo el esquema propio', async () => {
 
   await expect(window.locator('.suggest-widget')).toBeVisible();
   await expect(window.locator('.suggest-widget')).toContainText('saludo');
-});
-
-test('no reporta errores de consola al abrir un archivo', async () => {
-  const window = await app.firstWindow();
-  const errors: string[] = [];
-  window.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text());
-  });
-
-  await window.getByRole('button', { name: 'Abrir carpeta' }).click();
-  await window.getByRole('treeitem', { name: 'notas.md' }).click();
-  await expect(window.locator('.monaco-editor')).toBeVisible();
-
-  expect(errors).toEqual([]);
 });

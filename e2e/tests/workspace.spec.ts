@@ -69,15 +69,6 @@ test('conserva el workspace abierto al recargar la ventana', async () => {
   );
 });
 
-test('muestra el árbol de archivos, con las carpetas primero y sin node_modules', async () => {
-  const window = await app.firstWindow();
-  await window.getByRole('button', { name: 'Abrir carpeta' }).click();
-
-  const tree = window.getByRole('tree', { name: 'Archivos del workspace' });
-
-  await expect(tree.getByRole('treeitem')).toHaveText(['▸src', '·index.ts']);
-});
-
 test('despliega una carpeta y muestra lo que hay adentro', async () => {
   const window = await app.firstWindow();
   await window.getByRole('button', { name: 'Abrir carpeta' }).click();

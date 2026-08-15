@@ -65,7 +65,7 @@ async function openFiles(...names: string[]): Promise<Page> {
   return window;
 }
 
-test('abre una pestaña por archivo y muestra el contenido de la activa', async () => {
+test('abre una pestaña por archivo, sin duplicar las ya abiertas', async () => {
   const window = await openFiles('uno.ts', 'dos.ts', 'tres.ts');
 
   await expect(window.getByRole('tab')).toHaveCount(3);
@@ -73,22 +73,26 @@ test('abre una pestaña por archivo y muestra el contenido de la activa', async 
     'data-testid',
     'tab-tres.ts'
   );
-});
 
-test('no duplica la pestaña si el archivo ya está abierto', async () => {
-  const window = await openFiles('uno.ts', 'dos.ts');
-
+  // Reabrir desde el árbol activa la pestaña que ya existe en vez de sumar
+  // otra: dos pestañas del mismo archivo se pisarían el contenido.
   await window.getByRole('treeitem', { name: 'uno.ts' }).click();
 
-  await expect(window.getByRole('tab')).toHaveCount(2);
+  await expect(window.getByRole('tab')).toHaveCount(3);
   await expect(window.locator('.monaco-editor')).toContainText('const uno = 1;');
 });
 
-test('conserva el contenido sin guardar al cambiar de pestaña', async () => {
+test('conserva lo editado al cambiar de pestaña y ensucia sólo la editada', async () => {
   const window = await openFiles('uno.ts', 'dos.ts');
 
   // Se edita `dos.ts`, se va a `uno.ts` y se vuelve.
   await typeMarker(window);
+  await expect(
+    window.getByTestId('tab-dos.ts').getByTestId('tab-dirty-indicator')
+  ).toBeVisible();
+  await expect(
+    window.getByTestId('tab-uno.ts').getByTestId('tab-dirty-indicator')
+  ).toBeHidden();
 
   await window.getByTestId('tab-uno.ts').click();
   await expect(window.locator('.monaco-editor')).toContainText('const uno = 1;');
@@ -113,20 +117,7 @@ test('conserva el historial de deshacer por archivo', async () => {
   await expect(window.locator('.monaco-editor')).toContainText('const dos = 2;');
 });
 
-test('marca como sucia sólo la pestaña que se editó', async () => {
-  const window = await openFiles('uno.ts', 'dos.ts');
-
-  await typeMarker(window);
-
-  await expect(
-    window.getByTestId('tab-dos.ts').getByTestId('tab-dirty-indicator')
-  ).toBeVisible();
-  await expect(
-    window.getByTestId('tab-uno.ts').getByTestId('tab-dirty-indicator')
-  ).toBeHidden();
-});
-
-test('al cerrar la pestaña activa queda la de la derecha', async () => {
+test('al cerrar queda la de la derecha, y el estado vacío si era la última', async () => {
   const window = await openFiles('uno.ts', 'dos.ts', 'tres.ts');
   await window.getByTestId('tab-dos.ts').click();
 
@@ -137,11 +128,8 @@ test('al cerrar la pestaña activa queda la de la derecha', async () => {
     'data-testid',
     'tab-tres.ts'
   );
-});
 
-test('cerrar la última pestaña vuelve al estado vacío', async () => {
-  const window = await openFiles('uno.ts');
-
+  await window.getByRole('button', { name: 'Cerrar tres.ts' }).click();
   await window.getByRole('button', { name: 'Cerrar uno.ts' }).click();
 
   await expect(window.getByRole('tab')).toHaveCount(0);
