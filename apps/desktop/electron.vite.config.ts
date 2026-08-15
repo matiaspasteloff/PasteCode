@@ -10,7 +10,7 @@ const DEV_SERVER_PORT = 5173;
 // empaquetado no existe un node_modules donde resolver `@pastecode/core`, así
 // que dejarlos como externals produce un "Cannot find module" que sólo aparece
 // después de instalar, nunca en desarrollo.
-const WORKSPACE_PACKAGES = ['@pastecode/ipc-contract'];
+const WORKSPACE_PACKAGES = ['@pastecode/core', '@pastecode/ipc-contract'];
 
 export default defineConfig({
   main: {

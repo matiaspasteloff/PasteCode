@@ -30,3 +30,15 @@ export interface IpcChannels {
 export type ChannelName = keyof IpcChannels;
 export type Request<C extends ChannelName> = IpcChannels[C]['request'];
 export type Response<C extends ChannelName> = IpcChannels[C]['response'];
+
+/**
+ * Schema que valida el request de un canal.
+ *
+ * El alias existe para que Zod siga siendo una dependencia del contrato y no
+ * se filtre a `apps/desktop`: el main registra handlers, y para eso necesita
+ * nombrar el tipo de un schema, no conocer la librería que lo produce.
+ *
+ * @example
+ * const schema: RequestSchema<'app:getVersion'> = GetVersionRequestSchema;
+ */
+export type RequestSchema<C extends ChannelName> = z.ZodType<Request<C>>;

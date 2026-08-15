@@ -53,6 +53,9 @@ importers:
 
   apps/desktop:
     devDependencies:
+      '@pastecode/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@pastecode/ipc-contract':
         specifier: workspace:*
         version: link:../../packages/ipc-contract

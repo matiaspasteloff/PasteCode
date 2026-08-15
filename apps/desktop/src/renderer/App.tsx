@@ -16,10 +16,13 @@ export function App(): React.JSX.Element {
     // derivado. Lo que codigo.md prohíbe es lo segundo.
     window.pastecode
       .invoke('app:getVersion', {})
-      .then((response) => {
-        setVersion(response.version);
+      .then((result) => {
+        if (result.ok) setVersion(result.value.version);
+        else setHasFailed(true);
       })
       .catch(() => {
+        // Un rechazo de la promesa ya no es "el handler falló" —eso viaja como
+        // `ok: false`—, sino que el IPC mismo se rompió. Ver ADR-0011.
         setHasFailed(true);
       });
   }, []);
