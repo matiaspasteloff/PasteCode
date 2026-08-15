@@ -7,6 +7,12 @@ import type {
   WriteFileRequestSchema,
   WriteFileResponseSchema,
 } from './schemas/fs.js';
+import type {
+  GetWorkspaceRootRequestSchema,
+  GetWorkspaceRootResponseSchema,
+  OpenWorkspaceRequestSchema,
+  OpenWorkspaceResponseSchema,
+} from './schemas/workspace.js';
 
 /**
  * Mapa de canales de IPC. **Es la fuente de verdad**: agregar un canal empieza
@@ -31,6 +37,14 @@ export interface IpcChannels {
   'fs:writeFile': {
     request: z.infer<typeof WriteFileRequestSchema>;
     response: z.infer<typeof WriteFileResponseSchema>;
+  };
+  'workspace:open': {
+    request: z.infer<typeof OpenWorkspaceRequestSchema>;
+    response: z.infer<typeof OpenWorkspaceResponseSchema>;
+  };
+  'workspace:getRoot': {
+    request: z.infer<typeof GetWorkspaceRootRequestSchema>;
+    response: z.infer<typeof GetWorkspaceRootResponseSchema>;
   };
 }
 

@@ -8,3 +8,11 @@ export {
   WriteFileRequestSchema,
   WriteFileResponseSchema,
 } from './schemas/fs.js';
+export {
+  GetWorkspaceRootRequestSchema,
+  GetWorkspaceRootResponseSchema,
+  OpenWorkspaceRequestSchema,
+  OpenWorkspaceResponseSchema,
+  WorkspaceInfoSchema,
+} from './schemas/workspace.js';
+export type { WorkspaceInfo } from './schemas/workspace.js';

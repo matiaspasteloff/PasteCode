@@ -1,35 +1,55 @@
-import { WorkspaceNotOpenError } from '@pastecode/core';
+import { realpath } from 'node:fs/promises';
+
+import { FileAccessError, workspaceDisplayName, WorkspaceNotOpenError } from '@pastecode/core';
+import type { WorkspaceInfo } from '@pastecode/ipc-contract';
 
 /**
- * Raíz del workspace abierto, en memoria.
+ * Workspace abierto, en memoria.
  *
  * Vive en el main y no en el renderer porque es contra esto que se valida cada
- * ruta que cruza el IPC. Si la raíz la mandara el renderer en cada llamada,
- * la validación de rutas no valdría nada: el atacante elegiría la raíz.
+ * ruta que cruza el IPC. Si la raíz la mandara el renderer en cada llamada, la
+ * validación de rutas no valdría nada: el atacante elegiría la raíz.
  *
- * Todavía no se persiste. Eso es la Etapa 3 (paso 22).
+ * Todavía no se persiste entre sesiones. Eso es la Etapa 3 (paso 22).
  */
-let currentRoot: string | undefined;
+let current: WorkspaceInfo | undefined;
 
 /**
- * La raíz del workspace abierto, o `undefined` si no hay ninguno.
+ * El workspace abierto, o `null` si no hay ninguno.
+ *
+ * Devuelve `null` y no `undefined` porque es lo que cruza el IPC, y
+ * `undefined` no sobrevive a la serialización: una propiedad con `undefined`
+ * desaparece del objeto en vez de llegar como tal.
  *
  * @example
- * if (getWorkspaceRoot() === undefined) mostrarPantallaDeBienvenida();
+ * if (getWorkspace() === null) mostrarPantallaDeBienvenida();
  */
-export function getWorkspaceRoot(): string | undefined {
-  return currentRoot;
+export function getWorkspace(): WorkspaceInfo | null {
+  return current ?? null;
 }
 
 /**
- * Cambia el workspace abierto.
+ * Abre una carpeta como workspace, reemplazando al anterior si había uno.
  *
- * @param root Ruta absoluta de la carpeta, ya resuelta.
+ * Resuelve la raíz con `realpath` antes de guardarla. No es un detalle: todo
+ * `isInsideRoot` posterior compara contra este valor, y si la raíz quedara sin
+ * resolver mientras las rutas candidatas sí se resuelven, un workspace abierto
+ * a través de un symlink rechazaría todos sus propios archivos.
+ *
+ * @param root Ruta absoluta de la carpeta elegida.
+ * @returns El workspace abierto, con su nombre para mostrar.
+ * @throws {FileAccessError} Si la carpeta no existe o no se puede resolver.
  * @example
- * setWorkspaceRoot('C:\\proyecto');
+ * const workspace = await openWorkspaceAt('C:\\proyectos\\PasteCode');
  */
-export function setWorkspaceRoot(root: string): void {
-  currentRoot = root;
+export async function openWorkspaceAt(root: string): Promise<WorkspaceInfo> {
+  const resolved = await realpath(root).catch((cause: unknown) => {
+    throw new FileAccessError(root, cause);
+  });
+
+  current = { root: resolved, name: workspaceDisplayName(resolved) };
+
+  return current;
 }
 
 /**
@@ -44,7 +64,7 @@ export function setWorkspaceRoot(root: string): void {
  * const safe = await resolveInsideWorkspace(payload.path, requireWorkspaceRoot());
  */
 export function requireWorkspaceRoot(): string {
-  if (currentRoot === undefined) throw new WorkspaceNotOpenError();
+  if (current === undefined) throw new WorkspaceNotOpenError();
 
-  return currentRoot;
+  return current.root;
 }

@@ -1,20 +1,27 @@
 /*
  * Variables CSS y no clases condicionales: es la decisión que el paso 19 de la
- * guía necesita para los temas. Acá sólo hay dos colores, pero el mecanismo ya
- * está donde va.
+ * guía necesita para los temas. El set completo de tokens y el conmutador
+ * claro/oscuro llegan en ese paso; acá está el mecanismo, ya donde va.
  */
 :root {
   --color-background: #ffffff;
+  --color-surface: #f3f3f3;
+  --color-border: #d8d8d8;
   --color-foreground: #1a1a1a;
   --color-muted: #6b6b6b;
+  --color-danger: #b3261e;
   --font-ui: 'Segoe UI', system-ui, sans-serif;
+  --sidebar-width: 16rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --color-background: #1e1e1e;
+    --color-surface: #252526;
+    --color-border: #3a3a3a;
     --color-foreground: #e8e8e8;
     --color-muted: #9a9a9a;
+    --color-danger: #f2b8b5;
   }
 }
 
@@ -29,25 +36,96 @@ body {
   font-family: var(--font-ui);
 }
 
+/*
+ * Grilla y no flex: la barra lateral y el área de edición comparten fila, y la
+ * barra de estado cruza las dos columnas. Con flex habría que anidar dos
+ * contenedores para decir lo mismo.
+ */
 .app {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-rows: 1fr auto;
+  height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.workspace-header {
   display: flex;
   flex-direction: column;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  gap: 0.5rem;
+}
+
+.workspace-header__name {
+  overflow: hidden;
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.workspace-header__action {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background: var(--color-background);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.workspace-header__action:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.workspace-header__error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 0.8rem;
+}
+
+.editor-area {
+  display: flex;
+  overflow: hidden;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  gap: 0.25rem;
 }
 
-.app__name {
-  margin: 0;
-  font-size: 2.5rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-.app__version {
+.editor-area__empty {
   margin: 0;
   color: var(--color-muted);
   font-size: 0.9rem;
+}
+
+.status-bar {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.75rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.75rem;
+}
+
+.app__name {
+  font-weight: 600;
+}
+
+.status-bar__version {
+  color: var(--color-muted);
   font-variant-numeric: tabular-nums;
 }
