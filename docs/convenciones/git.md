@@ -59,7 +59,9 @@ main ─────●──────●──────●─────
 [footer opcional: BREAKING CHANGE, Closes #42]
 ```
 
-**Scopes válidos:** `editor`, `terminal`, `lsp`, `dap`, `git`, `fs`, `ext-host`, `ui`, `core`, `ipc`, `build`, `ci`
+**Scopes válidos:** `editor`, `terminal`, `lsp`, `dap`, `git`, `fs`, `ext-host`, `ui`, `core`, `ipc`, `settings`, `search`, `session`, `perf`, `build`, `ci`
+
+La lista es cerrada y vive por duplicado en [`commitlint.config.js`](../../commitlint.config.js), que es quien la hace cumplir en el hook `commit-msg`. Agregar un scope acá sin agregarlo allá no cambia nada; los dos se tocan juntos.
 
 ```bash
 # ✅ BIEN
