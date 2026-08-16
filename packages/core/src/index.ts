@@ -17,6 +17,14 @@ export {
   StaleFileError,
 } from './errors/filesystem-errors.js';
 export { PasteCodeError } from './errors/pastecode-error.js';
+export {
+  backoffDelay,
+  decideRestart,
+  DEFAULT_RESTART_POLICY,
+  INITIAL_RESTART_STATE,
+  noteStarted,
+} from './process/restart-policy.js';
+export type { RestartDecision, RestartPolicy, RestartState } from './process/restart-policy.js';
 export { TerminalSpawnError, UnknownTerminalSessionError } from './errors/terminal-errors.js';
 export { PathOutsideWorkspaceError, WorkspaceNotOpenError } from './errors/workspace-errors.js';
 export { buildRipgrepArgs, parseRipgrepLine } from './search/ripgrep.js';
