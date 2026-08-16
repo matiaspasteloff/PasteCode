@@ -539,12 +539,28 @@ body {
 .status-bar {
   display: flex;
   grid-column: 1 / -1;
+  height: var(--status-bar-height);
   align-items: center;
   justify-content: space-between;
-  padding: 0.25rem 0.75rem;
+  padding: 0 var(--space-3);
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+}
+
+/* Dos grupos, uno por punta. Los indicadores del archivo activo van a la
+   derecha, que es donde la vista los busca. */
+.status-bar__group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.status-bar__item {
+  color: var(--color-muted);
+  /* Cifras de ancho fijo: sin esto, la barra tiembla al pasar de la línea 9 a
+     la 10 mientras alguien se desplaza con las flechas. */
+  font-variant-numeric: tabular-nums;
 }
 
 .app__name {

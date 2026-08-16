@@ -3,11 +3,25 @@ import { useEffect, useState } from 'react';
 import { t } from '../i18n/index.js';
 import { useEditorStore } from '../stores/editor-store.js';
 
+import { StatusIndentation } from './status/StatusIndentation.js';
+import { StatusLanguage } from './status/StatusLanguage.js';
+import { StatusPosition } from './status/StatusPosition.js';
+
 /** Umbral de RNF-24: por debajo de esto, avisar molesta más que informar. */
 const PROGRESS_DELAY_MS = 500;
 
 /**
- * Barra de estado: la marca, el progreso del guardado y la versión.
+ * Barra de estado: la marca y el progreso a la izquierda, los indicadores del
+ * archivo activo a la derecha.
+ *
+ * Desde el paso 26½ es **un contenedor y no un componente con contenido**. Cada
+ * indicador se suscribe a lo suyo, que es lo que hace que mover el cursor
+ * repinte doce caracteres en vez de la barra entera: `Ln, Col` cambia con cada
+ * tecla, y un solo componente leyendo todo dejaría el presupuesto de 16ms de
+ * RNF-02 en dibujar cosas que no cambiaron.
+ *
+ * Los indicadores de rama y de problemas entran acá cuando Git y el LSP
+ * existan. Cada uno es un componente más en la lista de abajo.
  *
  * La versión no está hardcodeada. Llega por el canal `app:getVersion`, así que
  * verla en pantalla sigue siendo la prueba visible de que la cadena contrato →
@@ -20,17 +34,25 @@ export function StatusBar(): React.JSX.Element {
 
   return (
     <footer className="status-bar">
-      <span className="app__name">PasteCode</span>
+      <div className="status-bar__group">
+        <span className="app__name">PasteCode</span>
 
-      {showProgress && (
-        <span className="status-bar__saving" data-testid="saving-indicator">
-          {t('editor.saving')}
+        {showProgress && (
+          <span className="status-bar__saving" data-testid="saving-indicator">
+            {t('editor.saving')}
+          </span>
+        )}
+      </div>
+
+      <div className="status-bar__group">
+        <StatusPosition />
+        <StatusIndentation />
+        <StatusLanguage />
+
+        <span className="status-bar__version" data-testid="app-version">
+          {version}
         </span>
-      )}
-
-      <span className="status-bar__version" data-testid="app-version">
-        {version}
-      </span>
+      </div>
     </footer>
   );
 }

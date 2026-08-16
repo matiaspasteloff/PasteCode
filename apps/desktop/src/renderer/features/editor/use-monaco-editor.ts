@@ -8,6 +8,7 @@ import { currentResolvedTheme, monacoThemeFor } from '../theme/use-theme.js';
 import { rememberViewState, savedViewState, syncModelWithDisk } from './model-registry.js';
 import { setActiveEditor, setLoadedMonaco } from './monaco-instance.js';
 import { takeRestorePosition } from './restore-position.js';
+import { useCursorPosition } from './use-cursor-position.js';
 
 /** En qué estado está el montaje de Monaco. */
 type EditorStatus = 'loading' | 'ready' | 'failed';
@@ -94,6 +95,7 @@ export function useMonacoEditor(activePath: string | null): MonacoEditorHandle {
   }, [setContentReader]);
 
   useEditorSettings(editorRef, status, activePath);
+  useCursorPosition(editorRef, status, activePath);
 
   return { containerRef, status };
 }
