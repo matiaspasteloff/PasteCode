@@ -101,6 +101,22 @@ export function clientForPath(path: string): LanguageClient | null {
   return clients.get(definition.serverId) ?? null;
 }
 
+/**
+ * El cliente de un servidor, por su id.
+ *
+ * Lo usa `completionItem/resolve`, que es sobre el servidor que produjo la
+ * lista y no sobre el archivo: entre que se abre el popup y que alguien se para
+ * en un ítem puede haber cambiado la pestaña.
+ *
+ * @param serverId El id de la tabla de lenguajes.
+ * @returns El cliente vivo, o `null`.
+ * @example
+ * clientById('typescript');
+ */
+export function clientById(serverId: string): LanguageClient | null {
+  return clients.get(serverId) ?? null;
+}
+
 /** El estado de todos los servidores conocidos: los vivos y los que fallaron. */
 export function lspStatuses(): LspServerStatus[] {
   return [...[...clients.values()].map((client) => client.status()), ...failures.values()];

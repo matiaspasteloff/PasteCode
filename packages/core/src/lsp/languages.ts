@@ -52,6 +52,15 @@ export interface LanguageServerDefinition {
    */
   readonly rootMarkers: readonly string[];
   /**
+   * Con qué caracteres se dispara el completado sin que nadie lo pida.
+   *
+   * Es dato por lenguaje y no una lista compartida porque los lenguajes usan
+   * separadores distintos: `::` en Rust no significa nada en TypeScript, y
+   * pedirle a un servidor un completado en cada `:` de un objeto literal es
+   * trabajo para descartar.
+   */
+  readonly completionTriggers: readonly string[];
+  /**
    * El módulo Node que empaquetamos, o `null` si es un ejecutable externo.
    *
    * Con módulo se lanza el binario de Electron en modo Node y no hace falta un
@@ -84,6 +93,7 @@ export const LANGUAGE_SERVERS: readonly LanguageServerDefinition[] = [
     extensions: ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'],
     args: ['--stdio'],
     rootMarkers: ['tsconfig.json', 'jsconfig.json', 'package.json'],
+    completionTriggers: ['.', '"', "'", '`', '/', '@', '<', '#', ' '],
     bundledModule: 'typescript-language-server/lib/cli.mjs',
     workspaceModules: [
       { option: ['tsserver', 'path'], modulePath: 'typescript/lib', packageName: 'typescript' },

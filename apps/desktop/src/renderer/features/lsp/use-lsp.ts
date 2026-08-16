@@ -6,6 +6,7 @@ import { whenMonacoLoaded } from '../editor/monaco-instance.js';
 
 import { closeLspDocument, openLspDocument, reopenAllDocuments } from './document-sync.js';
 import { applyMarkers } from './markers.js';
+import { registerLspProviders } from './providers.js';
 
 /**
  * Conecta el LSP con la aplicación: documentos, diagnósticos y estado.
@@ -84,10 +85,12 @@ function useModelLifecycle(): void {
       const disposing = monaco.editor.onWillDisposeModel((model) => {
         void closeLspDocument(model);
       });
+      const providers = registerLspProviders(monaco);
 
       disposeSubscriptions = () => {
         created.dispose();
         disposing.dispose();
+        for (const provider of providers) provider.dispose();
       };
 
       // Los modelos que ya existían cuando esto se montó: en la práctica

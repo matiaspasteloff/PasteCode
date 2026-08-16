@@ -6,8 +6,12 @@ import type { LspServerStatus, Request, Response } from '@pastecode/ipc-contract
 import {
   ChangeDocumentRequestSchema,
   CloseDocumentRequestSchema,
+  CompletionRequestSchema,
+  DefinitionRequestSchema,
+  HoverRequestSchema,
   LspStatusRequestSchema,
   OpenDocumentRequestSchema,
+  ResolveCompletionRequestSchema,
 } from '@pastecode/ipc-contract';
 import { BrowserWindow } from 'electron';
 
@@ -19,6 +23,12 @@ import {
   openDocuments,
   stopLspServers,
 } from '../lsp/registry.js';
+import {
+  requestCompletion,
+  requestDefinition,
+  requestHover,
+  resolveCompletion,
+} from '../lsp/requests.js';
 import { resolveInsideWorkspace } from '../services/path-guard.js';
 import { registerDisposer } from '../services/shutdown.js';
 import { requireWorkspaceRoot } from '../services/workspace.js';
@@ -47,6 +57,35 @@ export function registerLspIpcHandlers(): void {
   registerHandler('lsp:changeDocument', ChangeDocumentRequestSchema, handleChangeDocument);
   registerHandler('lsp:closeDocument', CloseDocumentRequestSchema, handleCloseDocument);
   registerHandler('lsp:status', LspStatusRequestSchema, () => ({ servers: lspStatuses() }));
+
+  // Los tres proveedores. No cancelan a mano: el single-flight por
+  // `(serverId, método)` del cliente hace que pedir otro completado cancele el
+  // anterior con `$/cancelRequest`, y el evento que cancela una request es
+  // siempre la siguiente.
+  registerHandler('lsp:completion', CompletionRequestSchema, async (payload) =>
+    requestCompletion(
+      await insideWorkspace(payload.path),
+      payload.position,
+      payload.triggerCharacter
+    )
+  );
+
+  registerHandler('lsp:resolveCompletion', ResolveCompletionRequestSchema, (payload) =>
+    resolveCompletion(payload.serverId, payload.id)
+  );
+
+  registerHandler('lsp:hover', HoverRequestSchema, async (payload) =>
+    requestHover(await insideWorkspace(payload.path), payload.position)
+  );
+
+  registerHandler('lsp:definition', DefinitionRequestSchema, async (payload) =>
+    requestDefinition(await insideWorkspace(payload.path), payload.position)
+  );
+}
+
+/** Resuelve la ruta contra el workspace abierto. RNF-11, sin excepciones. */
+function insideWorkspace(path: string): Promise<string> {
+  return resolveInsideWorkspace(path, requireWorkspaceRoot());
 }
 
 /**

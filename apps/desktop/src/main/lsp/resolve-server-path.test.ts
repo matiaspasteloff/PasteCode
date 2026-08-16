@@ -18,6 +18,7 @@ const BUNDLED: LanguageServerDefinition = {
   extensions: ['.ts'],
   args: ['--stdio'],
   rootMarkers: ['tsconfig.json'],
+  completionTriggers: ['.'],
   bundledModule: 'fake-server/cli.mjs',
   workspaceModules: [
     { option: ['tsserver', 'path'], modulePath: 'typescript/lib', packageName: 'typescript' },

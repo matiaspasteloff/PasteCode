@@ -27,6 +27,7 @@ const DEFINITION: LanguageServerDefinition = {
   extensions: ['.fake'],
   args: [],
   rootMarkers: [],
+  completionTriggers: [],
   bundledModule: null,
   workspaceModules: [],
   initializationOptions: {},
