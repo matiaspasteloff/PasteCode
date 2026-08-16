@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
-import { Sidebar } from './components/Sidebar.js';
+import { ActivityBar } from './components/ActivityBar.js';
+import { SideView } from './components/SideView.js';
 import { StatusBar } from './components/StatusBar.js';
 import { CommandPalette } from './features/commands/CommandPalette.js';
 import { useAppCommands } from './features/commands/use-app-commands.js';
@@ -21,7 +22,8 @@ import { useFileTreeStore } from './stores/file-tree-store.js';
 import { useWorkspaceStore } from './stores/workspace-store.js';
 
 /**
- * Cascarón de la aplicación: barra lateral, área de edición y barra de estado.
+ * Cascarón de la aplicación: rail de vistas, barra lateral, área de edición y
+ * barra de estado.
  */
 export function App(): React.JSX.Element {
   const workspace = useWorkspaceStore((state) => state.workspace);
@@ -70,7 +72,8 @@ export function App(): React.JSX.Element {
 
   return (
     <div className="app">
-      <Sidebar />
+      <ActivityBar />
+      <SideView />
 
       <main className="editor-area">
         <TabStrip />

@@ -21,12 +21,7 @@ interface SearchState {
   isSearching: boolean;
   /** Si se cortó por el tope. Distinto de "no había más". */
   isTruncated: boolean;
-  /** Si el panel está a la vista. La barra lateral alterna árbol y búsqueda. */
-  isPanelOpen: boolean;
   error: SerializedError | null;
-
-  /** Muestra u oculta el panel. Al mostrarlo, enfoca el campo de búsqueda. */
-  togglePanel: () => void;
 
   setQuery: (query: string) => void;
   setIncludeGlobs: (globs: string) => void;
@@ -87,12 +82,7 @@ export const useSearchStore = create<SearchState>((set, get) => ({
   matchCount: 0,
   isSearching: false,
   isTruncated: false,
-  isPanelOpen: false,
   error: null,
-
-  togglePanel: () => {
-    set({ isPanelOpen: !get().isPanelOpen });
-  },
 
   setQuery: (query) => {
     set({ query });

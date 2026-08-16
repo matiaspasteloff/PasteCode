@@ -23,6 +23,9 @@ export const DEFAULT_KEYBINDINGS: readonly Keybinding[] = [
   // RF-201. Va con `hasWorkspace`: sin carpeta abierta no hay dónde buscar, y
   // abrir un panel que no puede hacer nada es peor que no responder al atajo.
   { key: 'ctrl+shift+f', command: 'search.toggle', when: 'hasWorkspace' },
+  // El explorador, con la misma cláusula y por la misma razón: sin carpeta
+  // abierta la vista no tiene nada que listar.
+  { key: 'ctrl+shift+e', command: 'view.showExplorer', when: 'hasWorkspace' },
   // RF-205. Mismo criterio: sin carpeta abierta no hay archivos que listar.
   { key: 'ctrl+p', command: 'files.quickOpen', when: 'hasWorkspace' },
   { key: 'ctrl+shift+c', command: 'terminal.copy', when: 'terminalFocus' },

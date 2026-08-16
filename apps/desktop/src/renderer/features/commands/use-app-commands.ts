@@ -7,6 +7,7 @@ import { useWorkspaceStore } from '../../stores/workspace-store.js';
 import { fileCommands } from '../files/file-commands.js';
 import { searchCommands } from '../search/search-commands.js';
 import { terminalCommands } from '../terminal/terminal-commands.js';
+import { viewCommands } from '../workspace/view-commands.js';
 
 /**
  * Registra los comandos de la aplicación.
@@ -70,5 +71,6 @@ export function useAppCommands(): void {
     for (const command of terminalCommands()) register(command);
     for (const command of searchCommands()) register(command);
     for (const command of fileCommands()) register(command);
+    for (const command of viewCommands()) register(command);
   }, [register]);
 }

@@ -46,7 +46,6 @@ beforeEach(() => {
     matchCount: 0,
     isSearching: false,
     isTruncated: false,
-    isPanelOpen: false,
     error: null,
   });
 });
@@ -162,13 +161,5 @@ describe('useSearchStore', () => {
 
     expect(useSearchStore.getState().error?.code).toBe('SEARCH_UNAVAILABLE');
     expect(useSearchStore.getState().isSearching).toBe(false);
-  });
-
-  it('alterna el panel', () => {
-    useSearchStore.getState().togglePanel();
-    expect(useSearchStore.getState().isPanelOpen).toBe(true);
-
-    useSearchStore.getState().togglePanel();
-    expect(useSearchStore.getState().isPanelOpen).toBe(false);
   });
 });
