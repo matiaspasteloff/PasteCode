@@ -36,7 +36,22 @@ interface TabState {
 }
 ```
 
-**Persistencia:** `~/.pastecode/workspaces/<hash-de-rootPath>.json`, guardado con debounce de 2s tras cualquier cambio. Satisface [RF-707](./03-requerimientos-funcionales.md#comandos-atajos-y-configuración).
+**Persistencia:** `~/.pastecode/workspaces/<sha256-de-rootPath>.json`, guardado con debounce de 2s tras cualquier cambio, y forzado al cerrar la app —si sólo existiera el debounce, lo último que hizo alguien antes de cerrar se perdería siempre—. Satisface [RF-707](./03-requerimientos-funcionales.md#comandos-atajos-y-configuración).
+
+El nombre es el hash y no la ruta escapada por dos razones: una ruta larga de Windows más el directorio de sesiones se pasa del límite de 260 caracteres, y una ruta contiene el nombre de usuario y la estructura de carpetas de alguien, que no hace falta desparramar en nombres de archivo.
+
+> **Nota de alcance (`breakpoints`), Etapa 3.** El campo está listado arriba pero **el tipo `Breakpoint` no está definido en ninguna parte de esta documentación**: llega con el DAP en la Etapa 5. Hasta entonces el campo **no se escribe**. Para que eso no sea un problema, `WorkspaceStateSchema` es un objeto **laxo** —conserva las claves que no conoce— al revés que el schema de settings, que es estricto. La diferencia es deliberada: un `settings.json` lo escribe una persona y una clave desconocida es casi siempre un error de tipeo que hay que señalar; este archivo lo escribe la app, así que una clave desconocida significa que lo escribió una versión más nueva de PasteCode, y rechazarlo sería tirarle la sesión a alguien que abrió una beta una vez.
+
+> **Nota de alcance (`isDirty`), Etapa 3.** Se guarda porque el schema lo declara, pero **al restaurar se ignora y toda pestaña vuelve limpia**. No se hace backup del contenido sin guardar, así que al reabrir el archivo es el que está en disco; un punto de "sin guardar" sobre un archivo idéntico al disco sería mentirle a alguien sobre si perdió su trabajo. El backup real —el _hot exit_ de VS Code— no está en el alcance de esta versión.
+
+**Restaurar descarta en silencio** los archivos que ya no existen, y el filtrado ocurre **en el main**: el renderer no puede saber qué existe sin pedirlo, y pedir algo borrado deja un error en pantalla. Entre una sesión y la otra pasó un `git checkout`, y un diálogo por cada archivo que desapareció es un diálogo que todo el mundo aprende a cerrar sin leer.
+
+| Canal          | Request                                         | Response                                           |
+| -------------- | ----------------------------------------------- | -------------------------------------------------- |
+| `session:load` | `{}`                                            | `{ state }` — ya filtrado, o `null` la primera vez |
+| `session:save` | `{ openTabs, activeTabIndex, expandedFolders }` | `{}`                                               |
+
+El `rootPath` y el `lastSavedAt` los pone el main: el primero porque dejar que el renderer lo mande sería dejarle elegir de qué workspace leer la sesión, y el segundo porque el reloj del que escribe es el único que puede dar esa marca sin mentir.
 
 ## Schema de settings
 

@@ -1,3 +1,5 @@
+import { join } from 'node:path';
+
 import type { Settings } from '@pastecode/core';
 import type { SettingsChangedEvent } from '@pastecode/ipc-contract';
 import { GetSettingsRequestSchema, UpdateSettingsRequestSchema } from '@pastecode/ipc-contract';
@@ -54,8 +56,11 @@ function broadcast(settings: Settings): void {
  * @example
  * void app.whenReady().then(() => startSettings());
  */
-export async function startSettings(): Promise<void> {
-  await initializeSettings({ onChange: broadcast });
+export async function startSettings(dataDirectory?: string): Promise<void> {
+  await initializeSettings({
+    onChange: broadcast,
+    ...(dataDirectory === undefined ? {} : { userPath: join(dataDirectory, 'settings.json') }),
+  });
 }
 
 /**

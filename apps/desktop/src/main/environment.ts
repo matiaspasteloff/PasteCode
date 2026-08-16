@@ -27,3 +27,18 @@ export const devServerUrl = isDevelopment ? rendererDevUrl : undefined;
  */
 export const devServerOrigin =
   devServerUrl !== undefined ? new URL(devServerUrl).origin : undefined;
+
+/**
+ * Directorio de datos alternativo, para el E2E.
+ *
+ * Los tests de settings y de sesión escriben archivos de verdad, y sin esto lo
+ * harían en el `~/.pastecode/` de quien corre la suite: un E2E que le pisa la
+ * configuración a alguien es peor que no tener E2E.
+ *
+ * Lleva `!app.isPackaged` por la misma razón que `isDevelopment`: en el `.exe`
+ * distribuido la variable se ignora, aunque alguien la setee en la máquina de
+ * un usuario.
+ */
+export const dataDirectoryOverride = app.isPackaged
+  ? undefined
+  : (process.env.PASTECODE_E2E_HOME ?? undefined);

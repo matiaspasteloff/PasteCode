@@ -19,6 +19,10 @@ export {
 export { PasteCodeError } from './errors/pastecode-error.js';
 export { TerminalSpawnError, UnknownTerminalSessionError } from './errors/terminal-errors.js';
 export { PathOutsideWorkspaceError, WorkspaceNotOpenError } from './errors/workspace-errors.js';
+export { fromFileUri, planRestore, toFileUri } from './session/restore.js';
+export type { RestorablePlan } from './session/restore.js';
+export { TabStateSchema, WorkspaceStateSchema } from './session/schema.js';
+export type { TabState as PersistedTabState, WorkspaceState } from './session/schema.js';
 export { resolveSettings } from './settings/merge.js';
 export {
   DEFAULT_SETTINGS,
