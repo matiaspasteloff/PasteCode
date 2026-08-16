@@ -6,6 +6,7 @@ import { dataDirectoryOverride, isDevelopment } from './environment.js';
 import { registerAppIpcHandlers } from './ipc/app.js';
 import { registerClipboardIpcHandlers } from './ipc/clipboard.js';
 import { registerFsIpcHandlers } from './ipc/fs.js';
+import { registerLspIpcHandlers } from './ipc/lsp.js';
 import { registerSearchIpcHandlers } from './ipc/search.js';
 import { flushSession, registerSessionIpcHandlers } from './ipc/session.js';
 import { registerSettingsIpcHandlers, startSettings } from './ipc/settings.js';
@@ -29,6 +30,7 @@ registerClipboardIpcHandlers();
 registerSettingsIpcHandlers();
 registerSessionIpcHandlers();
 registerSearchIpcHandlers();
+registerLspIpcHandlers();
 registerWatcherDisposer();
 
 /**

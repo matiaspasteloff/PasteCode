@@ -11,6 +11,12 @@
       // como ruta a `spawn`, que es justamente lo que lo hace un binario y no
       // un módulo. Knip no puede verlo y lo reportaría como muerto.
       "entry": ["src/renderer/main.tsx", "scripts/*.mjs", "src/main/**/fake-*.mjs"],
+      // El servidor de TypeScript no se importa: se lo lanza como proceso hijo
+      // pasándole la ruta de su `cli.mjs`, que es justamente lo que lo hace un
+      // ejecutable y no una librería. `@vscode/ripgrep` no está acá porque ése
+      // sí se importa —para preguntarle dónde quedó su binario—, y ésa es toda
+      // la diferencia.
+      "ignoreDependencies": ["typescript-language-server"],
     },
     "e2e": {
       "entry": ["tests/**/*.spec.ts"],

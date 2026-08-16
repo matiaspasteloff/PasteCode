@@ -46,9 +46,12 @@ if (args.includes('--ignore-term')) {
 }
 
 if (exitAfter !== undefined) {
-  setTimeout(() => {
-    process.exit(1);
-  }, Number.parseInt(exitAfter, 10));
+  setTimeout(
+    () => {
+      process.exit(1);
+    },
+    Number.parseInt(exitAfter, 10)
+  );
 }
 
 if (!isLsp) {

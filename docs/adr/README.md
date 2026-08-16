@@ -25,6 +25,10 @@ Un ADR registra una decisión técnica relevante, el contexto en el que se tomó
 | [0013](./0013-eventos-tipados-en-el-ipc.md)                    | Eventos tipados del main al renderer, sobre `ipcRenderer.on`                   | ✅ Aceptado  |
 | [0014](./0014-node-pty-con-binarios-precompilados.md)          | `@lydell/node-pty` con prebuilds por plataforma, en vez del `node-pty` oficial | ✅ Aceptado  |
 | [0015](./0015-presupuestos-absolutos-de-performance.md)        | Presupuestos de performance absolutos, no relativos a `main`                   | ✅ Aceptado  |
+| [0016](./0016-supervisor-de-procesos-generico.md)              | Un supervisor de procesos genérico sobre un handle mínimo                      | ✅ Aceptado  |
+| [0017](./0017-cliente-lsp-con-vscode-jsonrpc.md)               | Hablar LSP con `vscode-jsonrpc`, sin `monaco-languageclient`                   | ✅ Aceptado  |
+| [0020](./0020-watcher-unico-con-chokidar.md)                   | Un único watcher del workspace con chokidar, con fan-out en el main            | ✅ Aceptado  |
+| [0022](./0022-cascaron-con-barra-de-actividades.md)            | Cascarón con barra de actividades y vistas por registro                        | ✅ Aceptado  |
 
 **Estados posibles:** `Propuesto` · `Aceptado` · `Reemplazado por ADR-NNNN` · `Obsoleto`
 

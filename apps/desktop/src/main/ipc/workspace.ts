@@ -6,7 +6,9 @@ import {
 import type { OpenDialogOptions } from 'electron';
 import { app, BrowserWindow, dialog } from 'electron';
 
+import { stopLspServers } from '../lsp/registry.js';
 import { setSettingsWorkspace } from '../services/settings.js';
+import { SHUTDOWN_GRACE_MS } from '../services/shutdown.js';
 import { getWorkspace, openWorkspaceAt } from '../services/workspace.js';
 
 import { registerHandler } from './handler.js';
@@ -44,6 +46,12 @@ export function registerWorkspaceIpcHandlers(): void {
 async function handleOpenWorkspace(): Promise<WorkspaceInfo | null> {
   const chosen = await chooseDirectory();
   if (chosen === undefined) return null;
+
+  // Antes de cambiar de raíz: un servidor de lenguaje está atado a la carpeta
+  // con la que hizo el `initialize`, y hacerle preguntas sobre otra devuelve
+  // respuestas de la anterior. Los del workspace nuevo se levantan solos con el
+  // primer archivo que se abra.
+  await stopLspServers(SHUTDOWN_GRACE_MS);
 
   const workspace = await openWorkspaceAt(chosen);
 
