@@ -1,10 +1,12 @@
 import type { Request, Response } from '@pastecode/ipc-contract';
 import {
+  IndexFilesRequestSchema,
   ReadDirectoryRequestSchema,
   ReadFileRequestSchema,
   WriteFileRequestSchema,
 } from '@pastecode/ipc-contract';
 
+import { buildFileIndex, MAX_INDEXED_FILES } from '../services/file-index.js';
 import {
   readDirectoryLevel,
   readTextFile,
@@ -96,4 +98,13 @@ export function registerFsIpcHandlers(): void {
   registerHandler('fs:writeFile', WriteFileRequestSchema, (payload) =>
     handleWriteFile(payload, requireWorkspaceRoot())
   );
+
+  // RF-205. El índice se construye cuando el renderer lo pide y no al abrir el
+  // workspace: recorrer el árbol entero antes de pintar la primera pantalla
+  // retrasaría el arranque, que es lo que mide RNF-01.
+  registerHandler('files:index', IndexFilesRequestSchema, async () => {
+    const files = await buildFileIndex(requireWorkspaceRoot(), currentSettings().files.exclude);
+
+    return { files, truncated: files.length >= MAX_INDEXED_FILES };
+  });
 }

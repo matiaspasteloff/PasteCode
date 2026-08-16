@@ -300,11 +300,14 @@ describe('registerFsIpcHandlers', () => {
     vi.restoreAllMocks();
   });
 
-  it('registra los tres canales del dominio', () => {
+  it('registra los canales del dominio', () => {
     expect([...electron.handlers.keys()]).toEqual([
       'fs:readDirectory',
       'fs:readFile',
       'fs:writeFile',
+      // El índice de quick open (RF-205) vive en este dominio: es el mismo
+      // recorrido del árbol, con las mismas exclusiones.
+      'files:index',
     ]);
   });
 

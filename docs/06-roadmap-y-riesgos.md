@@ -54,7 +54,7 @@ Cada fase tiene un entregable demostrable. La regla: **no se empieza una fase si
 **Entregable:** deja de ser un editor de texto y empieza a ser un IDE.
 
 - [x] RF-301 a RF-305 (terminal integrada)
-- [ ] RF-201 a RF-203, RF-205 (búsqueda en workspace y quick open) — falta RF-205
+- [x] RF-201 a RF-203, RF-205 (búsqueda en workspace y quick open)
 - [ ] RF-103, RF-105 (multi-cursor, buscar/reemplazar)
 - [x] RF-704, RF-705, RF-707 (settings y persistencia de sesión)
 - [x] RF-005 — `files.exclude` reemplaza a la constante `DEFAULT_EXCLUDES`
