@@ -40,28 +40,39 @@ Cada fase tiene un entregable demostrable. La regla: **no se empieza una fase si
 
 > **Lo que quedó afuera y por qué.** El checklist original de esta fase decía "RF-001 a RF-005" y "RF-701, RF-702" en bloque, y las [Etapa 2 de la guía](./00-guia-paso-a-paso.md#etapa-2--editor-mínimo) —pasos 12 a 19— nunca incluyó esos requerimientos completos. Se corrige acá en vez de tildarlos de más:
 >
-> | Requerimiento                                        | Estado                                                                        | Dónde se cierra                              |
-> | ---------------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------- |
-> | RF-005 (`files.exclude` configurable)                | Parcial: las exclusiones existen como constante `DEFAULT_EXCLUDES`            | Fase 2, con las settings                     |
-> | RF-702 (`keybindings.json` editable, con conflictos) | Parcial: el resolver está; falta el archivo del usuario                       | Fase 2, con las settings                     |
-> | RF-003 (crear, renombrar, eliminar)                  | Sin implementar. No hay canal de IPC que mute el árbol                        | **Sin asignar** — no está en los pasos 20-25 |
-> | RF-004 (detectar cambios externos)                   | Parcial: hay conflicto por `mtimeMs` al guardar; falta el watcher que recarga | **Sin asignar** — no está en los pasos 20-25 |
+> | Requerimiento                                        | Estado                                                                        | Dónde se cierra                       |
+> | ---------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------- |
+> | RF-005 (`files.exclude` configurable)                | ✅ Cerrado en la Fase 2, con las settings                                     | —                                     |
+> | RF-702 (`keybindings.json` editable, con conflictos) | Parcial: el resolver está; falta el archivo del usuario                       | **Sin asignar** tras cerrar la Fase 2 |
+> | RF-003 (crear, renombrar, eliminar)                  | Sin implementar. No hay canal de IPC que mute el árbol                        | **Sin asignar**                       |
+> | RF-004 (detectar cambios externos)                   | Parcial: hay conflicto por `mtimeMs` al guardar; falta el watcher que recarga | **Sin asignar**                       |
 >
-> Los dos últimos son requerimientos `M` sin fase asignada. Se resuelve al planificar la Fase 3, no antes: meterlos en la Fase 2 la desborda, y la [regla de ritmo](./00-guia-paso-a-paso.md#reglas-de-ritmo) dice que bajar alcance es legítimo mientras quede escrito.
+> Los tres sin asignar son requerimientos `M`. Se resuelven al planificar la Fase 3, antes de sumarle alcance nuevo: la [regla de ritmo](./00-guia-paso-a-paso.md#reglas-de-ritmo) dice que bajar alcance es legítimo mientras quede escrito, y esto es dejarlo escrito.
 
-## Fase 2 — Herramientas de desarrollo
+## Fase 2 — Herramientas de desarrollo ✅
 
 **Entregable:** deja de ser un editor de texto y empieza a ser un IDE.
 
-- [x] RF-301 a RF-305 (terminal integrada)
-- [x] RF-201 a RF-203, RF-205 (búsqueda en workspace y quick open)
-- [ ] RF-103, RF-105 (multi-cursor, buscar/reemplazar)
-- [x] RF-704, RF-705, RF-707 (settings y persistencia de sesión)
+- [x] RF-301 a RF-305 (terminal integrada) — [ADR-0014](./adr/0014-node-pty-con-binarios-precompilados.md)
+- [x] RF-201 a RF-203, RF-205 (búsqueda en workspace y quick open) — [ADR-0007](./adr/0007-ripgrep-como-binario-externo.md)
+- [x] RF-103, RF-105 (multi-cursor, buscar/reemplazar) — nativos de Monaco, verificados en `e2e/tests/editing.spec.ts`
+- [x] RF-704, RF-705, RF-707 (settings y persistencia de sesión) — [ADR-0005](./adr/0005-settings-en-json-con-schema-zod.md)
 - [x] RF-005 — `files.exclude` reemplaza a la constante `DEFAULT_EXCLUDES`
-- [ ] RF-702 — el `keybindings.json` del usuario
-- [x] RNF-01, RNF-02 y RNF-04 medidos y con presupuesto en CI
+- [x] RNF-01, RNF-02 y RNF-04 medidos y con presupuesto en CI — [ADR-0015](./adr/0015-presupuestos-absolutos-de-performance.md)
+- [x] Primitivo de eventos en el IPC, que la terminal, las settings y la búsqueda comparten — [ADR-0013](./adr/0013-eventos-tipados-en-el-ipc.md)
 
-**Criterio de salida:** las métricas de performance están automatizadas y dentro de presupuesto.
+**Criterio de salida:** las métricas de performance están automatizadas y dentro de presupuesto. ✅
+
+**Números al cerrar la fase**, medidos en la máquina de desarrollo:
+
+| Requerimiento         | Medido   | Presupuesto |
+| --------------------- | -------- | ----------- |
+| RNF-01 arranque (p95) | 533 ms   | 1.500 ms    |
+| RNF-02 latencia (p99) | 7,18 ms  | 16 ms       |
+| RNF-04 memoria        | 303,5 MB | 400 MB      |
+| RNF-05 instalador     | 97,7 MB  | 120 MB      |
+
+> **Lo que quedó afuera.** **RF-702** —el `keybindings.json` del usuario, con detección de conflictos— sigue pendiente: el resolver y `findConflicts` están en `packages/core` desde la Fase 1, pero cargar el archivo del usuario no entró en ninguno de los siete PRs de la etapa. Se suma a RF-003 y RF-004 en la lista de deuda de la Fase 1. **RF-204** (reemplazar en todos los archivos) nunca estuvo en esta fase.
 
 > **RNF-04 entra acá.** El checklist original listaba sólo RNF-01 y RNF-02, pero el [paso 25 de la guía](./00-guia-paso-a-paso.md#etapa-3--herramientas-de-desarrollo) pide medir también la RAM. Medir dos de los tres presupuestos y dejar el tercero para la Fase 5 contradice la razón por la que existen: RNF-04 y RNF-05 son la respuesta a la crítica obvia a Electron, y descubrir en la semana 24 que se pasan no deja margen para hacer nada.
 
@@ -104,17 +115,21 @@ Cada fase tiene un entregable demostrable. La regla: **no se empieza una fase si
 
 ## Riesgos identificados
 
-| Riesgo                                                     | Impacto  | Probabilidad | Mitigación                                                                                                                                  |
-| ---------------------------------------------------------- | -------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Scope creep — "una feature más"                            | Alto     | **Alta**     | La [lista de fuera de alcance](./01-vision-y-alcance.md#alcance--fuera-out-of-scope) es un contrato. Toda feature nueva requiere sacar otra |
-| Monaco no permite alguna customización necesaria           | Medio    | Media        | Prototipar las integraciones riesgosas en Fase 1, antes de comprometerse                                                                    |
-| Performance de Electron insuficiente para archivos grandes | Alto     | Baja         | RNF-03 se mide desde Fase 2, no al final                                                                                                    |
-| Complejidad del extension host consume la Fase 4 entera    | Medio    | Media        | Empezar por una API mínima (comandos + status bar) y crecer                                                                                 |
-| Pérdida de motivación en un proyecto largo                 | **Alto** | **Alta**     | Cada fase entrega algo demostrable y publicable. El dogfooding desde Fase 1 mantiene el interés                                             |
+| Riesgo                                                                  | Impacto  | Probabilidad | Mitigación                                                                                                                                                                     |
+| ----------------------------------------------------------------------- | -------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Scope creep — "una feature más"                                         | Alto     | **Alta**     | La [lista de fuera de alcance](./01-vision-y-alcance.md#alcance--fuera-out-of-scope) es un contrato. Toda feature nueva requiere sacar otra                                    |
+| Monaco no permite alguna customización necesaria                        | Medio    | **Baja**     | Bajó al cerrar la Fase 2: lo único que Monaco no permitió fue TextMate, y se resolvió corrigiendo RF-101 y difiriendo RF-113                                                   |
+| Performance de Electron insuficiente para archivos grandes              | Alto     | **Baja**     | Bajó: los cuatro presupuestos se miden en el CI y ninguno pasa del 76% de su techo                                                                                             |
+| Complejidad del extension host consume la Fase 4 entera                 | Medio    | Media        | Empezar por una API mínima (comandos + status bar) y crecer                                                                                                                    |
+| Pérdida de motivación en un proyecto largo                              | **Alto** | Media        | Bajó: la Fase 2 cerró con siete PRs y el IDE ya se usa para escribirse a sí mismo                                                                                              |
+| **Deuda de requerimientos `M` sin fase asignada**                       | Medio    | **Alta**     | **Nuevo en la Fase 2.** RF-003, RF-004 y RF-702 son `Must have` y no están en ninguna fase. Se asignan al planificar la Fase 3, antes de sumarle alcance nuevo                 |
+| **Un binario de terceros cambia de formato y rompe una feature entera** | Medio    | Baja         | **Nuevo en la Fase 2.** ripgrep y node-pty son procesos externos que se actualizan por su cuenta. Se verifica la forma de su salida en vez de asumirla, y los tests la ejercen |
 
 ### Cómo revisar los riesgos
 
 Al cerrar cada fase, se revisa esta tabla: se actualizan las probabilidades, se agregan los riesgos nuevos que aparecieron y se retiran los que ya no aplican. Un registro de riesgos que nunca cambia es un registro que nadie lee.
+
+**Revisión al cerrar la Fase 2.** Tres riesgos bajaron de probabilidad porque la fase produjo la evidencia que faltaba: Monaco resultó suficiente, los presupuestos se cumplen con margen, y el proyecto llegó al punto donde se usa a sí mismo. Aparecieron dos nuevos, los dos de la misma naturaleza —cosas que la fase reveló al implementarlas y no al planificarlas—.
 
 ---
 
