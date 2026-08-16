@@ -23,7 +23,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "knip": "knip",
-    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "check:contrast": "node scripts/check-contrast.mjs",
+    "check": "pnpm lint && pnpm typecheck && pnpm check:contrast && pnpm test",
     "prepare": "husky"
   },
   "//pins": {

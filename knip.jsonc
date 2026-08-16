@@ -1,6 +1,11 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
+    ".": {
+      // La compuerta de contraste de RNF-22. No la importa nadie: la corre
+      // `pnpm check` por ruta, que es lo que la hace un script y no un módulo.
+      "entry": ["scripts/*.mjs"],
+    },
     "apps/desktop": {
       // El shell falso del test del supervisor no lo importa nadie: se lo pasa
       // como ruta a `spawn`, que es justamente lo que lo hace un binario y no

@@ -16,52 +16,184 @@
  * 3. `[data-theme='dark']` es la elección explícita, y va última para ganarle
  *    a un sistema en claro.
  *
- * Los contrastes están verificados contra WCAG AA (RNF-22): texto normal 4.5:1
- * y texto grande 3:1, en los dos temas. Los pares medidos son
- * foreground/background, muted/background, danger/background y
- * accent/background.
+ * **Los dos temas cargan los mismos roles y sólo cambian los valores.** El
+ * oscuro se diseñó primero —es el que define la estética— y el claro se derivó
+ * invirtiendo superficies y oscureciendo los acentos hasta pasar el contraste.
+ * Un token que exista en un tema y no en el otro es un componente que se pinta
+ * transparente en uno de los dos, así que `check-contrast.mjs` verifica que los
+ * tres bloques declaren exactamente el mismo conjunto de claves de color.
+ *
+ * Los contrastes de RNF-22 **dejaron de ser un comentario**: los verifica
+ * `scripts/check-contrast.mjs`, que corre en `pnpm check` y falla el build. Si
+ * tocás un color de acá, corré el script antes de commitear.
  */
 
 :root {
-  /* Superficies, de la más al fondo a la más al frente. */
+  /* --- Superficies, de la más al fondo a la más al frente ----------------- */
   --color-background: #ffffff;
-  --color-surface: #f3f3f3;
-  --color-border: #d8d8d8;
+  --color-surface: #f4f5f8;
+  --color-surface-raised: #ffffff;
+  --color-surface-sunken: #e9ebf0;
+  --color-border: #d7dae2;
 
-  /* Texto. `foreground` sobre `background` da 16.1:1; `muted`, 5.3:1. */
-  --color-foreground: #1a1a1a;
-  --color-muted: #656565;
+  /* --- Texto ------------------------------------------------------------- */
+  --color-foreground: #14161d;
+  --color-muted: #5c6376;
 
-  /* Acentos. `accent` sobre `background` da 7.4:1; `danger`, 7.0:1. */
-  --color-accent: #0b5fa5;
+  /* --- Acento ------------------------------------------------------------ */
+  --color-accent: #5b32c9;
+  /* Lo que se escribe **encima** de un relleno de acento. */
+  --color-accent-contrast: #ffffff;
+  --color-selection: #e2dbfb;
+  --color-focus-ring: #5b32c9;
+
+  /* --- Roles semánticos --------------------------------------------------
+   * Los `-subtle` son fondos de realce, no texto: nunca se les mide contraste
+   * como color de letra porque nunca se usan de letra.
+   */
   --color-danger: #b3261e;
-  --color-selection: #cfe3f7;
+  --color-danger-subtle: #fdeceb;
+  --color-warning: #7a4e00;
+  --color-warning-subtle: #fdf3e0;
+  --color-success: #1a6039;
+  --color-success-subtle: #e6f5ec;
+  --color-info: #0b5fa5;
+  --color-info-subtle: #e6f1fb;
 
+  /* --- Estados de Git ----------------------------------------------------
+   * Alias de los roles semánticos donde el significado coincide. Que
+   * "modificado" sea el mismo amarillo que "advertencia" no es una casualidad
+   * que convenga romper, y tenerlo como alias hace que cambiar la paleta no
+   * deje a Git con el amarillo viejo.
+   */
+  --color-git-added: var(--color-success);
+  --color-git-modified: var(--color-warning);
+  --color-git-deleted: var(--color-danger);
+  --color-git-untracked: #147d70;
+  --color-git-conflict: #a03d00;
+
+  /* --- Iconos por tipo de archivo ----------------------------------------
+   * **Ocho roles, no ochenta lenguajes.** Un color por lenguaje es un mapa que
+   * hay que mantener para siempre y que nadie lee; ocho familias alcanzan para
+   * que el árbol se escanee de un vistazo, que es lo único que el color hace
+   * acá.
+   */
+  --color-icon-code: #0b5fa5;
+  --color-icon-markup: #98430f;
+  --color-icon-style: #5b32c9;
+  --color-icon-data: #1a6039;
+  --color-icon-doc: #5c6376;
+  --color-icon-config: #7a4e00;
+  --color-icon-image: #96227c;
+  --color-icon-default: var(--color-muted);
+
+  /* --- Tipografía --------------------------------------------------------
+   * La monoespaciada es la del sistema y no una empaquetada: una fuente en el
+   * instalador son megabytes contra el techo de RNF-05, y `ui-monospace` ya
+   * resuelve a la que la plataforma considera correcta.
+   */
   --font-ui: 'Segoe UI', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', Consolas, 'Courier New', monospace;
+
+  /* --- Escalas ----------------------------------------------------------- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  /* --- Geometría del cascarón -------------------------------------------- */
+  --activity-bar-width: 3rem;
   --sidebar-width: 16rem;
+  --toolbar-height: 2.25rem;
+  --status-bar-height: 1.5rem;
+  --bottom-panel-height: 18rem;
   --file-tree-row-height: 22px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --color-background: #1e1e1e;
-    --color-surface: #252526;
-    --color-border: #3a3a3a;
-    --color-foreground: #e8e8e8;
-    --color-muted: #a6a6a6;
-    --color-accent: #6cb6ff;
-    --color-danger: #f2b8b5;
-    --color-selection: #094771;
+    --color-background: #0f1117;
+    --color-surface: #171a23;
+    --color-surface-raised: #1f2330;
+    --color-surface-sunken: #0a0c11;
+    --color-border: #2a2f3d;
+
+    --color-foreground: #e7eaf2;
+    --color-muted: #a2abbf;
+
+    --color-accent: #b4a0ff;
+    --color-accent-contrast: #10121a;
+    --color-selection: #2b2450;
+    --color-focus-ring: #b4a0ff;
+
+    --color-danger: #ff8a8a;
+    --color-danger-subtle: #2a1618;
+    --color-warning: #ffc861;
+    --color-warning-subtle: #2a2113;
+    --color-success: #6ee7a8;
+    --color-success-subtle: #10261c;
+    --color-info: #7cc4ff;
+    --color-info-subtle: #10202f;
+
+    --color-git-added: var(--color-success);
+    --color-git-modified: var(--color-warning);
+    --color-git-deleted: var(--color-danger);
+    --color-git-untracked: #5fd9c4;
+    --color-git-conflict: #ff9d5c;
+
+    --color-icon-code: #7cc4ff;
+    --color-icon-markup: #ff9d5c;
+    --color-icon-style: #b4a0ff;
+    --color-icon-data: #6ee7a8;
+    --color-icon-doc: #a2abbf;
+    --color-icon-config: #ffc861;
+    --color-icon-image: #f0a3d8;
+    --color-icon-default: var(--color-muted);
   }
 }
 
 :root[data-theme='dark'] {
-  --color-background: #1e1e1e;
-  --color-surface: #252526;
-  --color-border: #3a3a3a;
-  --color-foreground: #e8e8e8;
-  --color-muted: #a6a6a6;
-  --color-accent: #6cb6ff;
-  --color-danger: #f2b8b5;
-  --color-selection: #094771;
+  --color-background: #0f1117;
+  --color-surface: #171a23;
+  --color-surface-raised: #1f2330;
+  --color-surface-sunken: #0a0c11;
+  --color-border: #2a2f3d;
+
+  --color-foreground: #e7eaf2;
+  --color-muted: #a2abbf;
+
+  --color-accent: #b4a0ff;
+  --color-accent-contrast: #10121a;
+  --color-selection: #2b2450;
+  --color-focus-ring: #b4a0ff;
+
+  --color-danger: #ff8a8a;
+  --color-danger-subtle: #2a1618;
+  --color-warning: #ffc861;
+  --color-warning-subtle: #2a2113;
+  --color-success: #6ee7a8;
+  --color-success-subtle: #10261c;
+  --color-info: #7cc4ff;
+  --color-info-subtle: #10202f;
+
+  --color-git-added: var(--color-success);
+  --color-git-modified: var(--color-warning);
+  --color-git-deleted: var(--color-danger);
+  --color-git-untracked: #5fd9c4;
+  --color-git-conflict: #ff9d5c;
+
+  --color-icon-code: #7cc4ff;
+  --color-icon-markup: #ff9d5c;
+  --color-icon-style: #b4a0ff;
+  --color-icon-data: #6ee7a8;
+  --color-icon-doc: #a2abbf;
+  --color-icon-config: #ffc861;
+  --color-icon-image: #f0a3d8;
+  --color-icon-default: var(--color-muted);
 }

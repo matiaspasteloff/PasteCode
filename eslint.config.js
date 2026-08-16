@@ -171,11 +171,12 @@ export default tseslint.config(
     },
   },
   {
-    files: ['e2e/**/*.spec.ts'],
+    files: ['e2e/**/*.spec.ts', 'scripts/*.mjs'],
     rules: {
-      // Los tests de presupuestos existen para reportar un número, y el lugar
-      // donde ese número tiene que aparecer es la salida del CI. `console.warn`
-      // diría que algo anda mal cuando el test está pasando.
+      // Los tests de presupuestos y las compuertas de `pnpm check` existen para
+      // reportar un número, y el lugar donde ese número tiene que aparecer es
+      // la salida del CI. `console.warn` diría que algo anda mal cuando la
+      // verificación está pasando.
       'no-console': 'off',
     },
   },
