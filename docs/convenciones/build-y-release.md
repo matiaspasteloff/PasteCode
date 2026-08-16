@@ -37,14 +37,35 @@ jobs:
       - build
       - test:e2e
 
+  build:
+    runs-on: windows-latest
+    steps:
+      - package # genera el .exe
+      - check-installer-size # RNF-05: falla si supera 120MB
+
   perf-budget:
     runs-on: windows-latest
     steps:
-      - measure-startup # falla si supera RNF-01 +10%
-      - measure-bundle # falla si supera RNF-05
+      - build
+      - perf # RNF-01, RNF-02 y RNF-04, con presupuestos absolutos
+      - upload-report # el JSON con los números, como artifact
+      - comment-on-pr # comentario sticky con la tabla
 ```
 
 El job `perf-budget` es lo que convierte los [presupuestos de performance](../04-requerimientos-no-funcionales.md#performance) de una aspiración en una restricción real.
+
+**Los presupuestos son absolutos y no relativos a `main`** ([ADR-0015](../adr/0015-presupuestos-absolutos-de-performance.md)): cada número se compara contra el valor del requerimiento, sin línea base y sin estado entre corridas. La medición vive en `e2e/perf/`, en su propia configuración de Playwright, separada de la suite funcional porque no verifica comportamiento sino números —y porque veinte arranques de Electron no entran en los 30 segundos de techo que `testing.md` le pone a un E2E—.
+
+| Requerimiento | Qué corre                        | Cómo se resume            |
+| ------------- | -------------------------------- | ------------------------- |
+| RNF-01        | `e2e/perf/startup.perf.ts`       | p95 de 20 arranques       |
+| RNF-02        | `e2e/perf/input-latency.perf.ts` | p99 de 120 pulsaciones    |
+| RNF-04        | `e2e/perf/memory.perf.ts`        | una muestra               |
+| RNF-05        | Paso del job `build`             | el `.exe` recién generado |
+
+RNF-05 se verifica en el job del instalador y no acá porque el `.exe` ya existe ahí: volver a empaquetar sólo para medirlo costaría varios minutos por PR.
+
+Los números van a tres lugares: el resumen del job —`$GITHUB_STEP_SUMMARY`—, un artifact con el JSON, y un comentario en el PR que se reescribe en cada push en vez de acumularse. Aparecen **aunque todo pase**, que es lo que hace visible una degradación que todavía esté adentro del presupuesto.
 
 ---
 

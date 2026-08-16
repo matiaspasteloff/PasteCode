@@ -24,6 +24,7 @@ Un ADR registra una decisión técnica relevante, el contexto en el que se tomó
 | [0012](./0012-servir-el-renderer-desde-un-protocolo-propio.md) | Servir el renderer desde un protocolo propio en vez de `file://`               | ✅ Aceptado  |
 | [0013](./0013-eventos-tipados-en-el-ipc.md)                    | Eventos tipados del main al renderer, sobre `ipcRenderer.on`                   | ✅ Aceptado  |
 | [0014](./0014-node-pty-con-binarios-precompilados.md)          | `@lydell/node-pty` con prebuilds por plataforma, en vez del `node-pty` oficial | ✅ Aceptado  |
+| [0015](./0015-presupuestos-absolutos-de-performance.md)        | Presupuestos de performance absolutos, no relativos a `main`                   | ✅ Aceptado  |
 
 **Estados posibles:** `Propuesto` · `Aceptado` · `Reemplazado por ADR-NNNN` · `Obsoleto`
 

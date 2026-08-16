@@ -12,18 +12,14 @@ import {
 import { DESKTOP_ROOT } from './support/desktop.js';
 
 /**
- * Presupuestos de [04-requerimientos-no-funcionales](../../docs/04-requerimientos-no-funcionales.md#performance).
+ * RNF-03, el único presupuesto que quedó en la suite funcional.
  *
- * La instrumentación de verdad —medir en cada PR y fallar el CI ante una
- * regresión— es el paso 25, en la Etapa 3. Esto es la versión mínima que
- * evita llegar a esa etapa sin saber de dónde se parte: los números quedan en
- * la salida del test y sirven de línea de base.
- *
- * Los umbrales están holgados a propósito. Un runner de CI compartido es
- * bastante más lento que una máquina de escritorio, y un test de performance
- * que falla por ruido se termina desactivando, que es peor que no tenerlo.
+ * Los demás —arranque, latencia de input y memoria— se miden en `e2e/perf/`,
+ * con percentiles sobre muchas corridas y en su propio job del CI. Éste se
+ * queda acá porque no es un presupuesto estadístico sino un comportamiento:
+ * abrir un archivo de 10MB tiene que funcionar, y si deja de funcionar lo que
+ * hay que ver es el flujo, no un número.
  */
-const STARTUP_BUDGET_MS = 1500;
 const LARGE_FILE_BUDGET_MS = 2000;
 
 /** RNF-03 se compromete hasta 10MB. */
@@ -39,36 +35,6 @@ test.beforeEach(async () => {
 test.afterEach(async () => {
   await app.close();
   await rm(workspace, { recursive: true, force: true });
-});
-
-test('RNF-01: la ventana pinta el primer contenido en menos de 1,5s', async () => {
-  // Se arranca dos veces y se mide la segunda, por el mismo motivo que en
-  // RNF-03: la primera vez que se abre un bundle recién construido, Windows lo
-  // escanea entero, y eso mide al antivirus y no al arranque de la app. En una
-  // instalación real el escaneo pasa una vez y no en cada arranque.
-  const warmup = await electron.launch({
-    args: [DESKTOP_ROOT],
-    env: { ...process.env, PASTECODE_E2E_WORKSPACE: workspace },
-  });
-  await (await warmup.firstWindow()).getByRole('button', { name: 'Abrir carpeta' }).waitFor();
-  await warmup.close();
-
-  const startedAt = Date.now();
-  app = await electron.launch({
-    args: [DESKTOP_ROOT],
-    env: { ...process.env, PASTECODE_E2E_WORKSPACE: workspace },
-  });
-  const window = await app.firstWindow();
-  await window.getByRole('button', { name: 'Abrir carpeta' }).waitFor();
-  const elapsed = Date.now() - startedAt;
-
-  // Que el presupuesto se cumpla depende de que Monaco entre por `import()`
-  // dinámico: son casi 4MB de chunk que no tienen por qué parsearse para
-  // mostrar una carpeta vacía.
-  console.log(
-    `RNF-01 arranque: ${String(elapsed)}ms (presupuesto ${String(STARTUP_BUDGET_MS)}ms)`
-  );
-  expect(elapsed).toBeLessThan(STARTUP_BUDGET_MS);
 });
 
 test('RNF-03: un archivo de 10MB abre en menos de 2s', async () => {
