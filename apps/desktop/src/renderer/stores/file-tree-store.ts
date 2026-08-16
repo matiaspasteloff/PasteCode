@@ -16,6 +16,15 @@ interface FileTreeState {
   loadRoot: (root: string) => Promise<void>;
   /** Despliega o repliega una carpeta, cargando sus hijos la primera vez. */
   toggleFolder: (path: string) => Promise<void>;
+  /**
+   * Vuelve a leer del disco lo que ya está a la vista, sin replegar nada.
+   *
+   * Existe para el watcher (RF-004). **No es `loadRoot`**: `loadRoot` descarta
+   * `expandedPaths`, y usarlo acá replegaría el árbol entero cada vez que una
+   * herramienta externa toca un archivo, que es exactamente el comportamiento
+   * que hace que la gente apague el auto-refresh.
+   */
+  refresh: () => Promise<void>;
   /** Vacía el árbol. Se usa al cerrar el workspace. */
   clear: () => void;
 }
@@ -73,10 +82,55 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
     set({ roots: attachChildren(get().roots, path, result.value.entries.map(toNode)) });
   },
 
+  refresh: async () => {
+    const { roots, expandedPaths } = get();
+
+    // Sin nada cargado no hay nada que refrescar: es el caso de un evento que
+    // llega justo después de cerrar el workspace.
+    if (roots.length === 0) return;
+
+    const rootPath = parentOf(roots[0]?.path ?? '');
+    if (rootPath === '') return;
+
+    const reloaded = await readLevel(rootPath);
+    if (reloaded === undefined) return;
+
+    let next = reloaded;
+
+    // Se recorren las desplegadas en orden de profundidad para que cada nivel
+    // se cuelgue de una rama que ya existe en el árbol nuevo.
+    for (const path of [...expandedPaths].sort((a, b) => a.length - b.length)) {
+      const children = await readLevel(path);
+
+      if (children !== undefined) next = attachChildren(next, path, children);
+    }
+
+    set({ roots: next });
+  },
+
   clear: () => {
     set({ roots: [], expandedPaths: new Set<string>(), error: null, isLoading: false });
   },
 }));
+
+/** Lee un nivel, o `undefined` si falló. Un refresco que falla no borra nada. */
+async function readLevel(path: string): Promise<readonly FileTreeNode[] | undefined> {
+  const result = await window.pastecode.invoke('fs:readDirectory', { path });
+
+  return result.ok ? result.value.entries.map(toNode) : undefined;
+}
+
+/**
+ * La carpeta que contiene a una ruta.
+ *
+ * Se corta por el último separador y se aceptan los dos: la ruta viene del main,
+ * que usa el del sistema operativo, y el renderer no tiene `node:path`.
+ */
+function parentOf(path: string): string {
+  const cut = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+
+  return cut <= 0 ? '' : path.slice(0, cut);
+}
 
 /** Una entrada del IPC como nodo, todavía sin hijos cargados. */
 function toNode(entry: DirectoryEntry): FileTreeNode {

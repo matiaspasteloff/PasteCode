@@ -4,6 +4,8 @@ export { EVENT_NAMES, isEventName } from './events.js';
 export type {
   EventName,
   EventPayload,
+  FileChangePayload,
+  FilesChangedEvent,
   IpcEvents,
   SearchDoneEvent,
   SearchResultEvent,

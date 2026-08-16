@@ -30,6 +30,32 @@ export interface SearchDoneEvent {
 }
 
 /**
+ * Qué le pasó a un archivo del workspace, según el watcher.
+ *
+ * Los tres casos son los que el renderer distingue de verdad: recargar una
+ * pestaña limpia, avisar de un conflicto en una sucia, y marcar como borrado el
+ * archivo que ya no está.
+ */
+export interface FileChangePayload {
+  path: string;
+  kind: 'created' | 'modified' | 'deleted';
+}
+
+/**
+ * Payload de `files:changed`: qué cambió en el disco, en lotes.
+ *
+ * Viaja de a lotes por lo mismo que `search:result`: un `git checkout` toca
+ * miles de archivos, y un salto de proceso por cada uno cuesta más que el
+ * checkout. Cuando son demasiados, `isBulk` viene en `true` y `changes` vacío
+ * **a propósito**: quien escucha revalida en bloque en vez de procesar diez mil
+ * entradas en el hilo de UI, que es lo que rompería el presupuesto de RNF-06.
+ */
+export interface FilesChangedEvent {
+  changes: FileChangePayload[];
+  isBulk: boolean;
+}
+
+/**
  * Payload de `settings:changed`: las settings resueltas, después del cambio.
  *
  * Viaja el valor **resuelto** y no el archivo que cambió. El renderer no tiene
@@ -100,6 +126,7 @@ export interface IpcEvents {
   'settings:changed': SettingsChangedEvent;
   'search:result': SearchResultEvent;
   'search:done': SearchDoneEvent;
+  'files:changed': FilesChangedEvent;
 }
 
 export type EventName = keyof IpcEvents;
@@ -124,6 +151,7 @@ export const EVENT_NAMES = [
   'settings:changed',
   'search:result',
   'search:done',
+  'files:changed',
 ] as const satisfies readonly EventName[];
 
 /**

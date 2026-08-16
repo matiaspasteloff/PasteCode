@@ -7,7 +7,7 @@ import {
   openTab,
   setTabDirty,
 } from '@pastecode/core';
-import type { SerializedError } from '@pastecode/ipc-contract';
+import type { FileChangePayload, SerializedError } from '@pastecode/ipc-contract';
 import { create } from 'zustand';
 
 /** Contenido recién leído del disco, para que el editor arme el modelo. */
@@ -46,6 +46,19 @@ interface EditorState {
   markDirty: () => void;
   save: (options?: { force: boolean }) => Promise<void>;
   discardAndReload: () => Promise<void>;
+  /**
+   * Aplica lo que el watcher informó que cambió en el disco (RF-004).
+   *
+   * Tres caminos, y la diferencia entre ellos es todo lo que importa:
+   *
+   * - **Pestaña limpia:** se relee en silencio. No hay nada que perder.
+   * - **Pestaña sucia:** el `ConflictDialog` que ya existe, con una variante
+   *   nueva. Recargar encima de lo que alguien escribió es destruir trabajo.
+   * - **Archivo borrado:** se conserva la pestaña, marcada como sucia y sin
+   *   diálogo. Lo que hay en el editor es ahora la única copia que queda, y
+   *   `Ctrl+S` lo recrea.
+   */
+  applyExternalChanges: (changes: readonly FileChangePayload[]) => Promise<void>;
   closeAll: () => void;
 }
 
@@ -121,10 +134,84 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     await loadFile(path, set, get);
   },
 
+  applyExternalChanges: (changes) => applyExternalChanges(changes, set, get),
+
   closeAll: () => {
     set({ tabs: NO_TABS, mtimes: {}, pendingFile: null, error: null, conflict: null });
   },
 }));
+
+/**
+ * Reacciona a los cambios que vio el watcher.
+ *
+ * Sólo se miran los archivos **abiertos**: que un archivo del disco cambie no
+ * es asunto del editor si nadie lo está mirando, y recorrer miles de rutas por
+ * cada `git checkout` para descartarlas todas es trabajo puro.
+ */
+async function applyExternalChanges(
+  changes: readonly FileChangePayload[],
+  set: SetEditorState,
+  get: () => EditorState
+): Promise<void> {
+  const open = new Map(get().tabs.tabs.map((tab) => [tab.path, tab]));
+
+  for (const change of changes) {
+    const tab = open.get(change.path);
+
+    if (tab === undefined) continue;
+
+    if (change.kind === 'deleted') {
+      // Sin diálogo: no hay ninguna decisión que tomar todavía. Marcarla sucia
+      // es lo que hace que `Ctrl+S` la recree, y lo que impide que cerrarla se
+      // sienta como una operación inocua.
+      set({ tabs: setTabDirty(get().tabs, change.path, true) });
+      continue;
+    }
+
+    if (tab.isDirty) {
+      set({ conflict: externalChangeConflict(change.path) });
+      continue;
+    }
+
+    await reloadFromDisk(change.path, set, get);
+  }
+}
+
+/**
+ * Relee un archivo limpio, sin tocar qué pestaña está activa.
+ *
+ * Es casi `loadFile`, pero **no activa la pestaña**: el archivo que cambió en
+ * el disco puede ser uno que no se está mirando, y saltar a él porque una
+ * herramienta externa lo tocó sería robarle el foco a alguien que está
+ * escribiendo en otro lado.
+ *
+ * **Siempre se actualiza `mtimes`**, incluso en esta recarga silenciosa.
+ * Olvidarlo convierte cada cambio externo en un `STALE_FILE` falso la próxima
+ * vez que se guarde ese archivo.
+ */
+async function reloadFromDisk(
+  path: string,
+  set: SetEditorState,
+  get: () => EditorState
+): Promise<void> {
+  const result = await window.pastecode.invoke('fs:readFile', { path });
+
+  if (!result.ok) return;
+
+  set({
+    mtimes: { ...get().mtimes, [path]: result.value.mtimeMs },
+    tabs: setTabDirty(get().tabs, path, false),
+    pendingFile: { path, content: result.value.content },
+  });
+}
+
+/** El conflicto de un cambio externo sobre una pestaña con ediciones sin guardar. */
+function externalChangeConflict(path: string): SerializedError {
+  return {
+    code: 'EXTERNAL_CHANGE',
+    userMessage: `"${path}" cambió en el disco y tenés cambios sin guardar. Guardá para sobrescribirlo, o descartá para quedarte con lo del disco.`,
+  };
+}
 
 /** Lee un archivo del disco y lo deja listo para que el editor lo monte. */
 async function loadFile(

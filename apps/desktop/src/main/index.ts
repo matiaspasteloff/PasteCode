@@ -10,6 +10,7 @@ import { registerSearchIpcHandlers } from './ipc/search.js';
 import { flushSession, registerSessionIpcHandlers } from './ipc/session.js';
 import { registerSettingsIpcHandlers, startSettings } from './ipc/settings.js';
 import { registerTerminalIpcHandlers } from './ipc/terminal.js';
+import { registerWatcherDisposer } from './ipc/watcher.js';
 import { registerWorkspaceIpcHandlers } from './ipc/workspace.js';
 import { useSessionDirectory } from './services/session.js';
 import { disposeAll } from './services/shutdown.js';
@@ -28,6 +29,7 @@ registerClipboardIpcHandlers();
 registerSettingsIpcHandlers();
 registerSessionIpcHandlers();
 registerSearchIpcHandlers();
+registerWatcherDisposer();
 
 /**
  * Si la salida ya se está ejecutando. Sin esto, el `app.quit()` de abajo

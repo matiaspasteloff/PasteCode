@@ -17,6 +17,7 @@ import { currentSettings } from '../services/settings.js';
 import { requireWorkspaceRoot } from '../services/workspace.js';
 
 import { registerHandler } from './handler.js';
+import { noteOwnWrite } from './watcher.js';
 
 /**
  * Lee un archivo del workspace.
@@ -53,6 +54,12 @@ export async function handleWriteFile(
   workspaceRoot: string
 ): Promise<Response<'fs:writeFile'>> {
   const path = await resolveInsideWorkspace(payload.path, workspaceRoot);
+
+  // **Antes** de escribir, no después: el watcher puede ver el archivo entre
+  // el `rename` y la línea siguiente, y una marca puesta tarde no sirve de
+  // nada. Sin esto, guardar dispara una recarga espuria o —si quedó una tecla
+  // escrita entre medio— un diálogo de conflicto contra un cambio propio.
+  noteOwnWrite(path);
 
   return writeTextFileAtomically(path, payload.content, payload.expectedMtimeMs);
 }

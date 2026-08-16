@@ -10,6 +10,7 @@ import { setSettingsWorkspace } from '../services/settings.js';
 import { getWorkspace, openWorkspaceAt } from '../services/workspace.js';
 
 import { registerHandler } from './handler.js';
+import { startWatchingWorkspace } from './watcher.js';
 
 /**
  * Ruta de workspace con la que el E2E saltea el diálogo nativo.
@@ -50,6 +51,12 @@ async function handleOpenWorkspace(): Promise<WorkspaceInfo | null> {
   // acá y no adentro de `openWorkspaceAt` para que el servicio del workspace
   // siga sin saber que las settings existen.
   await setSettingsWorkspace(workspace.root);
+
+  // RF-004. Va último y sin `await`: chokidar recorre el árbol para establecer
+  // los watches, y nada de lo que produce hace falta antes del primer paint.
+  // Ponerlo en el camino crítico gastaría el presupuesto de RNF-01 en algo que
+  // nadie está esperando.
+  startWatchingWorkspace(workspace.root);
 
   return workspace;
 }
