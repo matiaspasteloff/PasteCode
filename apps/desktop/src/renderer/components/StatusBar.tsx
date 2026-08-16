@@ -6,6 +6,7 @@ import { useEditorStore } from '../stores/editor-store.js';
 import { StatusIndentation } from './status/StatusIndentation.js';
 import { StatusLanguage } from './status/StatusLanguage.js';
 import { StatusPosition } from './status/StatusPosition.js';
+import { StatusProblems } from './status/StatusProblems.js';
 
 /** Umbral de RNF-24: por debajo de esto, avisar molesta más que informar. */
 const PROGRESS_DELAY_MS = 500;
@@ -20,8 +21,8 @@ const PROGRESS_DELAY_MS = 500;
  * tecla, y un solo componente leyendo todo dejaría el presupuesto de 16ms de
  * RNF-02 en dibujar cosas que no cambiaron.
  *
- * Los indicadores de rama y de problemas entran acá cuando Git y el LSP
- * existan. Cada uno es un componente más en la lista de abajo.
+ * El indicador de rama entra acá cuando Git exista. Es un componente más en la
+ * lista de abajo, igual que el de problemas.
  *
  * La versión no está hardcodeada. Llega por el canal `app:getVersion`, así que
  * verla en pantalla sigue siendo la prueba visible de que la cadena contrato →
@@ -45,6 +46,7 @@ export function StatusBar(): React.JSX.Element {
       </div>
 
       <div className="status-bar__group">
+        <StatusProblems />
         <StatusPosition />
         <StatusIndentation />
         <StatusLanguage />

@@ -13,7 +13,7 @@ export const SIDE_VIEWS = ['explorer', 'search'] as const;
 export type SideView = (typeof SIDE_VIEWS)[number];
 
 /** Las vistas del panel inferior. Mismo criterio que `SIDE_VIEWS`. */
-export const PANEL_VIEWS = ['terminal'] as const;
+export const PANEL_VIEWS = ['terminal', 'problems'] as const;
 
 export type PanelView = (typeof PANEL_VIEWS)[number];
 

@@ -16,14 +16,6 @@ import { PANEL_VIEW_REGISTRY } from './panel-registry.js';
  * desmontar una terminal tira el scrollback de xterm, así que cambiar a
  * Problemas y volver perdería todo lo que el shell había escrito. El comentario
  * que lo explicaba sube un nivel, porque ahora aplica a dos ejes.
- *
- * Hoy el registro tiene **una sola** entrada, así que las comparaciones contra
- * `panelView` son tautológicas para el compilador y hay que silenciar la regla
- * que lo señala. Es deliberado y temporal: la segunda entrada es el panel de
- * problemas, que llega en cuanto el LSP produzca diagnósticos. La alternativa
- * —esperar a tener dos inquilinos para escribir el contenedor— dejaría a la
- * terminal decidiendo si se ve, que es exactamente lo que este PR viene a
- * sacarle.
  */
 export function BottomPanel(): React.JSX.Element | null {
   const panelView = useViewStore((state) => state.panelView);
@@ -40,7 +32,6 @@ export function BottomPanel(): React.JSX.Element | null {
             key={id}
             type="button"
             role="tab"
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- El registro tiene una entrada hasta que llegue el panel de problemas; ver el comentario del componente.
             aria-selected={panelView === id}
             className="bottom-panel__tab"
             data-testid={`panel-tab-${id}`}
@@ -70,7 +61,6 @@ export function BottomPanel(): React.JSX.Element | null {
           key={id}
           className="bottom-panel__body"
           role="tabpanel"
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Ídem: con dos inquilinos deja de ser tautológico.
           hidden={panelView !== id}
           data-testid={`panel-body-${id}`}
         >

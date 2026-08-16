@@ -23,6 +23,44 @@ let loaded: typeof MonacoApi | null = null;
  */
 export function setLoadedMonaco(monaco: typeof MonacoApi): void {
   loaded = monaco;
+
+  for (const listener of pendingListeners) listener(monaco);
+
+  pendingListeners.clear();
+}
+
+/** Los que pidieron el namespace antes de que existiera. */
+const pendingListeners = new Set<(monaco: typeof MonacoApi) => void>();
+
+/**
+ * Corre algo apenas Monaco esté disponible, sin provocar su carga.
+ *
+ * Existe porque hay trabajo que no cuelga de ningún componente del editor y sin
+ * embargo necesita el namespace: el LSP se suscribe al ciclo de vida de los
+ * **modelos** —`onDidCreateModel` y `onWillDisposeModel`— para saber qué
+ * documento abrir y cuál cerrar. Enganchar eso al montaje del editor sería
+ * atarlo a que haya una pestaña activa, que es justo lo que no vale: un modelo
+ * puede crearse por una restauración de sesión antes de que nadie lo mire.
+ *
+ * Si Monaco ya está cargado, el listener corre en el momento.
+ *
+ * @param listener Qué hacer con el namespace.
+ * @returns La función que cancela la espera. Idempotente.
+ * @example
+ * useEffect(() => whenMonacoLoaded((monaco) => subscribe(monaco)), []);
+ */
+export function whenMonacoLoaded(listener: (monaco: typeof MonacoApi) => void): () => void {
+  if (loaded !== null) {
+    listener(loaded);
+
+    return () => undefined;
+  }
+
+  pendingListeners.add(listener);
+
+  return () => {
+    pendingListeners.delete(listener);
+  };
 }
 
 /**
