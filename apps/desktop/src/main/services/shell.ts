@@ -1,4 +1,7 @@
-import { join } from 'node:path';
+import { accessSync, constants } from 'node:fs';
+import { isAbsolute, join } from 'node:path';
+
+import { TerminalSpawnError } from '@pastecode/core';
 
 /** Un ejecutable y sus argumentos, ya separados. Nunca una línea de comando. */
 export interface ShellCommand {
@@ -40,7 +43,7 @@ const STRIPPED_VARIABLES = [
  * @example
  * defaultShell(); // { file: 'C:\\WINDOWS\\System32\\...\\powershell.exe', args: [] }
  */
-export function defaultShell(): ShellCommand {
+function defaultShell(): ShellCommand {
   if (process.platform === 'win32') {
     const systemRoot = process.env.SystemRoot ?? 'C:\\Windows';
 
@@ -53,6 +56,46 @@ export function defaultShell(): ShellCommand {
   }
 
   return { file: process.env.SHELL ?? '/bin/sh', args: [] };
+}
+
+/**
+ * El shell que hay que lanzar, dado lo que digan las settings.
+ *
+ * `null` —el valor por defecto de `terminal.shell`— es el shell del sistema.
+ * Cualquier otra cosa pasa por la allow-list de
+ * [seguridad.md](../../../../../docs/convenciones/seguridad.md#terminalshell-va-contra-una-allow-list):
+ * **ruta absoluta a un archivo ejecutable que exista**. Un nombre suelto se
+ * rechaza en vez de buscarse en el `PATH`, que es lo que convertiría a
+ * `terminal.shell` en "ejecutá lo que encuentres primero".
+ *
+ * Que el valor no pueda venir de un `.pastecode/settings.json` de workspace ya
+ * lo garantiza `resolveSettings`, que descarta esa clave de la capa del
+ * workspace. Acá se valida lo otro: que lo que eligió el usuario exista.
+ *
+ * @param configured `terminal.shell` de las settings resueltas.
+ * @returns El ejecutable y sus argumentos.
+ * @throws {TerminalSpawnError} Si la ruta no es absoluta o no se puede ejecutar.
+ * @example
+ * resolveShell(null);                  // el shell del sistema
+ * resolveShell('C:\\bin\\pwsh.exe');   // ése, si existe
+ */
+export function resolveShell(configured: string | null): ShellCommand {
+  if (configured === null) return defaultShell();
+
+  if (!isAbsolute(configured)) {
+    throw new TerminalSpawnError(
+      configured,
+      new Error('terminal.shell tiene que ser una ruta absoluta')
+    );
+  }
+
+  try {
+    accessSync(configured, constants.X_OK);
+  } catch (cause) {
+    throw new TerminalSpawnError(configured, cause);
+  }
+
+  return { file: configured, args: [] };
 }
 
 /**

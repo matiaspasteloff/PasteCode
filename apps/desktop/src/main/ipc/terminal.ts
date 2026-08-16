@@ -8,7 +8,8 @@ import {
 } from '@pastecode/ipc-contract';
 import { BrowserWindow } from 'electron';
 
-import { defaultShell } from '../services/shell.js';
+import { currentSettings } from '../services/settings.js';
+import { resolveShell } from '../services/shell.js';
 import { requireWorkspaceRoot } from '../services/workspace.js';
 import type { PtySupervisor } from '../supervisors/pty.js';
 import { createPtySupervisor } from '../supervisors/pty.js';
@@ -49,7 +50,10 @@ function broadcastExit(event: TerminalExitEvent): void {
  */
 function requireSupervisor(): PtySupervisor {
   supervisor ??= createPtySupervisor({
-    shell: defaultShell(),
+    // El shell se fija al abrir la primera terminal de la sesión. Cambiar
+    // `terminal.shell` no re-lanza las que ya están corriendo: matar la
+    // terminal de alguien porque tocó un setting sería peor que el retraso.
+    shell: resolveShell(currentSettings().terminal.shell),
     cwd: requireWorkspaceRoot(),
     onData: broadcastData,
     onExit: broadcastExit,

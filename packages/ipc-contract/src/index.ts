@@ -5,9 +5,16 @@ export type {
   EventName,
   EventPayload,
   IpcEvents,
+  SettingsChangedEvent,
   TerminalDataEvent,
   TerminalExitEvent,
 } from './events.js';
+export {
+  GetSettingsRequestSchema,
+  GetSettingsResponseSchema,
+  UpdateSettingsRequestSchema,
+  UpdateSettingsResponseSchema,
+} from './schemas/settings.js';
 export type { IpcResult, SerializedError } from './result.js';
 export { GetVersionRequestSchema, GetVersionResponseSchema } from './schemas/app.js';
 export {

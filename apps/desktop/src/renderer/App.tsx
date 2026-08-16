@@ -10,6 +10,7 @@ import { EditorArea } from './features/editor/EditorArea.js';
 import { releaseAllModels, releaseModelsExcept } from './features/editor/model-registry.js';
 import { TabStrip } from './features/editor/TabStrip.js';
 import { FileTree } from './features/file-tree/FileTree.js';
+import { useSettings } from './features/settings/use-settings.js';
 import { TerminalPanel } from './features/terminal/TerminalPanel.js';
 import { useTheme } from './features/theme/use-theme.js';
 import { WorkspaceHeader } from './features/workspace/WorkspaceHeader.js';
@@ -33,6 +34,7 @@ export function App(): React.JSX.Element {
 
   useAppCommands();
   useKeybindings();
+  useSettings();
   useTheme();
 
   useEffect(() => {

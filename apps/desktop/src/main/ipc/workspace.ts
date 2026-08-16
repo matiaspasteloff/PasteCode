@@ -6,6 +6,7 @@ import {
 import type { OpenDialogOptions } from 'electron';
 import { app, BrowserWindow, dialog } from 'electron';
 
+import { setSettingsWorkspace } from '../services/settings.js';
 import { getWorkspace, openWorkspaceAt } from '../services/workspace.js';
 
 import { registerHandler } from './handler.js';
@@ -43,7 +44,14 @@ async function handleOpenWorkspace(): Promise<WorkspaceInfo | null> {
   const chosen = await chooseDirectory();
   if (chosen === undefined) return null;
 
-  return openWorkspaceAt(chosen);
+  const workspace = await openWorkspaceAt(chosen);
+
+  // La capa de settings del workspace cambia con el workspace (RF-705). Va
+  // acá y no adentro de `openWorkspaceAt` para que el servicio del workspace
+  // siga sin saber que las settings existen.
+  await setSettingsWorkspace(workspace.root);
+
+  return workspace;
 }
 
 /** La carpeta elegida, o `undefined` si se canceló el diálogo. */

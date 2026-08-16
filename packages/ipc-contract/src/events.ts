@@ -1,3 +1,25 @@
+import type { Settings } from '@pastecode/core';
+
+import type { SerializedError } from './result.js';
+
+/**
+ * Payload de `settings:changed`: las settings resueltas, después del cambio.
+ *
+ * Viaja el valor **resuelto** y no el archivo que cambió. El renderer no tiene
+ * por qué saber si el cambio vino del archivo del usuario o del workspace, ni
+ * volver a aplicar la precedencia: eso ya lo hizo el main una vez, y hacerlo
+ * dos veces es tener dos implementaciones que se pueden contradecir.
+ *
+ * El `error` viaja **al lado** de las settings y no en lugar de ellas: cuando
+ * alguien deja una coma de más en su `settings.json`, lo que corresponde es
+ * seguir andando con los últimos valores buenos y además avisar. Es también el
+ * momento exacto en que la persona se entera, porque acaba de guardar.
+ */
+export interface SettingsChangedEvent {
+  settings: Settings;
+  error: SerializedError | null;
+}
+
 /**
  * Payload de `terminal:data`: un chunk de salida del PTY.
  *
@@ -48,6 +70,7 @@ export interface TerminalExitEvent {
 export interface IpcEvents {
   'terminal:data': TerminalDataEvent;
   'terminal:exit': TerminalExitEvent;
+  'settings:changed': SettingsChangedEvent;
 }
 
 export type EventName = keyof IpcEvents;
@@ -69,6 +92,7 @@ export type EventPayload<E extends EventName> = IpcEvents[E];
 export const EVENT_NAMES = [
   'terminal:data',
   'terminal:exit',
+  'settings:changed',
 ] as const satisfies readonly EventName[];
 
 /**

@@ -11,6 +11,7 @@ import {
   writeTextFileAtomically,
 } from '../services/file-system.js';
 import { resolveInsideWorkspace } from '../services/path-guard.js';
+import { currentSettings } from '../services/settings.js';
 import { requireWorkspaceRoot } from '../services/workspace.js';
 
 import { registerHandler } from './handler.js';
@@ -65,11 +66,12 @@ export async function handleWriteFile(
  */
 export async function handleReadDirectory(
   payload: Request<'fs:readDirectory'>,
-  workspaceRoot: string
+  workspaceRoot: string,
+  excludePatterns?: readonly string[]
 ): Promise<Response<'fs:readDirectory'>> {
   const path = await resolveInsideWorkspace(payload.path, workspaceRoot);
 
-  return { entries: await readDirectoryLevel(path, workspaceRoot) };
+  return { entries: await readDirectoryLevel(path, workspaceRoot, excludePatterns) };
 }
 
 /**
@@ -79,8 +81,12 @@ export async function handleReadDirectory(
  * registerFsIpcHandlers(); // antes de app.whenReady()
  */
 export function registerFsIpcHandlers(): void {
+  // Las exclusiones salen de las settings y no de la constante `DEFAULT_EXCLUDES`
+  // (RF-005). Se leen en cada llamada y no al registrar: el usuario puede
+  // cambiar `files.exclude` con la app abierta, y el árbol tiene que reflejarlo
+  // al siguiente refresh sin reiniciar nada.
   registerHandler('fs:readDirectory', ReadDirectoryRequestSchema, (payload) =>
-    handleReadDirectory(payload, requireWorkspaceRoot())
+    handleReadDirectory(payload, requireWorkspaceRoot(), currentSettings().files.exclude)
   );
 
   registerHandler('fs:readFile', ReadFileRequestSchema, (payload) =>

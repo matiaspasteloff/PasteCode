@@ -14,7 +14,7 @@ Un ADR registra una decisión técnica relevante, el contexto en el que se tomó
 | [0002](./0002-monaco-editor.md)                                | Usar Monaco Editor como núcleo de edición                                           | ✅ Aceptado  |
 | [0003](./0003-extension-host-aislado.md)                       | Extension host en un proceso separado                                               | ✅ Aceptado  |
 | [0004](./0004-zustand-para-el-estado-del-renderer.md)          | Usar Zustand con stores chicos por dominio para el estado del renderer              | ✅ Aceptado  |
-| 0005                                                           | Formato de persistencia de settings (JSON con schema vs. TOML)                      | ⏳ Pendiente |
+| [0005](./0005-settings-en-json-con-schema-zod.md)              | Settings en JSON validado con Zod, en dos capas                                     | ✅ Aceptado  |
 | [0006](./0006-electron-vite-como-build.md)                     | Usar electron-vite como herramienta de build                                        | ✅ Aceptado  |
 | 0007                                                           | Modelo de threading para búsqueda en workspace (worker threads vs. ripgrep externo) | ⏳ Pendiente |
 | 0008                                                           | Mecanismo de auto-update (electron-updater + GitHub Releases)                       | ⏳ Pendiente |
