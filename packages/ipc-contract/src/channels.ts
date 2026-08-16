@@ -16,6 +16,12 @@ import type {
   WriteFileResponseSchema,
 } from './schemas/fs.js';
 import type {
+  CancelSearchRequestSchema,
+  CancelSearchResponseSchema,
+  StartSearchRequestSchema,
+  StartSearchResponseSchema,
+} from './schemas/search.js';
+import type {
   LoadSessionRequestSchema,
   LoadSessionResponseSchema,
   SaveSessionRequestSchema,
@@ -117,6 +123,14 @@ export interface IpcChannels {
   'session:save': {
     request: z.infer<typeof SaveSessionRequestSchema>;
     response: z.infer<typeof SaveSessionResponseSchema>;
+  };
+  'search:start': {
+    request: z.infer<typeof StartSearchRequestSchema>;
+    response: z.infer<typeof StartSearchResponseSchema>;
+  };
+  'search:cancel': {
+    request: z.infer<typeof CancelSearchRequestSchema>;
+    response: z.infer<typeof CancelSearchResponseSchema>;
   };
   'clipboard:readText': {
     request: z.infer<typeof ReadClipboardRequestSchema>;

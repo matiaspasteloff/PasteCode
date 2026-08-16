@@ -1,6 +1,6 @@
-import { activeTab } from '@pastecode/core';
 import { useEffect } from 'react';
 
+import { Sidebar } from './components/Sidebar.js';
 import { StatusBar } from './components/StatusBar.js';
 import { CommandPalette } from './features/commands/CommandPalette.js';
 import { useAppCommands } from './features/commands/use-app-commands.js';
@@ -9,12 +9,11 @@ import { ConflictDialog } from './features/editor/ConflictDialog.js';
 import { EditorArea } from './features/editor/EditorArea.js';
 import { releaseAllModels, releaseModelsExcept } from './features/editor/model-registry.js';
 import { TabStrip } from './features/editor/TabStrip.js';
-import { FileTree } from './features/file-tree/FileTree.js';
+import { useSearchEvents } from './features/search/use-search-events.js';
 import { useSession } from './features/session/use-session.js';
 import { useSettings } from './features/settings/use-settings.js';
 import { TerminalPanel } from './features/terminal/TerminalPanel.js';
 import { useTheme } from './features/theme/use-theme.js';
-import { WorkspaceHeader } from './features/workspace/WorkspaceHeader.js';
 import { useEditorStore } from './stores/editor-store.js';
 import { useFileTreeStore } from './stores/file-tree-store.js';
 import { useWorkspaceStore } from './stores/workspace-store.js';
@@ -29,14 +28,13 @@ export function App(): React.JSX.Element {
   const clearTree = useFileTreeStore((state) => state.clear);
 
   const openTabs = useEditorStore((state) => state.tabs.tabs);
-  const activePath = useEditorStore((state) => activeTab(state.tabs)?.path ?? null);
-  const openFile = useEditorStore((state) => state.open);
   const closeAll = useEditorStore((state) => state.closeAll);
 
   useAppCommands();
   useKeybindings();
   useSettings();
   useSession();
+  useSearchEvents();
   useTheme();
 
   useEffect(() => {
@@ -66,17 +64,7 @@ export function App(): React.JSX.Element {
 
   return (
     <div className="app">
-      <aside className="sidebar">
-        <WorkspaceHeader />
-        {workspace !== null && (
-          <FileTree
-            selectedPath={activePath}
-            onSelectFile={(path) => {
-              void openFile(path);
-            }}
-          />
-        )}
-      </aside>
+      <Sidebar />
 
       <main className="editor-area">
         <TabStrip />

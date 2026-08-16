@@ -5,10 +5,18 @@ export type {
   EventName,
   EventPayload,
   IpcEvents,
+  SearchDoneEvent,
+  SearchResultEvent,
   SettingsChangedEvent,
   TerminalDataEvent,
   TerminalExitEvent,
 } from './events.js';
+export {
+  CancelSearchRequestSchema,
+  CancelSearchResponseSchema,
+  StartSearchRequestSchema,
+  StartSearchResponseSchema,
+} from './schemas/search.js';
 export {
   LoadSessionRequestSchema,
   LoadSessionResponseSchema,

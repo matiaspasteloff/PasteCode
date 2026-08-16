@@ -19,6 +19,8 @@ export {
 export { PasteCodeError } from './errors/pastecode-error.js';
 export { TerminalSpawnError, UnknownTerminalSessionError } from './errors/terminal-errors.js';
 export { PathOutsideWorkspaceError, WorkspaceNotOpenError } from './errors/workspace-errors.js';
+export { buildRipgrepArgs, parseRipgrepLine } from './search/ripgrep.js';
+export type { SearchMatch, SearchQuery } from './search/ripgrep.js';
 export { fromFileUri, planRestore, toFileUri } from './session/restore.js';
 export type { RestorablePlan } from './session/restore.js';
 export { TabStateSchema, WorkspaceStateSchema } from './session/schema.js';
