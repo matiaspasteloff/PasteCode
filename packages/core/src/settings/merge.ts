@@ -18,10 +18,14 @@ import { DEFAULT_SETTINGS } from './schema.js';
  *   excluyó globalmente. Reemplazar deja las dos operaciones disponibles
  *   —agregar es repetir la lista con un ítem más—; concatenar deja una sola.
  *
- * **`terminal.shell` es la excepción:** el workspace no puede elegirlo. Un
+ * **Las claves que eligen un ejecutable son la excepción:** el workspace no
+ * puede setearlas. Son `terminal.shell`, `lsp.serverPaths` y `git.path`. Un
  * `.pastecode/settings.json` viaja adentro de cualquier repositorio que se
  * clone, y clonar no puede ser lo mismo que aceptar ejecutar lo que el
- * repositorio diga. Ver [seguridad.md](../../../../docs/convenciones/seguridad.md#procesos-hijo-y-binarios-externos).
+ * repositorio diga. Con el LSP la apuesta sube: elegir el ejecutable de un
+ * servidor de lenguaje es elegir **qué se ejecuta al abrir un `.py`**, sin que
+ * nadie haya hecho click en nada.
+ * Ver [seguridad.md](../../../../docs/convenciones/seguridad.md#procesos-hijo-y-binarios-externos).
  *
  * @param user Lo leído de `~/.pastecode/settings.json`.
  * @param workspace Lo leído de `<raíz>/.pastecode/settings.json`.
@@ -44,9 +48,23 @@ export function resolveSettings(user: SettingsFile, workspace: SettingsFile): Se
     workspace.terminal
   );
 
+  const git = Object.assign({}, DEFAULT_SETTINGS.git, user.git, workspace.git);
+  const lsp = Object.assign({}, DEFAULT_SETTINGS.lsp, user.lsp, workspace.lsp);
+
   return {
     editor: Object.assign({}, DEFAULT_SETTINGS.editor, user.editor, workspace.editor),
     files: Object.assign({}, DEFAULT_SETTINGS.files, user.files, workspace.files),
+    git: {
+      ...git,
+      path: user.git?.path ?? DEFAULT_SETTINGS.git.path,
+    },
+    lsp: {
+      ...lsp,
+      // El mapa entero, no clave por clave: dejar que el workspace agregue
+      // **una** entrada sería dejar que elija el ejecutable de ese lenguaje,
+      // que es exactamente lo que la regla prohíbe.
+      serverPaths: user.lsp?.serverPaths ?? DEFAULT_SETTINGS.lsp.serverPaths,
+    },
     terminal: {
       ...terminal,
       // Se pisa **después** de todo: es lo que hace que el valor del workspace

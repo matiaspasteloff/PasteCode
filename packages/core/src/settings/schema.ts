@@ -51,6 +51,44 @@ const terminalFields = {
   fontSize: z.int().min(6).max(72),
 };
 
+/**
+ * Los servidores de lenguaje.
+ *
+ * `serverPaths` es un mapa de `serverId` a ruta absoluta, con `null` para "usá
+ * el que viene empaquetado o el del PATH resuelto al arrancar". Es un
+ * `Record` y no un campo por lenguaje porque la tabla de lenguajes crece con
+ * datos y no con código: agregar Python no puede obligar a tocar el schema.
+ */
+const lspFields = {
+  enabled: z.boolean(),
+  serverPaths: z.record(z.string().min(1), z.string().min(1).nullable()),
+  /**
+   * Cuánto se espera una respuesta antes de declarar enfermo al servidor.
+   *
+   * Es el umbral del health check pasivo de `SupervisedProcess`: la request más
+   * vieja sin responder que lo supere manda al proceso al camino del reinicio.
+   */
+  requestTimeoutMs: z.int().min(1000).max(120_000),
+  maxDiagnosticsPerFile: z.int().min(1).max(10_000),
+  /** Minutos de inactividad antes de apagar un servidor. Mitiga RNF-04. */
+  idleShutdownMinutes: z.int().min(0).max(600),
+};
+
+const gitFields = {
+  enabled: z.boolean(),
+  /** `null` es "resolvelo al arrancar". Nunca se re-resuelve. */
+  path: z.string().min(1).nullable(),
+  decorationsEnabled: z.boolean(),
+  /**
+   * Red de seguridad para filesystems donde el watcher miente.
+   *
+   * `0` es "nunca": el refresco normal lo dispara el watcher, y un sondeo
+   * periódico contra un repositorio grande es trabajo constante para nada. Se
+   * sube sólo si el watcher no llega, que pasa en algunos montajes de red.
+   */
+  refreshIntervalMs: z.int().min(0).max(600_000),
+};
+
 const windowFields = {
   theme: z.enum(['light', 'dark', 'system']),
   zoomLevel: z.number().min(-5).max(5),
@@ -65,6 +103,8 @@ const windowFields = {
 export const SettingsSchema = z.strictObject({
   editor: z.strictObject(editorFields),
   files: z.strictObject(filesFields),
+  git: z.strictObject(gitFields),
+  lsp: z.strictObject(lspFields),
   terminal: z.strictObject(terminalFields),
   window: z.strictObject(windowFields),
 });
@@ -84,6 +124,8 @@ export const SettingsFileSchema = z.strictObject({
   version: z.literal(SETTINGS_VERSION).optional(),
   editor: z.strictObject(editorFields).partial().optional(),
   files: z.strictObject(filesFields).partial().optional(),
+  git: z.strictObject(gitFields).partial().optional(),
+  lsp: z.strictObject(lspFields).partial().optional(),
   terminal: z.strictObject(terminalFields).partial().optional(),
   window: z.strictObject(windowFields).partial().optional(),
 });
@@ -112,6 +154,19 @@ export const DEFAULT_SETTINGS: Settings = {
     autoSaveDelay: 1000,
     exclude: ['**/node_modules', '**/.git', '**/dist'],
     trimTrailingWhitespace: true,
+  },
+  git: {
+    enabled: true,
+    path: null,
+    decorationsEnabled: true,
+    refreshIntervalMs: 0,
+  },
+  lsp: {
+    enabled: true,
+    serverPaths: {},
+    requestTimeoutMs: 10_000,
+    maxDiagnosticsPerFile: 200,
+    idleShutdownMinutes: 5,
   },
   terminal: {
     shell: null,

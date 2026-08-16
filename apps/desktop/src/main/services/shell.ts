@@ -1,7 +1,8 @@
-import { accessSync, constants } from 'node:fs';
-import { isAbsolute, join } from 'node:path';
+import { join } from 'node:path';
 
 import { TerminalSpawnError } from '@pastecode/core';
+
+import { assertExecutable } from './executable.js';
 
 /** Un ejecutable y sus argumentos, ya separados. Nunca una línea de comando. */
 export interface ShellCommand {
@@ -82,17 +83,17 @@ function defaultShell(): ShellCommand {
 export function resolveShell(configured: string | null): ShellCommand {
   if (configured === null) return defaultShell();
 
-  if (!isAbsolute(configured)) {
+  const problem = assertExecutable(configured);
+
+  if (problem === 'not-absolute') {
     throw new TerminalSpawnError(
       configured,
       new Error('terminal.shell tiene que ser una ruta absoluta')
     );
   }
 
-  try {
-    accessSync(configured, constants.X_OK);
-  } catch (cause) {
-    throw new TerminalSpawnError(configured, cause);
+  if (problem === 'not-executable') {
+    throw new TerminalSpawnError(configured, new Error('no se puede ejecutar'));
   }
 
   return { file: configured, args: [] };

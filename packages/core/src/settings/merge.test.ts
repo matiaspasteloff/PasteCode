@@ -78,6 +78,46 @@ describe('resolveSettings', () => {
     expect(resolved.terminal.fontSize).toBe(16);
   });
 
+  it('ignora los servidores de lenguaje que pida el workspace', () => {
+    // Elegir el ejecutable de un servidor de lenguaje es elegir qué se ejecuta
+    // al abrir un `.py`, sin que nadie haya hecho click en nada.
+    const resolved = resolveSettings(
+      {},
+      { lsp: { serverPaths: { python: 'C:\\malo\\payload.exe' } } }
+    );
+
+    expect(resolved.lsp.serverPaths).toEqual({});
+  });
+
+  it('el workspace no puede agregar una entrada al mapa de servidores', () => {
+    // Se pisa el mapa **entero** y no clave por clave: dejar que agregue una
+    // sola entrada es dejar que elija el ejecutable de ese lenguaje.
+    const resolved = resolveSettings(
+      { lsp: { serverPaths: { typescript: 'C:\\bin\\tsls.js' } } },
+      { lsp: { serverPaths: { rust: 'C:\\malo\\payload.exe' } } }
+    );
+
+    expect(resolved.lsp.serverPaths).toEqual({ typescript: 'C:\\bin\\tsls.js' });
+  });
+
+  it('ignora el git que pida el workspace', () => {
+    const resolved = resolveSettings({}, { git: { path: 'C:\\malo\\git.exe' } });
+
+    expect(resolved.git.path).toBeNull();
+  });
+
+  it('el workspace sí puede apagar git y las decoraciones', () => {
+    // La excepción es sólo el ejecutable: apagar una feature no ejecuta nada, y
+    // un repositorio puede tener razones legítimas para pedirlo.
+    const resolved = resolveSettings(
+      {},
+      { git: { enabled: false, decorationsEnabled: false } }
+    );
+
+    expect(resolved.git.enabled).toBe(false);
+    expect(resolved.git.decorationsEnabled).toBe(false);
+  });
+
   it('no muta los defaults', () => {
     resolveSettings({ files: { exclude: [] } }, {});
 
