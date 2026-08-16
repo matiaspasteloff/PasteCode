@@ -184,6 +184,29 @@ Tres decisiones que el contrato fija y conviene no re-discutir:
 
 El tamaño se valida en el schema (entero positivo) y se **acota** en `packages/core/src/terminal/dimensions.ts`. Son cosas distintas: un `cols: -1` es el renderer mandando algo imposible y se rechaza; un `cols: 4` es xterm midiendo un panel que todavía no terminó de aparecer, y ahí acotar es lo correcto.
 
+## Contrato del índice de archivos
+
+Un solo canal, para quick open ([RF-205](./03-requerimientos-funcionales.md#búsqueda-en-workspace)).
+
+| Canal         | Request | Response               |
+| ------------- | ------- | ---------------------- |
+| `files:index` | `{}`    | `{ files, truncated }` |
+
+```typescript
+interface IndexedFile {
+  /** Ruta absoluta. Es lo que se abre. */
+  path: string;
+  /** Relativa a la raíz, con `/`. Es lo que se muestra y lo que se matchea. */
+  relativePath: string;
+}
+```
+
+**El índice viaja entero, de una vez, y el matching corre en el renderer.** Es lo único que hace posible el presupuesto de 50ms por tecla de RF-205: con el índice del otro lado del IPC, cada letra costaría un salto de proceso. El precio es un mensaje grande al abrir quick open por primera vez; el beneficio es que después no hay ninguno.
+
+Se construye **cuando el renderer lo pide**, no al abrir el workspace: recorrer el árbol entero antes de pintar la primera pantalla retrasaría el arranque, que es lo que mide [RNF-01](./04-requerimientos-no-funcionales.md#performance).
+
+El recorrido es **por anchura** y con un tope de 20.000 archivos. Con un tope, eso importa: cortando un recorrido en profundidad entrarían todos los archivos de la primera rama y ninguno del resto. `truncated` dice que se cortó, y la UI lo muestra en vez de mentir por omisión.
+
 ## Contrato de la búsqueda
 
 Definido en `packages/ipc-contract/src/schemas/search.ts`. Dos canales y dos eventos, porque los resultados llegan **mientras** ripgrep busca y no cuando termina: es lo que hace alcanzable el segundo de [RF-201](./03-requerimientos-funcionales.md#búsqueda-en-workspace). Ver [ADR-0007](./adr/0007-ripgrep-como-binario-externo.md).

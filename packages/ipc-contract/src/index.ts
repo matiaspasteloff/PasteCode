@@ -12,6 +12,11 @@ export type {
   TerminalExitEvent,
 } from './events.js';
 export {
+  IndexedFileSchema,
+  IndexFilesRequestSchema,
+  IndexFilesResponseSchema,
+} from './schemas/files.js';
+export {
   CancelSearchRequestSchema,
   CancelSearchResponseSchema,
   StartSearchRequestSchema,

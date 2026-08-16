@@ -339,10 +339,44 @@ body {
   list-style: none;
 }
 
+/* Posicionadas en absoluto por el virtualizador: el alto tiene que ser fijo y
+   coincidir con el `ROW_HEIGHT` de QuickPickList. */
 .palette__item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  overflow: hidden;
+  width: 100%;
+  height: 28px;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.4rem 0.8rem;
   cursor: pointer;
   font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.palette__canvas {
+  position: relative;
+  width: 100%;
+}
+
+.palette__item-label {
+  overflow: hidden;
+  color: var(--color-foreground);
+  text-overflow: ellipsis;
+}
+
+/* La carpeta, en gris y encogible: lo que se corta cuando no entra es la ruta,
+   nunca el nombre del archivo. */
+.palette__item-detail {
+  overflow: hidden;
+  min-width: 0;
+  color: var(--color-muted);
+  font-size: 0.85em;
+  text-overflow: ellipsis;
 }
 
 .palette__item[data-highlighted='true'] {

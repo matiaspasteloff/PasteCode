@@ -7,6 +7,7 @@ import type {
   WriteClipboardRequestSchema,
   WriteClipboardResponseSchema,
 } from './schemas/clipboard.js';
+import type { IndexFilesRequestSchema, IndexFilesResponseSchema } from './schemas/files.js';
 import type {
   ReadDirectoryRequestSchema,
   ReadDirectoryResponseSchema,
@@ -123,6 +124,10 @@ export interface IpcChannels {
   'session:save': {
     request: z.infer<typeof SaveSessionRequestSchema>;
     response: z.infer<typeof SaveSessionResponseSchema>;
+  };
+  'files:index': {
+    request: z.infer<typeof IndexFilesRequestSchema>;
+    response: z.infer<typeof IndexFilesResponseSchema>;
   };
   'search:start': {
     request: z.infer<typeof StartSearchRequestSchema>;

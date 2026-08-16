@@ -9,12 +9,14 @@ import { ConflictDialog } from './features/editor/ConflictDialog.js';
 import { EditorArea } from './features/editor/EditorArea.js';
 import { releaseAllModels, releaseModelsExcept } from './features/editor/model-registry.js';
 import { TabStrip } from './features/editor/TabStrip.js';
+import { FilePalette } from './features/files/FilePalette.js';
 import { useSearchEvents } from './features/search/use-search-events.js';
 import { useSession } from './features/session/use-session.js';
 import { useSettings } from './features/settings/use-settings.js';
 import { TerminalPanel } from './features/terminal/TerminalPanel.js';
 import { useTheme } from './features/theme/use-theme.js';
 import { useEditorStore } from './stores/editor-store.js';
+import { useFileIndexStore } from './stores/file-index-store.js';
 import { useFileTreeStore } from './stores/file-tree-store.js';
 import { useWorkspaceStore } from './stores/workspace-store.js';
 
@@ -26,6 +28,7 @@ export function App(): React.JSX.Element {
   const restore = useWorkspaceStore((state) => state.restore);
   const loadRoot = useFileTreeStore((state) => state.loadRoot);
   const clearTree = useFileTreeStore((state) => state.clear);
+  const clearIndex = useFileIndexStore((state) => state.clear);
 
   const openTabs = useEditorStore((state) => state.tabs.tabs);
   const closeAll = useEditorStore((state) => state.closeAll);
@@ -48,10 +51,13 @@ export function App(): React.JSX.Element {
     // recoge el recolector de basura mientras Monaco los tenga indexados.
     closeAll();
     releaseAllModels();
+    // El índice de quick open es de un workspace: conservarlo ofrecería
+    // archivos de la carpeta anterior.
+    clearIndex();
 
     if (workspace === null) clearTree();
     else void loadRoot(workspace.root);
-  }, [workspace, loadRoot, clearTree, closeAll]);
+  }, [workspace, loadRoot, clearTree, clearIndex, closeAll]);
 
   useEffect(() => {
     // El registro se acomoda a las pestañas abiertas. Va acá y no en el editor
@@ -75,6 +81,7 @@ export function App(): React.JSX.Element {
       <StatusBar />
       <ConflictDialog />
       <CommandPalette />
+      <FilePalette />
     </div>
   );
 }
