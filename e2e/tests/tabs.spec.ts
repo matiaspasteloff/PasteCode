@@ -65,7 +65,7 @@ async function openFiles(...names: string[]): Promise<Page> {
   return window;
 }
 
-test('abre una pestaña por archivo, sin duplicar las ya abiertas', async () => {
+test('una pestaña por archivo: reabrir no duplica, y tras cerrar relee del disco', async () => {
   const window = await openFiles('uno.ts', 'dos.ts', 'tres.ts');
 
   await expect(window.getByRole('tab')).toHaveCount(3);
@@ -80,6 +80,20 @@ test('abre una pestaña por archivo, sin duplicar las ya abiertas', async () => 
 
   await expect(window.getByRole('tab')).toHaveCount(3);
   await expect(window.locator('.monaco-editor')).toContainText('const uno = 1;');
+
+  // **La otra mitad, que es el test de la fuga.** Cerrar tiene que desechar el
+  // modelo, y la forma de comprobarlo desde afuera es cambiar el archivo en el
+  // disco mientras está cerrado: si el modelo hubiera sobrevivido, Monaco
+  // devolvería ese, con el contenido viejo, y nadie se enteraría hasta perder
+  // trabajo. Iba en un test aparte hasta que la sesión llenó el presupuesto de
+  // 30 E2E de testing.md, que manda fusionar antes que subir el número; son
+  // las dos caras de "una pestaña por archivo", así que van juntas.
+  await window.getByRole('button', { name: 'Cerrar uno.ts' }).click();
+  await writeFile(join(workspace, 'uno.ts'), 'const cambiado = 99;\n', 'utf8');
+  await window.getByRole('treeitem', { name: 'uno.ts' }).click();
+
+  await expect(window.locator('.monaco-editor')).toContainText('const cambiado = 99;');
+  await expect(window.locator('.monaco-editor')).not.toContainText('const uno = 1;');
 });
 
 test('conserva lo editado al cambiar de pestaña y ensucia sólo la editada', async () => {
@@ -134,20 +148,4 @@ test('al cerrar queda la de la derecha, y el estado vacío si era la última', a
 
   await expect(window.getByRole('tab')).toHaveCount(0);
   await expect(window.getByText('Abrí una carpeta para empezar a editar.')).toBeVisible();
-});
-
-test('reabrir un archivo cerrado lo relee del disco en vez de reusar el modelo', async () => {
-  // **Es el test de la fuga.** Cerrar tiene que desechar el modelo, y la forma
-  // de comprobarlo desde afuera es cambiar el archivo en el disco mientras
-  // está cerrado: si el modelo hubiera sobrevivido, Monaco devolvería ese, con
-  // el contenido viejo, y nadie se enteraría hasta perder trabajo.
-  const window = await openFiles('uno.ts');
-  await window.getByRole('button', { name: 'Cerrar uno.ts' }).click();
-  await expect(window.getByRole('tab')).toHaveCount(0);
-
-  await writeFile(join(workspace, 'uno.ts'), 'const cambiado = 99;\n', 'utf8');
-  await window.getByRole('treeitem', { name: 'uno.ts' }).click();
-
-  await expect(window.locator('.monaco-editor')).toContainText('const cambiado = 99;');
-  await expect(window.locator('.monaco-editor')).not.toContainText('const uno = 1;');
 });

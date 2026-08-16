@@ -1,6 +1,7 @@
 import type * as MonacoApi from 'monaco-editor/editor/editor.api';
 
 import { languageOverrideFor } from './language.js';
+import type { RestorablePosition } from './restore-position.js';
 
 /** Lo que hay que recordar de una pestaña que no está a la vista. */
 interface RegisteredModel {
@@ -97,6 +98,36 @@ export function rememberViewState(
  */
 export function savedViewState(path: string): MonacoApi.editor.ICodeEditorViewState | null {
   return models.get(path)?.viewState ?? null;
+}
+
+/**
+ * Dónde quedó el cursor y el scroll de una pestaña que no está a la vista.
+ *
+ * Es lo que persiste la sesión de [RF-707](../../../../../../docs/03-requerimientos-funcionales.md#comandos-atajos-y-configuración)
+ * para las pestañas que no son la activa. La de la activa se le pregunta al
+ * editor, que tiene el valor de ahora y no el de la última vez que se la dejó.
+ *
+ * Del `ICodeEditorViewState` se sacan **sólo línea y columna**, y no el objeto
+ * entero: la estructura interna de Monaco no tiene contrato de estabilidad, y
+ * escribirla en un archivo que sobrevive a las actualizaciones sería atarnos a
+ * la versión que la produjo.
+ *
+ * @param path Ruta del archivo.
+ * @returns La posición, o `undefined` si nunca se guardó una.
+ * @example
+ * const position = rememberedPosition('C:\\p\\a.ts');
+ */
+export function rememberedPosition(path: string): RestorablePosition | undefined {
+  const viewState = models.get(path)?.viewState;
+  const cursor = viewState?.cursorState[0]?.position;
+
+  if (viewState === undefined || viewState === null || cursor === undefined) return undefined;
+
+  return {
+    line: cursor.lineNumber,
+    column: cursor.column,
+    scrollTopLine: viewState.viewState.firstPosition.lineNumber,
+  };
 }
 
 /**

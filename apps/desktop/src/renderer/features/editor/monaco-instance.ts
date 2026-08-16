@@ -35,3 +35,35 @@ export function setLoadedMonaco(monaco: typeof MonacoApi): void {
 export function getLoadedMonaco(): typeof MonacoApi | null {
   return loaded;
 }
+
+/**
+ * La única instancia de editor montada, o `null` si todavía no hay ninguna.
+ *
+ * La necesita el guardado de sesión ([RF-707](../../../../../../docs/03-requerimientos-funcionales.md#comandos-atajos-y-configuración)):
+ * la posición del cursor de la pestaña **activa** sólo la sabe el editor, no
+ * el registro de modelos, que guarda la de cada pestaña recién cuando se la
+ * abandona.
+ */
+let activeEditor: MonacoApi.editor.IStandaloneCodeEditor | null = null;
+
+/**
+ * Registra o borra la instancia montada.
+ *
+ * @param editor La instancia, o `null` al desmontarla.
+ * @example
+ * setActiveEditor(monaco.editor.create(container, options));
+ */
+export function setActiveEditor(editor: MonacoApi.editor.IStandaloneCodeEditor | null): void {
+  activeEditor = editor;
+}
+
+/**
+ * La instancia montada.
+ *
+ * @returns El editor, o `null` si no hay ninguno.
+ * @example
+ * const position = getActiveEditor()?.getPosition();
+ */
+export function getActiveEditor(): MonacoApi.editor.IStandaloneCodeEditor | null {
+  return activeEditor;
+}

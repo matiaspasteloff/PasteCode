@@ -6,7 +6,8 @@ import { useSettingsStore } from '../../stores/settings-store.js';
 import { currentResolvedTheme, monacoThemeFor } from '../theme/use-theme.js';
 
 import { rememberViewState, savedViewState, syncModelWithDisk } from './model-registry.js';
-import { setLoadedMonaco } from './monaco-instance.js';
+import { setActiveEditor, setLoadedMonaco } from './monaco-instance.js';
+import { takeRestorePosition } from './restore-position.js';
 
 /** En qué estado está el montaje de Monaco. */
 type EditorStatus = 'loading' | 'ready' | 'failed';
@@ -169,6 +170,7 @@ function useMountedEditor(
           minimap: { enabled: initial.minimap },
           renderWhitespace: initial.renderWhitespace,
         });
+        setActiveEditor(editorRef.current);
         setStatus('ready');
       })
       .catch(() => {
@@ -180,6 +182,7 @@ function useMountedEditor(
       // Se desecha el editor pero **no** los modelos: son del registro, que
       // los mantiene vivos mientras la pestaña esté abierta. Desecharlos acá
       // perdería el historial de undo al desmontar el componente.
+      setActiveEditor(null);
       editorRef.current?.dispose();
       editorRef.current = null;
     };
@@ -220,5 +223,19 @@ function showActiveModel(options: ShowModelOptions): void {
 
   editor.setModel(model);
   editor.restoreViewState(savedViewState(activePath));
+
+  // La sesión restaurada gana sobre el estado de vista guardado en memoria,
+  // que en este punto es `null`: es la primera vez que se muestra el modelo.
+  const restored = takeRestorePosition(activePath);
+
+  if (restored !== undefined) {
+    editor.setPosition({ lineNumber: restored.line, column: restored.column });
+    // `revealLine` en vez de `setScrollTop`: el scroll en píxeles depende del
+    // alto de línea, y el alto de línea depende del tamaño de fuente, que es
+    // un setting. Guardar la línea y dejar que Monaco calcule el píxel es lo
+    // que hace que la sesión sobreviva a cambiar `editor.fontSize`.
+    editor.revealLineNearTop(restored.scrollTopLine);
+  }
+
   shownPathRef.current = activePath;
 }

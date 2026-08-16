@@ -16,6 +16,12 @@ import type {
   WriteFileResponseSchema,
 } from './schemas/fs.js';
 import type {
+  LoadSessionRequestSchema,
+  LoadSessionResponseSchema,
+  SaveSessionRequestSchema,
+  SaveSessionResponseSchema,
+} from './schemas/session.js';
+import type {
   GetSettingsRequestSchema,
   GetSettingsResponseSchema,
   UpdateSettingsRequestSchema,
@@ -103,6 +109,14 @@ export interface IpcChannels {
   'settings:update': {
     request: z.infer<typeof UpdateSettingsRequestSchema>;
     response: z.infer<typeof UpdateSettingsResponseSchema>;
+  };
+  'session:load': {
+    request: z.infer<typeof LoadSessionRequestSchema>;
+    response: z.infer<typeof LoadSessionResponseSchema>;
+  };
+  'session:save': {
+    request: z.infer<typeof SaveSessionRequestSchema>;
+    response: z.infer<typeof SaveSessionResponseSchema>;
   };
   'clipboard:readText': {
     request: z.infer<typeof ReadClipboardRequestSchema>;

@@ -10,6 +10,12 @@ export type {
   TerminalExitEvent,
 } from './events.js';
 export {
+  LoadSessionRequestSchema,
+  LoadSessionResponseSchema,
+  SaveSessionRequestSchema,
+  SaveSessionResponseSchema,
+} from './schemas/session.js';
+export {
   GetSettingsRequestSchema,
   GetSettingsResponseSchema,
   UpdateSettingsRequestSchema,
