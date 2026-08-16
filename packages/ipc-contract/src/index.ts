@@ -1,5 +1,13 @@
 export type { PasteCodeApi } from './api.js';
 export type { ChannelName, IpcChannels, Request, RequestSchema, Response } from './channels.js';
+export { EVENT_NAMES, isEventName } from './events.js';
+export type {
+  EventName,
+  EventPayload,
+  IpcEvents,
+  TerminalDataEvent,
+  TerminalExitEvent,
+} from './events.js';
 export type { IpcResult, SerializedError } from './result.js';
 export { GetVersionRequestSchema, GetVersionResponseSchema } from './schemas/app.js';
 export {
