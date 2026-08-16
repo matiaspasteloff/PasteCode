@@ -27,6 +27,19 @@ export {
 export type { RestartDecision, RestartPolicy, RestartState } from './process/restart-policy.js';
 export { TerminalSpawnError, UnknownTerminalSessionError } from './errors/terminal-errors.js';
 export { PathOutsideWorkspaceError, WorkspaceNotOpenError } from './errors/workspace-errors.js';
+export {
+  buildBranchListArgs,
+  buildCheckoutArgs,
+  buildCommitArgs,
+  buildFileDiffArgs,
+  buildStageArgs,
+  buildStatusArgs,
+  buildToplevelArgs,
+  buildUnstageArgs,
+} from './git/args.js';
+export { parseBranchList, parsePorcelainV2, parseToplevel } from './git/porcelain.js';
+export { EMPTY_GIT_STATUS } from './git/status.js';
+export type { GitBranchInfo, GitFileChange, GitFileStatus, GitStatus } from './git/status.js';
 export { COMPLETION_KINDS, completionKindFromLsp } from './lsp/completion-mapping.js';
 export type { CompletionItemKind } from './lsp/completion-mapping.js';
 export {

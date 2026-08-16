@@ -132,6 +132,24 @@ return {
 
 Lanzar `powershell` a secas deja que gane cualquier `powershell.exe` que aparezca antes en el `PATH`, y el `PATH` de una sesión de desarrollo lo escriben herramientas, no personas. Lo mismo para `ripgrep`: se resuelve desde `process.resourcesPath` cuando la app está empaquetada y desde `node_modules` en desarrollo, **nunca** buscándolo en el sistema.
 
+### La enmienda de `git`: candidatos absolutos primero, `PATH` sólo para construirlos
+
+`git` es la excepción que obliga a escribir la regla con más precisión, y no a romperla. No se puede empaquetar —son decenas de megabytes contra el techo de [RNF-05](../04-requerimientos-no-funcionales.md#recursos), y aunque cupiera sería un `git` sin el `credential.helper` ni la configuración de la persona—, así que hay que usar el que está instalado en el sistema.
+
+La regla completa, entonces:
+
+1. **`git.path` de las settings**, si está. Como `terminal.shell`: ruta absoluta a un ejecutable que exista, y **el workspace no puede escribirla**.
+2. **Los directorios de instalación conocidos** de la plataforma: `%ProgramFiles%\Git\cmd` y sus variantes en Windows; `/usr/bin`, `/usr/local/bin`, `/opt/homebrew/bin` en POSIX. Son rutas que no escribe nadie.
+3. **El `PATH`, y sólo como fuente de directorios.** Con cada uno se **construye** una ruta absoluta que después pasa por `assertExecutable`. Nunca se lanza `git` por nombre dejando que el sistema operativo elija en el momento de la llamada, que es lo que la regla de arriba prohíbe y lo que después no se puede auditar.
+
+Además: se **rechaza cualquier candidato adentro de la raíz del workspace** —un repositorio clonado puede traer su propio `git.exe`—, lo que llega a `spawn` es siempre absoluto y siempre verificado, y **se resuelve una sola vez al arrancar y nunca se re-resuelve**. Ver [ADR-0019](../adr/0019-git-con-spawn-crudo.md).
+
+### `lsp.serverPaths` va contra la misma allow-list
+
+Cada entrada del mapa es una ruta absoluta a un ejecutable que existe, verificada con `assertExecutable` antes de lanzarlo. **El workspace no puede escribir el mapa** —ni una sola clave—, y con el LSP la apuesta es más alta que con la terminal: elegir el ejecutable de un servidor de lenguaje es elegir **qué se ejecuta al abrir un `.py`**, sin que nadie haya hecho click en nada.
+
+Los servidores que sí empaquetamos se lanzan con el binario de Electron en modo Node (`ELECTRON_RUN_AS_NODE=1`), con la ruta del módulo resuelta desde el `node_modules` de la aplicación. Notar la inversión: `sanitizedEnvironment` **quita** esa variable del entorno de los procesos hijo, y el lanzador del LSP la repone para el suyo. Sanear protege el shell de la persona; ponerla para nuestro propio hijo es el uso previsto.
+
 ### `terminal.shell` va contra una allow-list
 
 Cuando el setting exista, la regla es:
