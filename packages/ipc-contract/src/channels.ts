@@ -17,6 +17,24 @@ import type {
   WriteFileResponseSchema,
 } from './schemas/fs.js';
 import type {
+  ChangeDocumentRequestSchema,
+  ChangeDocumentResponseSchema,
+  CloseDocumentRequestSchema,
+  CloseDocumentResponseSchema,
+  CompletionRequestSchema,
+  CompletionResponseSchema,
+  DefinitionRequestSchema,
+  DefinitionResponseSchema,
+  HoverRequestSchema,
+  HoverResponseSchema,
+  LspStatusRequestSchema,
+  LspStatusResponseSchema,
+  OpenDocumentRequestSchema,
+  OpenDocumentResponseSchema,
+  ResolveCompletionRequestSchema,
+  ResolveCompletionResponseSchema,
+} from './schemas/lsp.js';
+import type {
   CancelSearchRequestSchema,
   CancelSearchResponseSchema,
   StartSearchRequestSchema,
@@ -136,6 +154,38 @@ export interface IpcChannels {
   'search:cancel': {
     request: z.infer<typeof CancelSearchRequestSchema>;
     response: z.infer<typeof CancelSearchResponseSchema>;
+  };
+  'lsp:openDocument': {
+    request: z.infer<typeof OpenDocumentRequestSchema>;
+    response: z.infer<typeof OpenDocumentResponseSchema>;
+  };
+  'lsp:changeDocument': {
+    request: z.infer<typeof ChangeDocumentRequestSchema>;
+    response: z.infer<typeof ChangeDocumentResponseSchema>;
+  };
+  'lsp:closeDocument': {
+    request: z.infer<typeof CloseDocumentRequestSchema>;
+    response: z.infer<typeof CloseDocumentResponseSchema>;
+  };
+  'lsp:completion': {
+    request: z.infer<typeof CompletionRequestSchema>;
+    response: z.infer<typeof CompletionResponseSchema>;
+  };
+  'lsp:resolveCompletion': {
+    request: z.infer<typeof ResolveCompletionRequestSchema>;
+    response: z.infer<typeof ResolveCompletionResponseSchema>;
+  };
+  'lsp:hover': {
+    request: z.infer<typeof HoverRequestSchema>;
+    response: z.infer<typeof HoverResponseSchema>;
+  };
+  'lsp:definition': {
+    request: z.infer<typeof DefinitionRequestSchema>;
+    response: z.infer<typeof DefinitionResponseSchema>;
+  };
+  'lsp:status': {
+    request: z.infer<typeof LspStatusRequestSchema>;
+    response: z.infer<typeof LspStatusResponseSchema>;
   };
   'clipboard:readText': {
     request: z.infer<typeof ReadClipboardRequestSchema>;

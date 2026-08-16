@@ -1,6 +1,7 @@
-import type { SearchMatch, Settings } from '@pastecode/core';
+import type { DocumentDiagnostics, SearchMatch, Settings } from '@pastecode/core';
 
 import type { SerializedError } from './result.js';
+import type { LspServerStatus } from './schemas/lsp.js';
 
 /**
  * Payload de `search:result`: un lote de matches de la búsqueda en curso.
@@ -104,6 +105,34 @@ export interface TerminalExitEvent {
 }
 
 /**
+ * Payload de `lsp:diagnostics`: los diagnósticos de N documentos.
+ *
+ * Viaja de a lotes por lo mismo que `search:result`: `publishDiagnostics` es
+ * push del servidor, y un `tsc` sobre un proyecto roto publica cientos de
+ * documentos en ráfaga. El main acumula y descarga cada 30ms o cada 50
+ * documentos, que son los mismos números que ya usa la búsqueda.
+ *
+ * **Reemplaza, no acumula.** Un documento que aparece acá trae su lista
+ * completa: así es como el protocolo dice que se borra un error arreglado, con
+ * una publicación de lista vacía.
+ */
+export interface LspDiagnosticsEvent {
+  serverId: string;
+  documents: DocumentDiagnostics[];
+}
+
+/**
+ * Payload de `lsp:serverChanged`: un servidor cambió de estado.
+ *
+ * Es **el hecho**; `lsp:status` es la pregunta. Hacen falta los dos porque los
+ * servidores pueden estar corriendo cuando la ventana recarga, y ahí no hay
+ * ningún hecho nuevo que contar. Mismo par que `git:getStatus` / `git:changed`.
+ */
+export interface LspServerChangedEvent {
+  server: LspServerStatus;
+}
+
+/**
  * Mapa de eventos que el main empuja al renderer. **Es la fuente de verdad**,
  * igual que `IpcChannels` lo es para el request/response.
  *
@@ -127,6 +156,8 @@ export interface IpcEvents {
   'search:result': SearchResultEvent;
   'search:done': SearchDoneEvent;
   'files:changed': FilesChangedEvent;
+  'lsp:diagnostics': LspDiagnosticsEvent;
+  'lsp:serverChanged': LspServerChangedEvent;
 }
 
 export type EventName = keyof IpcEvents;
@@ -152,6 +183,8 @@ export const EVENT_NAMES = [
   'search:result',
   'search:done',
   'files:changed',
+  'lsp:diagnostics',
+  'lsp:serverChanged',
 ] as const satisfies readonly EventName[];
 
 /**

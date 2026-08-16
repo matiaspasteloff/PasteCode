@@ -27,6 +27,29 @@ export {
 export type { RestartDecision, RestartPolicy, RestartState } from './process/restart-policy.js';
 export { TerminalSpawnError, UnknownTerminalSessionError } from './errors/terminal-errors.js';
 export { PathOutsideWorkspaceError, WorkspaceNotOpenError } from './errors/workspace-errors.js';
+export { COMPLETION_KINDS, completionKindFromLsp } from './lsp/completion-mapping.js';
+export type { CompletionItemKind } from './lsp/completion-mapping.js';
+export {
+  DIAGNOSTIC_SEVERITIES,
+  diagnosticSeverityFromLsp,
+  limitDiagnostics,
+} from './lsp/diagnostics.js';
+export type { Diagnostic, DiagnosticSeverity, DocumentDiagnostics } from './lsp/diagnostics.js';
+export {
+  extensionOf,
+  LANGUAGE_SERVERS,
+  languageServerFor,
+  languageServerForPath,
+  setOption,
+} from './lsp/languages.js';
+export type { LanguageServerDefinition, WorkspaceModuleRequirement } from './lsp/languages.js';
+export { fromLspPosition, fromLspRange, toLspPosition, toLspRange } from './lsp/positions.js';
+export type {
+  DocumentPosition,
+  DocumentRange,
+  LspPosition,
+  LspRange,
+} from './lsp/positions.js';
 export { buildRipgrepArgs, parseRipgrepLine } from './search/ripgrep.js';
 export type { SearchMatch, SearchQuery } from './search/ripgrep.js';
 export { fromFileUri, planRestore, toFileUri } from './session/restore.js';
