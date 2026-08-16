@@ -23,6 +23,7 @@ Un ADR registra una decisión técnica relevante, el contexto en el que se tomó
 | [0011](./0011-resultado-tipado-en-el-limite-de-ipc.md)         | Devolver un resultado tipado y errores serializados en el límite de IPC             | ✅ Aceptado  |
 | [0012](./0012-servir-el-renderer-desde-un-protocolo-propio.md) | Servir el renderer desde un protocolo propio en vez de `file://`                    | ✅ Aceptado  |
 | [0013](./0013-eventos-tipados-en-el-ipc.md)                    | Eventos tipados del main al renderer, sobre `ipcRenderer.on`                        | ✅ Aceptado  |
+| [0014](./0014-node-pty-con-binarios-precompilados.md)          | `@lydell/node-pty` con prebuilds por plataforma, en vez del `node-pty` oficial      | ✅ Aceptado  |
 
 **Estados posibles:** `Propuesto` · `Aceptado` · `Reemplazado por ADR-NNNN` · `Obsoleto`
 

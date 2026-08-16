@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 
 import { useCommandStore } from '../../stores/command-store.js';
 import { useEditorStore } from '../../stores/editor-store.js';
+import { useTerminalStore } from '../../stores/terminal-store.js';
 import { useWorkspaceStore } from '../../stores/workspace-store.js';
 
 import { DEFAULT_KEYBINDINGS } from './default-keybindings.js';
@@ -69,5 +70,10 @@ function currentContext(): WhenContext {
     hasOpenTab: editor.tabs.activeTabIndex !== -1,
     isDirty: editor.tabs.tabs[editor.tabs.activeTabIndex]?.isDirty ?? false,
     isPaletteOpen: useCommandStore.getState().isPaletteOpen,
+    // RF-703 usa literalmente `editorFocus && !terminalFocus` como ejemplo de
+    // cláusula `when`, y hasta acá esa clave no existía. La publica la terminal
+    // desde el `focus`/`blur` del textarea de xterm.
+    terminalFocus: useTerminalStore.getState().hasFocus,
+    editorFocus: editor.tabs.activeTabIndex !== -1 && !useTerminalStore.getState().hasFocus,
   };
 }

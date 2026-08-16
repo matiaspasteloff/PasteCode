@@ -14,4 +14,12 @@ export const DEFAULT_KEYBINDINGS: readonly Keybinding[] = [
   { key: 'ctrl+s', command: 'file.save' },
   { key: 'ctrl+shift+p', command: 'palette.open' },
   { key: 'ctrl+w', command: 'file.closeTab', when: 'hasOpenTab' },
+  // El backtick es la convención que arrastra todo el mundo desde VS Code.
+  // Sale de `event.key`, así que es el carácter y no la tecla física: en un
+  // teclado español se pulsa donde ese carácter esté impreso.
+  { key: 'ctrl+`', command: 'terminal.toggle' },
+  // RF-304. Las cláusulas `when` no son decorativas acá: sin `terminalFocus`,
+  // `Ctrl+Shift+C` le robaría la combinación a las DevTools y al editor.
+  { key: 'ctrl+shift+c', command: 'terminal.copy', when: 'terminalFocus' },
+  { key: 'ctrl+shift+v', command: 'terminal.paste', when: 'terminalFocus' },
 ];

@@ -20,18 +20,17 @@ test.afterEach(async () => {
   await app.close();
 });
 
-test('abre una ventana con el título de la app', async () => {
+test('abre una ventana con el título y la versión de la app', async () => {
   const window = await app.firstWindow();
 
   await expect(window.locator('.app__name')).toHaveText('PasteCode');
   expect(await window.title()).toBe('PasteCode');
-});
 
-test('muestra la versión que devuelve el canal app:getVersion', async () => {
-  const window = await app.firstWindow();
-
-  // Recorre la cadena entera: renderer → preload → handler del main con
-  // validación Zod → contrato. Si algún eslabón está mal, acá se ve.
+  // La versión recorre la cadena entera: renderer → preload → handler del main
+  // con validación Zod → contrato. Si algún eslabón está mal, acá se ve. Iba en
+  // un test aparte hasta que la terminal llenó el presupuesto de 30 E2E de
+  // testing.md; son dos aserciones sobre la misma ventana recién abierta, así
+  // que fusionarlas no cuesta cobertura.
   await expect(window.getByTestId('app-version')).toHaveText(readDesktopVersion());
 });
 
@@ -80,7 +79,7 @@ test('la CSP de producción bloquea scripts inline', async () => {
   expect(result.violations).toContain('script-src-elem');
 });
 
-test('el preload expone invoke y nada más', async () => {
+test('el preload expone invoke y subscribe, y nada más', async () => {
   const window = await app.firstWindow();
 
   const apiKeys = await window.evaluate(() => {
@@ -91,5 +90,8 @@ test('el preload expone invoke y nada más', async () => {
     return typeof api === 'object' && api !== null ? Object.keys(api) : [];
   });
 
-  expect(apiKeys).toEqual(['invoke']);
+  // La lista es exacta a propósito: es la superficie entera que el renderer
+  // puede tocar, y que crezca sin que nadie lo decida es justo lo que el
+  // contextBridge existe para impedir. Ver ADR-0013.
+  expect(apiKeys).toEqual(['invoke', 'subscribe']);
 });

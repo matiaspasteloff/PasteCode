@@ -14,14 +14,18 @@ export interface TerminalDataEvent {
 /**
  * Payload de `terminal:exit`: el proceso del PTY terminó.
  *
- * `exitCode` es `null` cuando el proceso murió por una señal, que es lo que
- * pasa en la limpieza de [RNF-10](../../../docs/04-requerimientos-no-funcionales.md).
- * La UI necesita distinguir "salió con 1" de "lo matamos nosotros".
+ * `signal` es un **número**, no un string: es lo que devuelve node-pty, que
+ * expone el número crudo del SO y no su nombre. Es `null` cuando el proceso
+ * salió por las suyas, que es como la UI distingue "salió con 1" de "lo
+ * matamos nosotros" en la limpieza de
+ * [RNF-10](../../../docs/04-requerimientos-no-funcionales.md#confiabilidad).
+ *
+ * En Windows siempre es `null`: conpty no tiene señales.
  */
 export interface TerminalExitEvent {
   sessionId: string;
-  exitCode: number | null;
-  signal: string | null;
+  exitCode: number;
+  signal: number | null;
 }
 
 /**

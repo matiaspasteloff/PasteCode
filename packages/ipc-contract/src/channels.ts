@@ -2,6 +2,12 @@ import type { z } from 'zod';
 
 import type { GetVersionRequestSchema, GetVersionResponseSchema } from './schemas/app.js';
 import type {
+  ReadClipboardRequestSchema,
+  ReadClipboardResponseSchema,
+  WriteClipboardRequestSchema,
+  WriteClipboardResponseSchema,
+} from './schemas/clipboard.js';
+import type {
   ReadDirectoryRequestSchema,
   ReadDirectoryResponseSchema,
   ReadFileRequestSchema,
@@ -9,6 +15,18 @@ import type {
   WriteFileRequestSchema,
   WriteFileResponseSchema,
 } from './schemas/fs.js';
+import type {
+  CreateTerminalRequestSchema,
+  DisposeTerminalRequestSchema,
+  DisposeTerminalResponseSchema,
+  ListTerminalsRequestSchema,
+  ListTerminalsResponseSchema,
+  ResizeTerminalRequestSchema,
+  ResizeTerminalResponseSchema,
+  TerminalSessionSchema,
+  WriteTerminalRequestSchema,
+  WriteTerminalResponseSchema,
+} from './schemas/terminal.js';
 import type {
   GetWorkspaceRootRequestSchema,
   GetWorkspaceRootResponseSchema,
@@ -51,6 +69,34 @@ export interface IpcChannels {
   'workspace:getRoot': {
     request: z.infer<typeof GetWorkspaceRootRequestSchema>;
     response: z.infer<typeof GetWorkspaceRootResponseSchema>;
+  };
+  'terminal:create': {
+    request: z.infer<typeof CreateTerminalRequestSchema>;
+    response: z.infer<typeof TerminalSessionSchema>;
+  };
+  'terminal:write': {
+    request: z.infer<typeof WriteTerminalRequestSchema>;
+    response: z.infer<typeof WriteTerminalResponseSchema>;
+  };
+  'terminal:resize': {
+    request: z.infer<typeof ResizeTerminalRequestSchema>;
+    response: z.infer<typeof ResizeTerminalResponseSchema>;
+  };
+  'terminal:dispose': {
+    request: z.infer<typeof DisposeTerminalRequestSchema>;
+    response: z.infer<typeof DisposeTerminalResponseSchema>;
+  };
+  'terminal:list': {
+    request: z.infer<typeof ListTerminalsRequestSchema>;
+    response: z.infer<typeof ListTerminalsResponseSchema>;
+  };
+  'clipboard:readText': {
+    request: z.infer<typeof ReadClipboardRequestSchema>;
+    response: z.infer<typeof ReadClipboardResponseSchema>;
+  };
+  'clipboard:writeText': {
+    request: z.infer<typeof WriteClipboardRequestSchema>;
+    response: z.infer<typeof WriteClipboardResponseSchema>;
   };
 }
 
