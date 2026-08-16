@@ -139,9 +139,103 @@ jobs:
       - name: Generar el .exe
         run: pnpm package
 
+      # RNF-05: el instalador no puede pasar de 120MB. Es un presupuesto
+      # absoluto y se verifica acá, donde el .exe ya existe, en vez de en el
+      # job de performance: volver a empaquetar sólo para medirlo costaría
+      # varios minutos por PR.
+      - name: RNF-05, tamaño del instalador
+        shell: pwsh
+        run: |
+          $budget = 120
+          $exe = Get-ChildItem apps/desktop/release/*.exe | Select-Object -First 1
+          $size = [math]::Round($exe.Length / 1MB, 1)
+          "| RNF-05 | tamaño del instalador | ${size}MB | ${budget}MB | 1 | $(if ($size -le $budget) { '✅' } else { '❌' }) |" |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          Write-Host "RNF-05 instalador: ${size}MB (presupuesto ${budget}MB)"
+          if ($size -gt $budget) { throw "El instalador pesa ${size}MB y el presupuesto es ${budget}MB" }
+
       - name: Subir el instalador
         uses: actions/upload-artifact@v4
         with:
           name: pastecode-windows-x64
           path: apps/desktop/release/*.exe
           retention-days: 14
+
+  perf-budget:
+    name: Presupuestos de performance
+    # Windows es la plataforma primaria (RNF-26), y los números que importan
+    # son los de ahí. Medir en Linux daría otros y no serían los del producto.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Medir los presupuestos
+        # Falla el job si alguno se excede. Los presupuestos son absolutos y no
+        # relativos a `main`: ver ADR-0015.
+        run: pnpm perf
+        env:
+          # Los archivos de settings y de sesión son de verdad; sin esto, la
+          # medición escribiría en el perfil del runner.
+          PASTECODE_E2E_HOME: ${{ runner.temp }}/pastecode-perf-home
+
+      - name: Subir el reporte
+        # `always()` para que el JSON quede incluso cuando el job falla, que es
+        # justo cuando alguien lo quiere mirar.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-report
+          path: e2e/perf-report.json
+          retention-days: 30
+
+      - name: Comentar los números en el PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { readFileSync } = require('node:fs');
+
+            let measurements = [];
+            try {
+              measurements = JSON.parse(readFileSync('e2e/perf-report.json', 'utf8'));
+            } catch {
+              // El job falló antes de medir nada. Se comenta igual para que el
+              // PR no quede con los números de la corrida anterior.
+            }
+
+            const rows = measurements
+              .map((m) => `| ${m.requirement} | ${m.description} | ${m.value}${m.unit} | ${m.budget}${m.unit} | ${m.samples} | ${m.value <= m.budget ? '✅' : '❌'} |`)
+              .join('\n');
+
+            // El marcador es lo que hace que el comentario sea sticky: se busca
+            // el que ya existe y se lo edita, en vez de sumar uno por push.
+            const marker = '<!-- pastecode-perf-budget -->';
+            const body = `${marker}\n### Presupuestos de performance\n\n${
+              rows === ''
+                ? 'La medición no llegó a producir números; revisá el log del job.'
+                : `| Requerimiento | Qué mide | Medido | Presupuesto | Muestras | |\n| --- | --- | ---: | ---: | ---: | --- |\n${rows}`
+            }`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              ...context.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find((comment) => comment.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });
+            }

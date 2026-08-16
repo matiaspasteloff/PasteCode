@@ -8,16 +8,20 @@
 
 ## Performance
 
-| ID     | Requerimiento                                | Objetivo                                                         | Cómo se mide                                                                                                        |
-| ------ | -------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| RNF-01 | Tiempo de arranque en frío hasta interactivo | < 1.5s (p95)                                                     | Marca `performance.mark()` desde `app.whenReady` hasta el primer frame pintado, promediado sobre 20 arranques en CI |
-| RNF-02 | Latencia de input en el editor               | < 16ms (p99)                                                     | Test automatizado que mide el delta entre `keydown` y el frame renderizado                                          |
-| RNF-03 | Apertura de archivo grande                   | Archivo de 10MB / 200k líneas abre en < 2s sin congelar la UI    | Test E2E con archivo generado                                                                                       |
-| RNF-04 | Consumo de RAM en reposo                     | < 400MB con un workspace de 1.000 archivos y 3 pestañas abiertas | `process.memoryUsage()` reportado en CI                                                                             |
-| RNF-05 | Tamaño del instalador                        | < 120MB para Windows x64                                         | Verificado en el pipeline de release; falla el build si excede                                                      |
-| RNF-06 | La UI nunca se bloquea                       | Ninguna operación en el hilo del renderer excede 50ms            | Long Task API; cualquier violación se loguea en desarrollo                                                          |
+| ID     | Requerimiento                                | Objetivo                                                         | Cómo se mide                                                                                                    |
+| ------ | -------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| RNF-01 | Tiempo de arranque en frío hasta interactivo | < 1.5s (p95)                                                     | `e2e/perf/startup.perf.ts`: 20 arranques, p95 del tiempo hasta el primer contenido                              |
+| RNF-02 | Latencia de input en el editor               | < 16ms (p99)                                                     | `e2e/perf/input-latency.perf.ts`: delta entre `keydown` y el `requestAnimationFrame` siguiente, 120 pulsaciones |
+| RNF-03 | Apertura de archivo grande                   | Archivo de 10MB / 200k líneas abre en < 2s sin congelar la UI    | `e2e/tests/performance.spec.ts`, con archivo generado                                                           |
+| RNF-04 | Consumo de RAM en reposo                     | < 400MB con un workspace de 1.000 archivos y 3 pestañas abiertas | `e2e/perf/memory.perf.ts`: suma de `privateBytes` de **todos** los procesos, vía `app.getAppMetrics()`          |
+| RNF-05 | Tamaño del instalador                        | < 120MB para Windows x64                                         | Job `build` del CI, sobre el `.exe` recién generado; falla el build si excede                                   |
+| RNF-06 | La UI nunca se bloquea                       | Ninguna operación en el hilo del renderer excede 50ms            | Long Task API; cualquier violación se loguea en desarrollo                                                      |
 
-**Regla de performance:** los presupuestos son parte del CI. Si un PR degrada RNF-01 en más de 10%, el pipeline falla. Se implementa en la [Fase 2](./06-roadmap-y-riesgos.md#fase-2--herramientas-de-desarrollo).
+**Regla de performance: los presupuestos son absolutos y no relativos.** El job `perf-budget` del CI mide en cada PR y falla si un número supera su presupuesto, sin comparar contra `main`. Los valores quedan en el resumen del job y en un comentario del PR.
+
+> **Nota de corrección, Etapa 3.** La redacción original decía _"si un PR degrada RNF-01 en más de 10%, el pipeline falla"_, que implica comparar contra una medición de `main`. Se reescribió como presupuesto absoluto: comparar dos corridas de un runner compartido mide la varianza del runner, no la del código, y además deja pasar las regresiones chicas y acumulativas —diez PRs de 9% cada uno duplican el tiempo de arranque sin que ninguno falle—. Ver [ADR-0015](./adr/0015-presupuestos-absolutos-de-performance.md).
+
+> **Nota de método (RNF-04), Etapa 3.** Se suma `privateBytes` y no `workingSetSize`: el working set de cada proceso incluye las páginas **compartidas** de Chromium, así que sumarlo entre los cuatro procesos las cuenta cuatro veces. En una corrida real la diferencia fue 409MB por working set contra 307MB por memoria privada. El presupuesto no se movió; lo que se corrigió fue el doble conteo.
 
 > RNF-04 y RNF-05 existen porque son la crítica obvia a Electron. Medirlos y defenderlos activamente es parte del valor de portfolio. Ver [ADR-0001](./adr/0001-electron-typescript.md).
 

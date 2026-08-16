@@ -16,6 +16,7 @@
     "package": "turbo run package",
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e",
+    "perf": "turbo run perf",
     "coverage": "turbo run coverage",
     "typecheck": "turbo run typecheck",
     "lint": "eslint . --max-warnings 0",

@@ -59,7 +59,7 @@ Cada fase tiene un entregable demostrable. La regla: **no se empieza una fase si
 - [x] RF-704, RF-705, RF-707 (settings y persistencia de sesión)
 - [x] RF-005 — `files.exclude` reemplaza a la constante `DEFAULT_EXCLUDES`
 - [ ] RF-702 — el `keybindings.json` del usuario
-- [ ] RNF-01, RNF-02 y RNF-04 medidos y con presupuesto en CI
+- [x] RNF-01, RNF-02 y RNF-04 medidos y con presupuesto en CI
 
 **Criterio de salida:** las métricas de performance están automatizadas y dentro de presupuesto.
 
