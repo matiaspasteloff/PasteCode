@@ -24,18 +24,30 @@ Cada fase tiene un entregable demostrable. La regla: **no se empieza una fase si
 
 **Criterio de salida:** `git push` → CI verde → `.exe` descargable desde el artifact.
 
-## Fase 1 — Editor mínimo usable
+## Fase 1 — Editor mínimo usable ✅
 
 **Entregable:** se puede abrir una carpeta, editar un archivo y guardarlo.
 
-- [ ] RF-001 a RF-005 (workspace y árbol de archivos)
-- [ ] RF-101, RF-102, RF-104, RF-106 (Monaco, pestañas, dirty state, undo)
-- [ ] RF-701, RF-702 (paleta de comandos y keybindings)
-- [ ] RF-801, RF-802 (temas claro/oscuro)
-- [ ] RNF-07 (guardado atómico)
-- [ ] Contrato de IPC establecido y tipado
+- [x] RF-001, RF-002 (abrir workspace y árbol jerárquico virtualizado)
+- [x] RF-101, RF-102, RF-104, RF-106 (Monaco, pestañas, dirty state, undo)
+- [x] RF-701 (paleta de comandos con fuzzy matching)
+- [x] RF-801, RF-802 (temas claro/oscuro y seguir el del SO)
+- [x] RNF-07 (guardado atómico)
+- [x] Contrato de IPC establecido y tipado ([ADR-0011](./adr/0011-resultado-tipado-en-el-limite-de-ipc.md))
+- [x] Resolver de keybindings con cláusulas `when` — la mitad de RF-702 que es lógica pura
 
-**Criterio de salida:** dogfooding. Editás un archivo de este proyecto usando el propio IDE.
+**Criterio de salida:** dogfooding. Editás un archivo de este proyecto usando el propio IDE. ✅
+
+> **Lo que quedó afuera y por qué.** El checklist original de esta fase decía "RF-001 a RF-005" y "RF-701, RF-702" en bloque, y las [Etapa 2 de la guía](./00-guia-paso-a-paso.md#etapa-2--editor-mínimo) —pasos 12 a 19— nunca incluyó esos requerimientos completos. Se corrige acá en vez de tildarlos de más:
+>
+> | Requerimiento                                        | Estado                                                                        | Dónde se cierra                              |
+> | ---------------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------- |
+> | RF-005 (`files.exclude` configurable)                | Parcial: las exclusiones existen como constante `DEFAULT_EXCLUDES`            | Fase 2, con las settings                     |
+> | RF-702 (`keybindings.json` editable, con conflictos) | Parcial: el resolver está; falta el archivo del usuario                       | Fase 2, con las settings                     |
+> | RF-003 (crear, renombrar, eliminar)                  | Sin implementar. No hay canal de IPC que mute el árbol                        | **Sin asignar** — no está en los pasos 20-25 |
+> | RF-004 (detectar cambios externos)                   | Parcial: hay conflicto por `mtimeMs` al guardar; falta el watcher que recarga | **Sin asignar** — no está en los pasos 20-25 |
+>
+> Los dos últimos son requerimientos `M` sin fase asignada. Se resuelve al planificar la Fase 3, no antes: meterlos en la Fase 2 la desborda, y la [regla de ritmo](./00-guia-paso-a-paso.md#reglas-de-ritmo) dice que bajar alcance es legítimo mientras quede escrito.
 
 ## Fase 2 — Herramientas de desarrollo
 
@@ -45,9 +57,12 @@ Cada fase tiene un entregable demostrable. La regla: **no se empieza una fase si
 - [ ] RF-201 a RF-203, RF-205 (búsqueda en workspace y quick open)
 - [ ] RF-103, RF-105 (multi-cursor, buscar/reemplazar)
 - [ ] RF-704, RF-705, RF-707 (settings y persistencia de sesión)
-- [ ] RNF-01, RNF-02 medidos y con presupuesto en CI
+- [ ] RF-005, RF-702 — lo que la Fase 1 dejó a medias, que las settings cierran
+- [ ] RNF-01, RNF-02 y RNF-04 medidos y con presupuesto en CI
 
 **Criterio de salida:** las métricas de performance están automatizadas y dentro de presupuesto.
+
+> **RNF-04 entra acá.** El checklist original listaba sólo RNF-01 y RNF-02, pero el [paso 25 de la guía](./00-guia-paso-a-paso.md#etapa-3--herramientas-de-desarrollo) pide medir también la RAM. Medir dos de los tres presupuestos y dejar el tercero para la Fase 5 contradice la razón por la que existen: RNF-04 y RNF-05 son la respuesta a la crítica obvia a Electron, y descubrir en la semana 24 que se pasan no deja margen para hacer nada.
 
 ## Fase 3 — Inteligencia de lenguaje
 

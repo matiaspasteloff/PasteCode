@@ -2,7 +2,7 @@
 
 > **Proyecto:** `PasteCode`
 > **Tipo:** IDE de escritorio multiplataforma
-> **Estado:** Fase 0 — Fundaciones · Etapas 0 y 1 completas, falta la primera corrida del CI
+> **Estado:** Fase 2 — Herramientas de desarrollo (en curso) · Fases 0 y 1 cerradas, falta la primera corrida del CI en GitHub
 > **Autor:** Matías Pasteloff
 > **Licencia:** MIT
 > **Versión de la documentación:** 1.1
