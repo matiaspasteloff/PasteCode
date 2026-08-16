@@ -112,9 +112,14 @@ export interface IpcChannels {
     request: { path: string; content: string };
     response: { mtime: number };
   };
-  'git:status': {
-    request: { workspaceRoot: string };
-    response: { staged: GitFileChange[]; unstaged: GitFileChange[] };
+  // La raíz **no viaja desde el renderer**: la tiene el main, que es quien la
+  // eligió en `workspace:open`. Aceptarla como parámetro sería dejar que el
+  // renderer nombre la raíz contra la que se valida, que es exactamente lo que
+  // el guard de rutas existe para impedir. Misma razón por la que
+  // `session:load` recibe `{}`.
+  'git:getStatus': {
+    request: Record<string, never>;
+    response: { repository: GitRepositoryStatus | null };
   };
 }
 

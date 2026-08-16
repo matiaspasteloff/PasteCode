@@ -158,7 +158,7 @@ test('abrir workspace, editar archivo y guardar', async () => {
 | `apps/desktop/src/renderer` | 50%              |
 | **Global**                  | **60%**          |
 
-El CI falla si la cobertura baja respecto de `main`. Ver [RNF-17](../04-requerimientos-no-funcionales.md#mantenibilidad).
+El CI falla si la cobertura queda **por debajo de estos umbrales absolutos**, no si baja respecto de `main`. Es el mismo razonamiento de [ADR-0015](../adr/0015-presupuestos-absolutos-de-performance.md): un umbral relativo convierte cualquier PR grande y bien testeado en un fallo cuando toca código que ya estaba mejor cubierto que el promedio, y obliga a tener un `main` de referencia disponible en cada corrida. Ver [RNF-17](../04-requerimientos-no-funcionales.md#mantenibilidad).
 
 ---
 

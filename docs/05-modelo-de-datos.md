@@ -91,7 +91,7 @@ export const SettingsSchema = z.strictObject({
 
 Los objetos se combinan **por grupo** y los arrays se **reemplazan enteros**. Poner `editor.fontSize` en el workspace no borra el `editor.tabSize` del usuario; poner `files.exclude` sí reemplaza la lista completa, porque si concatenara no habría forma de **quitar** una exclusión heredada.
 
-**`terminal.shell` es la excepción: el workspace no puede setearlo.** Es la única clave con la precedencia invertida, y existe porque un `.pastecode/settings.json` viaja adentro de cualquier repositorio clonado. Ver [Procesos hijo y binarios externos](./convenciones/seguridad.md#procesos-hijo-y-binarios-externos).
+**Las claves que eligen un ejecutable son la excepción: el workspace no puede setearlas.** Son `terminal.shell`, `lsp.serverPaths` y `git.path`, y en las tres la precedencia queda invertida —gana el usuario— porque un `.pastecode/settings.json` viaja adentro de cualquier repositorio clonado, y clonar no puede ser lo mismo que aceptar ejecutar lo que el repositorio diga. Ver [Procesos hijo y binarios externos](./convenciones/seguridad.md#procesos-hijo-y-binarios-externos).
 
 El campo `version` va desde el primer archivo escrito: [git.md](./convenciones/git.md#versionado) declara al formato como contrato público, y sin versión no hay forma de migrar un archivo viejo el día que cambie.
 

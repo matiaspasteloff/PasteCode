@@ -17,7 +17,7 @@ Una tarea está terminada cuando **todo** esto es cierto. No es una lista de des
 
 - [ ] Hay tests unitarios para la lógica nueva, y de integración si cruza procesos
 - [ ] Todos los tests pasan localmente y en CI, en las 3 plataformas
-- [ ] La cobertura no bajó respecto de `main`
+- [ ] La cobertura sigue por encima de los [umbrales absolutos](./testing.md#cobertura)
 - [ ] Si esto arregla un bug, existe un test que fallaba antes del fix
 
 ## Verificación
