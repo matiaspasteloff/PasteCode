@@ -10,6 +10,7 @@ import { BrowserWindow } from 'electron';
 
 import { currentSettings } from '../services/settings.js';
 import { resolveShell } from '../services/shell.js';
+import { registerDisposer } from '../services/shutdown.js';
 import { requireWorkspaceRoot } from '../services/workspace.js';
 import type { PtySupervisor } from '../supervisors/pty.js';
 import { createPtySupervisor } from '../supervisors/pty.js';
@@ -63,28 +64,21 @@ function requireSupervisor(): PtySupervisor {
 }
 
 /**
- * Mata todas las terminales vivas y espera a que mueran.
- *
- * La llama `before-quit` en el arranque del main. Es la mitad de
- * [RF-305](../../../../../docs/03-requerimientos-funcionales.md#terminal-integrada)
- * y de [RNF-10](../../../../../docs/04-requerimientos-no-funcionales.md#confiabilidad):
- * sin esto, cerrar PasteCode con un `npm run dev` corriendo deja el proceso
- * hijo vivo y sin nadie que lo mate.
- *
- * @example
- * app.on('before-quit', (event) => { event.preventDefault(); void disposeAllTerminals().then(...) });
- */
-export async function disposeAllTerminals(): Promise<void> {
-  await supervisor?.disposeAll();
-}
-
-/**
  * Registra los handlers del dominio `terminal`.
  *
  * @example
  * registerTerminalIpcHandlers(); // antes de app.whenReady()
  */
 export function registerTerminalIpcHandlers(): void {
+  // RF-305 y RNF-10: sin esto, cerrar PasteCode con un `npm run dev` corriendo
+  // deja el proceso hijo vivo y sin nadie que lo mate. Desde el paso 26 es un
+  // disposer más y no una llamada escrita a mano en `before-quit`, que es lo
+  // que hacía que agregar un subsistema con procesos hijo fuera un lugar más
+  // donde acordarse de algo.
+  registerDisposer('terminal', async () => {
+    await supervisor?.disposeAll();
+  });
+
   registerHandler('terminal:create', CreateTerminalRequestSchema, (payload) =>
     requireSupervisor().create(payload)
   );

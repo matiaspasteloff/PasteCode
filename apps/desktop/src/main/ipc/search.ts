@@ -4,6 +4,7 @@ import { BrowserWindow } from 'electron';
 
 import { cancelSearch, startSearch } from '../services/search.js';
 import { currentSettings } from '../services/settings.js';
+import { registerDisposer } from '../services/shutdown.js';
 import { requireWorkspaceRoot } from '../services/workspace.js';
 
 import { emit } from './emitter.js';
@@ -26,6 +27,14 @@ function broadcastDone(event: SearchDoneEvent): void {
  * registerSearchIpcHandlers(); // antes de app.whenReady()
  */
 export function registerSearchIpcHandlers(): void {
+  // Sin esto, cerrar la app en medio de una búsqueda deja el `rg` vivo y
+  // adoptado por el sistema. Es una violación de RNF-10 que pasaba
+  // desapercibida porque ripgrep casi siempre gana la carrera y termina solo;
+  // sobre un repositorio grande, no.
+  registerDisposer('search', () => {
+    cancelSearch();
+  });
+
   registerHandler('search:start', StartSearchRequestSchema, (payload) => {
     const { searchId } = payload;
 

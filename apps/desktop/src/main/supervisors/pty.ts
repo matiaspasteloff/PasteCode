@@ -1,4 +1,3 @@
-import type { IPty } from '@lydell/node-pty';
 import { spawn } from '@lydell/node-pty';
 import type { TerminalDimensions } from '@pastecode/core';
 import {
@@ -16,6 +15,11 @@ import type {
 
 import type { ShellCommand } from '../services/shell.js';
 import { sanitizedEnvironment } from '../services/shell.js';
+
+import type { PtyHandle } from './adapters/pty-handle.js';
+import { adaptPty } from './adapters/pty-handle.js';
+import type { ProcessPool } from './process-pool.js';
+import { createProcessPool } from './process-pool.js';
 
 /**
  * Lo que se le espera a un proceso para que muera solo antes de matarlo.
@@ -45,20 +49,14 @@ export interface PtySupervisor {
   disposeAll(): Promise<void>;
 }
 
-/** Una sesión viva: lo que ve el renderer más el PTY que hay detrás. */
-interface LiveSession {
-  readonly info: TerminalSession;
-  readonly pty: IPty;
-}
-
 /**
  * Crea el supervisor de terminales.
  *
- * Es una fábrica y no un módulo con estado porque el paso 26 va a extraer de
- * acá el supervisor genérico que reusan el LSP y el DAP. La separación que ese
- * paso necesita —"supervisar un proceso" contra "esto es un PTY"— sólo se
- * sostiene si el ciclo de vida es un objeto que se puede tener por duplicado.
- * Además es lo que deja tener uno por test sin resetear nada global.
+ * Desde el paso 26 esto es una capa fina sobre `ProcessPool`: lo que queda acá
+ * es lo que es específico de una terminal —el id y el nombre para mostrar, las
+ * dimensiones, el entorno saneado— y nada del ciclo de vida, que ahora es
+ * compartido con el LSP y con el DAP. La prueba de que el reparto quedó bien es
+ * que [pty.test.ts](./pty.test.ts) sigue pasando sin tocar una línea.
  *
  * Nada de acá conoce Electron: los eventos salen por `onData` y `onExit`, y
  * quien los conecta con `emit` es la capa de IPC. Es lo que permite testear el
@@ -72,53 +70,45 @@ interface LiveSession {
  * const session = pty.create({ cols: 80, rows: 24 });
  */
 export function createPtySupervisor(config: PtySupervisorConfig): PtySupervisor {
-  const sessions = new Map<string, LiveSession>();
+  const pool = createProcessPool<string, PtyHandle>();
+  // El pool tiene los procesos; esto tiene lo que ve el renderer. Son dos cosas
+  // distintas y por eso son dos mapas: el pool no sabe qué es un `displayName`.
+  const sessions = new Map<string, TerminalSession>();
 
-  function requireSession(sessionId: string): LiveSession {
-    const session = sessions.get(sessionId);
+  function requireHandle(sessionId: string): PtyHandle {
+    const handle = pool.get(sessionId);
 
-    if (session === undefined) throw new UnknownTerminalSessionError(sessionId);
+    if (handle === undefined) throw new UnknownTerminalSessionError(sessionId);
 
-    return session;
+    return handle;
   }
 
   return {
     create(dimensions) {
-      return openSession(config, sessions, dimensions);
+      return openSession(config, pool, sessions, dimensions);
     },
 
     write(sessionId, data) {
-      requireSession(sessionId).pty.write(data);
+      requireHandle(sessionId).write(data);
     },
 
     resize(sessionId, dimensions) {
       const { cols, rows } = clampDimensions(dimensions);
 
-      requireSession(sessionId).pty.resize(cols, rows);
+      requireHandle(sessionId).resize(cols, rows);
     },
 
     dispose(sessionId) {
-      // No se saca del mapa acá: sale en `onExit`, que es el único momento en
-      // que el proceso está muerto de verdad. Borrarlo antes dejaría un
-      // proceso vivo que ya nadie puede matar, que es justo lo que RF-305
-      // prohíbe.
-      terminate(requireSession(sessionId).pty);
+      requireHandle(sessionId);
+      pool.remove(sessionId);
     },
 
     list() {
-      return [...sessions.values()].map((session) => session.info);
+      return [...sessions.values()];
     },
 
     async disposeAll() {
-      // Dos fases, como pide RNF-10: primero se les pide que terminen, y a los
-      // que siguen vivos después del período de gracia se los mata.
-      const dying = [...sessions.values()];
-
-      for (const session of dying) terminate(session.pty);
-
-      await waitForExit(sessions, GRACE_PERIOD_MS);
-
-      for (const session of sessions.values()) forceKill(session.pty);
+      await pool.disposeAll(GRACE_PERIOD_MS);
     },
   };
 }
@@ -126,95 +116,61 @@ export function createPtySupervisor(config: PtySupervisorConfig): PtySupervisor 
 /**
  * Lanza un PTY y lo deja registrado, escuchando su salida.
  *
- * Está afuera de la fábrica y recibe el mapa por parámetro sólo para que la
- * fábrica quepa de un vistazo; no tiene otra vida propia.
+ * Está afuera de la fábrica y recibe los dos mapas por parámetro sólo para que
+ * la fábrica quepa de un vistazo; no tiene otra vida propia.
  *
  * @throws {TerminalSpawnError} Si el shell no se puede lanzar.
  */
 function openSession(
   config: PtySupervisorConfig,
-  sessions: Map<string, LiveSession>,
+  pool: ProcessPool<string, PtyHandle>,
+  sessions: Map<string, TerminalSession>,
   dimensions: TerminalDimensions
 ): TerminalSession {
   const { cols, rows } = clampDimensions(dimensions);
   const sessionId = nextSessionId([...sessions.keys()]);
   const displayName = displayNameFor(
     config.shell.file,
-    [...sessions.values()].map((session) => session.info.displayName)
+    [...sessions.values()].map((session) => session.displayName)
   );
 
-  let pty: IPty;
-
-  try {
-    pty = spawn(config.shell.file, [...config.shell.args], {
-      name: 'xterm-256color',
-      cols,
-      rows,
-      cwd: config.cwd,
-      env: sanitizedEnvironment(process.env),
-    });
-  } catch (cause) {
-    throw new TerminalSpawnError(config.shell.file, cause);
-  }
-
-  const info: TerminalSession = { sessionId, displayName, pid: pty.pid };
-
-  sessions.set(sessionId, { info, pty });
-
-  pty.onData((chunk) => {
-    config.onData({ sessionId, chunk });
+  const handle = pool.add(sessionId, {
+    name: displayName,
+    spawn: () => spawnPty(config, cols, rows),
+    onExit: ({ exitCode, signal }) => {
+      sessions.delete(sessionId);
+      config.onExit({ sessionId, exitCode, signal });
+    },
   });
 
-  pty.onExit(({ exitCode, signal }) => {
-    // Se saca del mapa **antes** de avisar: si el listener del renderer
-    // reacciona pidiendo la lista de sesiones, la que acaba de morir no tiene
-    // que aparecer.
-    sessions.delete(sessionId);
-    config.onExit({ sessionId, exitCode, signal: signal ?? null });
+  const info: TerminalSession = { sessionId, displayName, pid: handle.pid };
+
+  sessions.set(sessionId, info);
+
+  handle.onData((chunk) => {
+    config.onData({ sessionId, chunk });
   });
 
   return info;
 }
 
 /**
- * Le pide al proceso que termine.
+ * Lanza el PTY propiamente dicho.
  *
- * En Windows `kill` **lanza** si se le pasa una señal, porque conpty no las
- * tiene: ahí `kill()` sin argumentos termina la consola entera, que es el
- * equivalente. Es la razón por la que la redacción de RNF-10 —`SIGTERM` y
- * después `SIGKILL`— describe sólo la mitad POSIX del comportamiento.
+ * @throws {TerminalSpawnError} Si el shell no se puede lanzar.
  */
-function terminate(pty: IPty): void {
-  if (process.platform === 'win32') {
-    pty.kill();
-    return;
-  }
-
-  pty.kill('SIGTERM');
-}
-
-/** Mata sin preguntar. En Windows es lo mismo que pedir: no hay escalación. */
-function forceKill(pty: IPty): void {
-  if (process.platform === 'win32') {
-    pty.kill();
-    return;
-  }
-
-  pty.kill('SIGKILL');
-}
-
-/**
- * Espera a que el mapa se vacíe, o a que se acabe el tiempo.
- *
- * Sondea en vez de contar los `onExit` porque el que vacía el mapa es el
- * propio `onExit` de cada sesión, y esperar a que ese callback corra es
- * exactamente lo que hace falta: si el mapa quedó vacío, node-pty ya vio morir
- * a todos los procesos.
- */
-async function waitForExit(sessions: Map<string, unknown>, timeoutMs: number): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-
-  while (sessions.size > 0 && Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 50));
+function spawnPty(config: PtySupervisorConfig, cols: number, rows: number): PtyHandle {
+  try {
+    return adaptPty(
+      spawn(config.shell.file, [...config.shell.args], {
+        name: 'xterm-256color',
+        cols,
+        rows,
+        cwd: config.cwd,
+        env: sanitizedEnvironment(process.env),
+      })
+    );
+  } catch (cause) {
+    throw new TerminalSpawnError(config.shell.file, cause);
   }
 }

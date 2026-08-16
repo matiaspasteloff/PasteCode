@@ -9,9 +9,10 @@ import { registerFsIpcHandlers } from './ipc/fs.js';
 import { registerSearchIpcHandlers } from './ipc/search.js';
 import { flushSession, registerSessionIpcHandlers } from './ipc/session.js';
 import { registerSettingsIpcHandlers, startSettings } from './ipc/settings.js';
-import { disposeAllTerminals, registerTerminalIpcHandlers } from './ipc/terminal.js';
+import { registerTerminalIpcHandlers } from './ipc/terminal.js';
 import { registerWorkspaceIpcHandlers } from './ipc/workspace.js';
 import { useSessionDirectory } from './services/session.js';
+import { disposeAll } from './services/shutdown.js';
 import { registerAppScheme, serveRendererFrom } from './windows/app-protocol.js';
 import { createMainWindow } from './windows/create-window.js';
 
@@ -45,10 +46,13 @@ app.on('before-quit', (event) => {
   event.preventDefault();
 
   // La sesión primero: es lo más barato y lo que más se nota si se pierde
-  // (RF-707). Matar los PTY puede tardar hasta el período de gracia de RNF-10.
+  // (RF-707). Después, todos los subsistemas que registraron cómo apagarse,
+  // en paralelo y contra una sola ventana de gracia. Acá no hay una lista de
+  // subsistemas a propósito: la lista escrita a mano era lo que dejaba a
+  // ripgrep afuera.
   void flushSession()
     .catch(() => undefined)
-    .then(() => disposeAllTerminals())
+    .then(() => disposeAll())
     .finally(() => {
       app.quit();
     });
