@@ -42,6 +42,10 @@
 | RNF-14 | Las extensiones declaran capabilities en su manifest. Sin declaración, sin acceso                                                                                                                                                                                                                                                                                                          |
 | RNF-15 | Cero dependencias con vulnerabilidades críticas o altas. `npm audit` corre en CI y bloquea el merge                                                                                                                                                                                                                                                                                        |
 
+> **Nota de alcance (RNF-13), Etapa 3.** La excepción de `style-src 'unsafe-inline'` la usan ahora **dos** librerías, no una: xterm calcula el alto de fila y el ancho de celda en runtime y los escribe como estilo inline, igual que Monaco. No se relaja nada nuevo —la directiva ya estaba— pero deja de ser cierto que sacar Monaco alcance para volver a cerrarla. Ver la tabla de [excepciones conocidas de la CSP](./convenciones/seguridad.md#excepciones-conocidas-de-la-csp).
+
+> **Nota de alcance (RNF-10), Etapa 3.** La redacción —`SIGTERM` y luego `SIGKILL` a los 3s— describe el comportamiento POSIX. **En Windows no hay señales:** conpty termina la consola entera con un `kill()` sin argumentos, y pasarle una señal lanza. La escalación de dos fases existe igual en las dos plataformas; lo que cambia es con qué se pide. Ver [Procesos hijo y binarios externos](./convenciones/seguridad.md#procesos-hijo-y-binarios-externos).
+
 > La implementación de estas reglas está en [Convenciones · Seguridad](./convenciones/seguridad.md).
 
 ## Mantenibilidad

@@ -2,7 +2,10 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
     "apps/desktop": {
-      "entry": ["src/renderer/main.tsx", "scripts/*.mjs"],
+      // El shell falso del test del supervisor no lo importa nadie: se lo pasa
+      // como ruta a `spawn`, que es justamente lo que lo hace un binario y no
+      // un módulo. Knip no puede verlo y lo reportaría como muerto.
+      "entry": ["src/renderer/main.tsx", "scripts/*.mjs", "src/main/**/fake-*.mjs"],
     },
     "e2e": {
       "entry": ["tests/**/*.spec.ts"],

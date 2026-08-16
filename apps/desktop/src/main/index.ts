@@ -4,7 +4,9 @@ import { app, BrowserWindow } from 'electron';
 
 import { isDevelopment } from './environment.js';
 import { registerAppIpcHandlers } from './ipc/app.js';
+import { registerClipboardIpcHandlers } from './ipc/clipboard.js';
 import { registerFsIpcHandlers } from './ipc/fs.js';
+import { disposeAllTerminals, registerTerminalIpcHandlers } from './ipc/terminal.js';
 import { registerWorkspaceIpcHandlers } from './ipc/workspace.js';
 import { registerAppScheme, serveRendererFrom } from './windows/app-protocol.js';
 import { createMainWindow } from './windows/create-window.js';
@@ -16,6 +18,29 @@ registerAppScheme();
 registerAppIpcHandlers();
 registerFsIpcHandlers();
 registerWorkspaceIpcHandlers();
+registerTerminalIpcHandlers();
+registerClipboardIpcHandlers();
+
+/**
+ * Si la salida ya se está ejecutando. Sin esto, el `app.quit()` de abajo
+ * vuelve a disparar `before-quit` y la app queda sin poder cerrarse.
+ */
+let quitting = false;
+
+// RNF-10 y RF-305: cero procesos huérfanos. `before-quit` es el único gancho
+// que corre antes de que Electron empiece a destruir ventanas, y se cancela
+// para tener tiempo de matar a los hijos: si se dejara seguir, el proceso del
+// main muere primero y los PTY quedan adoptados por el sistema.
+app.on('before-quit', (event) => {
+  if (quitting) return;
+
+  quitting = true;
+  event.preventDefault();
+
+  void disposeAllTerminals().finally(() => {
+    app.quit();
+  });
+});
 
 void app.whenReady().then(() => {
   // En desarrollo el renderer lo sirve Vite con su HMR; el esquema propio sólo

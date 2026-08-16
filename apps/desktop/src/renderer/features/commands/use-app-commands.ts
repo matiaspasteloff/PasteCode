@@ -4,6 +4,7 @@ import { useCommandStore } from '../../stores/command-store.js';
 import { useEditorStore } from '../../stores/editor-store.js';
 import { useThemeStore } from '../../stores/theme-store.js';
 import { useWorkspaceStore } from '../../stores/workspace-store.js';
+import { terminalCommands } from '../terminal/terminal-commands.js';
 
 /**
  * Registra los comandos de la aplicación.
@@ -63,5 +64,7 @@ export function useAppCommands(): void {
       title: 'command.fileCloseAll',
       handler: editor.closeAll,
     });
+
+    for (const command of terminalCommands()) register(command);
   }, [register]);
 }

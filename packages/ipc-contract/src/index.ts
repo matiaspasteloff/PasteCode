@@ -11,6 +11,12 @@ export type {
 export type { IpcResult, SerializedError } from './result.js';
 export { GetVersionRequestSchema, GetVersionResponseSchema } from './schemas/app.js';
 export {
+  ReadClipboardRequestSchema,
+  ReadClipboardResponseSchema,
+  WriteClipboardRequestSchema,
+  WriteClipboardResponseSchema,
+} from './schemas/clipboard.js';
+export {
   DirectoryEntrySchema,
   ReadDirectoryRequestSchema,
   ReadDirectoryResponseSchema,
@@ -19,6 +25,19 @@ export {
   WriteFileRequestSchema,
   WriteFileResponseSchema,
 } from './schemas/fs.js';
+export {
+  CreateTerminalRequestSchema,
+  DisposeTerminalRequestSchema,
+  DisposeTerminalResponseSchema,
+  ListTerminalsRequestSchema,
+  ListTerminalsResponseSchema,
+  ResizeTerminalRequestSchema,
+  ResizeTerminalResponseSchema,
+  TerminalSessionSchema,
+  WriteTerminalRequestSchema,
+  WriteTerminalResponseSchema,
+} from './schemas/terminal.js';
+export type { TerminalSession } from './schemas/terminal.js';
 export {
   GetWorkspaceRootRequestSchema,
   GetWorkspaceRootResponseSchema,

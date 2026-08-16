@@ -120,9 +120,51 @@ interface Command {
 }
 ```
 
+## Contrato de la terminal
+
+Definido en `packages/ipc-contract/src/schemas/terminal.ts`. Cinco canales y dos eventos.
+
+```typescript
+/** Lo que el renderer conoce de una sesión viva. */
+interface TerminalSession {
+  sessionId: string;
+  /** Nombre para el dropdown de RF-302, ya desambiguado: `powershell (2)`. */
+  displayName: string;
+  /** Pid del shell. Es lo que hace verificable a RF-305 en un test. */
+  pid: number;
+}
+```
+
+| Canal              | Request                     | Response                          |
+| ------------------ | --------------------------- | --------------------------------- |
+| `terminal:create`  | `{ cols, rows }`            | `TerminalSession`                 |
+| `terminal:write`   | `{ sessionId, data }`       | `{}`                              |
+| `terminal:resize`  | `{ sessionId, cols, rows }` | `{}`                              |
+| `terminal:dispose` | `{ sessionId }`             | `{}`                              |
+| `terminal:list`    | `{}`                        | `{ sessions: TerminalSession[] }` |
+
+| Evento          | Payload                                                       |
+| --------------- | ------------------------------------------------------------- |
+| `terminal:data` | `{ sessionId, chunk }` — bytes crudos, con sus escapes ANSI   |
+| `terminal:exit` | `{ sessionId, exitCode, signal }` — `signal` es un **número** |
+
+Tres decisiones que el contrato fija y conviene no re-discutir:
+
+- **`data` viaja sin interpretar.** El byte `0x03` es Ctrl+C y tiene que llegar al PTY como tal para que el shell mate al proceso en primer plano.
+- **`chunk` conserva los escapes ANSI.** Normalizarlos en el main rompería el cursor, los colores y el redibujado de cualquier TUI. Interpretarlos es trabajo de xterm.
+- **`signal` es un número y no un nombre.** Es lo que devuelve node-pty, que expone el valor crudo del sistema operativo. En Windows siempre es `null`: conpty no tiene señales.
+
+El tamaño se valida en el schema (entero positivo) y se **acota** en `packages/core/src/terminal/dimensions.ts`. Son cosas distintas: un `cols: -1` es el renderer mandando algo imposible y se rechaza; un `cols: 4` es xterm midiendo un panel que todavía no terminó de aparecer, y ahí acotar es lo correcto.
+
+## Contrato del portapapeles
+
+`clipboard:readText` y `clipboard:writeText`, sólo texto plano. Existen para [RF-304](./03-requerimientos-funcionales.md#terminal-integrada): en una terminal, `Ctrl+C` es la señal de interrupción y no se la puede usar para copiar.
+
+Va por IPC y no por `navigator.clipboard` porque la API del navegador necesita un contexto seguro **y** que el manejador de permisos de Electron conceda `clipboard-read`; son dos condiciones que se configuran lejos del código que las usa y que un cambio futuro puede romper en silencio. El módulo `clipboard` del main no depende de ninguna de las dos.
+
 ## Contrato de IPC
 
-Definido en `packages/ipc-contract`. Ver [Arquitectura · Patrón de IPC](./02-arquitectura.md#patrón-de-ipc).
+Definido en `packages/ipc-contract`. Ver [Arquitectura · Patrón de IPC](./02-arquitectura.md#patrón-de-ipc) y, para los eventos, [ADR-0013](./adr/0013-eventos-tipados-en-el-ipc.md).
 
 ---
 

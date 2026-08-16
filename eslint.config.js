@@ -182,19 +182,17 @@ export default tseslint.config(
   {
     // Archivos de configuración y scripts de build: fuera del grafo de tipos
     // del proyecto, así que las reglas type-aware no tienen de dónde agarrarse.
-    files: [
-      '**/*.config.{ts,js}',
-      '**/*.config.*.{ts,js}',
-      'eslint.config.js',
-      '**/scripts/**/*.mjs',
-    ],
+    // Todo `.mjs` del repo cae acá: son scripts de build y binarios falsos de
+    // tests, ninguno referenciado por un tsconfig, así que el `projectService`
+    // no los encuentra y las reglas con tipos fallan al parsearlos.
+    files: ['**/*.config.{ts,js}', '**/*.config.*.{ts,js}', 'eslint.config.js', '**/*.mjs'],
     ...tseslint.configs.disableTypeChecked,
   },
   {
     // Va aparte y no dentro del objeto de arriba: `languageOptions` no se
     // fusiona con el spread, lo reemplaza, y reemplazarlo borra el
     // `projectService: false` que trae disableTypeChecked.
-    files: ['**/scripts/**/*.mjs'],
+    files: ['**/*.mjs'],
     languageOptions: {
       // Sin tipos, `no-undef` vuelve a ser útil, pero necesita saber qué
       // globals existen. Son scripts de Node.

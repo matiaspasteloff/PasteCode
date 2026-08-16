@@ -50,7 +50,7 @@ describe('emit', () => {
     // más que su contenido, y un PTY con salida pendiente cae justo ahí.
     const recipient = fakeRecipient({ webContents: true });
 
-    emit(recipient, 'terminal:exit', { sessionId: 'a', exitCode: null, signal: 'SIGTERM' });
+    emit(recipient, 'terminal:exit', { sessionId: 'a', exitCode: 0, signal: 15 });
 
     expect(recipient.send).not.toHaveBeenCalled();
   });

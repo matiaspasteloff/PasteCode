@@ -17,7 +17,11 @@ export {
   StaleFileError,
 } from './errors/filesystem-errors.js';
 export { PasteCodeError } from './errors/pastecode-error.js';
+export { TerminalSpawnError, UnknownTerminalSessionError } from './errors/terminal-errors.js';
 export { PathOutsideWorkspaceError, WorkspaceNotOpenError } from './errors/workspace-errors.js';
+export { clampDimensions } from './terminal/dimensions.js';
+export type { TerminalDimensions } from './terminal/dimensions.js';
+export { displayNameFor, nextSessionId } from './terminal/sessions.js';
 export { createExclusionMatcher, DEFAULT_EXCLUDES } from './workspace/exclusions.js';
 export { isInsideRoot } from './workspace/is-inside-root.js';
 export {

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Estilos de la aplicación. Los colores están en `tokens.css`, que es lo único
  * que cambia entre el tema claro y el oscuro.
  */
@@ -353,4 +353,84 @@ body {
   padding: 0.6rem 0.8rem;
   color: var(--color-muted);
   font-size: 0.9rem;
+}
+
+/* --- Terminal integrada (RF-301 a RF-305) --------------------------------- */
+
+/* Alto fijo y no proporcional: el editor es lo que tiene que crecer cuando la
+   ventana crece. `flex-shrink: 0` evita que el panel se coma a sí mismo
+   cuando el editor tiene contenido largo. */
+.terminal-panel {
+  display: flex;
+  overflow: hidden;
+  height: 18rem;
+  flex-direction: column;
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.terminal-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+  gap: 0.6rem;
+  padding: 0 0.6rem;
+}
+
+.terminal-tabs__list {
+  display: flex;
+  overflow-x: auto;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  gap: 0.35rem;
+  list-style: none;
+}
+
+.terminal-tabs__list li {
+  display: flex;
+  align-items: center;
+}
+
+.terminal-tabs__tab,
+.terminal-tabs__close,
+.terminal-tabs__actions button {
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  font: inherit;
+  padding: 0.6rem 0.35rem;
+}
+
+.terminal-tabs__tab[aria-current='true'] {
+  border-bottom: 2px solid var(--color-accent);
+  color: var(--color-foreground);
+}
+
+.terminal-tabs__actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+/* xterm mide su contenedor para calcular filas y columnas, así que necesita
+   uno con alto propio. `min-height: 0` es lo que deja que un hijo de flex se
+   achique por debajo de su contenido en vez de desbordar el panel. */
+.terminal-panel__surface {
+  overflow: hidden;
+  min-height: 0;
+  flex: 1;
+  padding: 0.35rem;
+}
+
+.terminal-panel__surface[hidden] {
+  display: none;
+}
+
+.terminal-panel__error {
+  margin: 0;
+  padding: 0.6rem;
+  color: var(--color-danger);
 }

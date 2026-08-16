@@ -77,18 +77,26 @@ test('cambia de tema en caliente y repinta toda la aplicación', async () => {
   // El fondo y los paneles: si sólo cambiara uno, el tema estaría a medias.
   expect(light.body).not.toBe(dark.body);
   expect(light.side).not.toBe(dark.side);
-});
 
-test('el comando de la paleta cambia el tema', async () => {
-  const window = await app.firstWindow();
-  await window.getByRole('button', { name: 'Abrir carpeta' }).waitFor();
+  // Y el camino de verdad, el que usa una persona: el comando de la paleta.
+  // Iba en un test aparte hasta que la terminal llenó el presupuesto de 30
+  // E2E de testing.md, que manda fusionar casos relacionados antes que subir
+  // el número. Fusionar acá no pierde nada: es el mismo repintado, disparado
+  // desde donde se dispara en serio.
   await window.locator('.status-bar').click();
   await forceTheme(window, 'light');
 
   await window.keyboard.press('Control+Shift+P');
   await expect(window.getByRole('combobox')).toBeVisible();
   await window.keyboard.type('tema');
-  await expect(window.getByRole('option')).toHaveCount(1);
+
+  // Se verifica que el comando del tema quede **primero**, y no que sea el
+  // único que coincide: el matcher es difuso, así que cualquier comando con
+  // "terminal" en el título coincide con "tema" por subsecuencia. Contar
+  // resultados ataba este test al catálogo entero de comandos de la app.
+  await expect(window.getByRole('option').first()).toHaveText(
+    'Cambiar el tema (claro, oscuro, sistema)'
+  );
   await window.keyboard.press('Enter');
 
   await expect(window.locator('.palette')).toHaveCount(0);
