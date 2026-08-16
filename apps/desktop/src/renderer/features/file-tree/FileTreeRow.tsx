@@ -1,5 +1,9 @@
 import type { VisibleNode } from '@pastecode/core';
 
+import { IconChevron } from '../../components/icons/IconChevron.js';
+import { IconFile } from '../../components/icons/IconFile.js';
+import { IconFolder } from '../../components/icons/IconFolder.js';
+
 /** Sangrado por nivel. Coincide con `--file-tree-indent` de global.css. */
 const INDENT_REM = 0.75;
 
@@ -68,8 +72,18 @@ export function FileTreeRow({
         onActivate(visible);
       }}
     >
-      <span aria-hidden="true" className="file-tree__icon">
-        {node.isDirectory ? (isExpanded ? '▾' : '▸') : '·'}
+      {/* El chevron sólo lo llevan las carpetas; el hueco se mantiene igual
+          para que los nombres de archivos y carpetas del mismo nivel queden
+          alineados en la misma columna. */}
+      <span className="file-tree__twisty">
+        {node.isDirectory ? <IconChevron size={12} isOpen={isExpanded} /> : null}
+      </span>
+      <span className="file-tree__icon">
+        {node.isDirectory ? (
+          <IconFolder size={14} isExpanded={isExpanded} className="icon-file--folder" />
+        ) : (
+          <IconFile size={14} name={node.name} />
+        )}
       </span>
       <span className="file-tree__name">{node.name}</span>
     </div>

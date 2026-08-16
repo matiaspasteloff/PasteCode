@@ -120,10 +120,76 @@ body {
   background: var(--color-selection);
 }
 
-.file-tree__icon {
+/* Ancho fijo aunque esté vacío: es lo que alinea los nombres de archivos y
+   carpetas del mismo nivel en la misma columna. */
+.file-tree__twisty {
+  display: flex;
   flex: none;
-  width: 0.75rem;
+  width: 12px;
+  align-items: center;
   color: var(--color-muted);
+}
+
+.file-tree__icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+/*
+ * Los iconos toman su color de un token por familia y no por lenguaje. El
+ * `currentColor` de los trazos es lo que hace que baste con pintar el
+ * contenedor: ver components/icons/Icon.tsx.
+ */
+.icon-file--code {
+  color: var(--color-icon-code);
+}
+
+.icon-file--markup {
+  color: var(--color-icon-markup);
+}
+
+.icon-file--style {
+  color: var(--color-icon-style);
+}
+
+.icon-file--data {
+  color: var(--color-icon-data);
+}
+
+.icon-file--doc {
+  color: var(--color-icon-doc);
+}
+
+.icon-file--config {
+  color: var(--color-icon-config);
+}
+
+.icon-file--image {
+  color: var(--color-icon-image);
+}
+
+.icon-file--default,
+.icon-file--folder {
+  color: var(--color-icon-default);
+}
+
+/* Rota en vez de tener dos dibujos: son el mismo glifo en dos orientaciones. */
+.icon-chevron {
+  color: var(--color-muted);
+  transition: transform 100ms ease-out;
+}
+
+.icon-chevron--open {
+  transform: rotate(90deg);
+}
+
+/* Quien prefiere menos movimiento no tiene por qué ver girar un triángulo
+   quince veces al abrir un árbol (RNF-23). */
+@media (prefers-reduced-motion: reduce) {
+  .icon-chevron {
+    transition: none;
+  }
 }
 
 .file-tree__name {

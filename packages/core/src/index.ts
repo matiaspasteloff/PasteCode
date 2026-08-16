@@ -45,6 +45,8 @@ export { clampDimensions } from './terminal/dimensions.js';
 export type { TerminalDimensions } from './terminal/dimensions.js';
 export { displayNameFor, nextSessionId } from './terminal/sessions.js';
 export { createExclusionMatcher, DEFAULT_EXCLUDES } from './workspace/exclusions.js';
+export { FILE_ICON_KINDS, fileIconFor } from './workspace/file-icons.js';
+export type { FileIconKind } from './workspace/file-icons.js';
 export { rankFiles } from './workspace/file-search.js';
 export type { IndexedFile } from './workspace/file-search.js';
 export { isInsideRoot } from './workspace/is-inside-root.js';

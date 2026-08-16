@@ -35,9 +35,12 @@ describe('FileTree', () => {
     await renderTree([entry('src', true), entry('a.ts')]);
 
     expect(screen.getByRole('tree', { name: 'Archivos del workspace' })).toBeDefined();
+    // Sólo el nombre: desde que los iconos son SVG con `aria-hidden`, el
+    // contenido de texto de una fila es lo que un lector de pantalla lee, que
+    // es lo que este test tiene que estar describiendo.
     expect(screen.getAllByRole('treeitem').map((item) => item.textContent)).toEqual([
-      '▸src',
-      '·a.ts',
+      'src',
+      'a.ts',
     ]);
   });
 
