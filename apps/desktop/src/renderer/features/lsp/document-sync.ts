@@ -1,3 +1,4 @@
+import type { DocumentChange } from '@pastecode/ipc-contract';
 import type * as MonacoApi from 'monaco-editor/editor/editor.api';
 
 import { useProblemsStore } from '../../stores/problems-store.js';
@@ -6,17 +7,48 @@ import { getLoadedMonaco } from '../editor/monaco-instance.js';
 import { applyMarkers } from './markers.js';
 
 /**
- * Qué servidor atiende cada documento abierto.
+ * Cuánto se espera después de la última tecla antes de descargar los cambios.
  *
- * Vive afuera de un store porque no se pinta: es la respuesta de
- * `lsp:openDocument`, y sirve para no mandar `didChange` de archivos que no
- * tienen servidor. Un `.md` abierto no tiene por qué cruzar el IPC en cada
- * tecla para que del otro lado lo descarten.
+ * **El renderer no invoca por tecla**, y es la primera regla de esta feature
+ * por orden de importancia: un salto de proceso por pulsación es trabajo en el
+ * hilo de UI justo cuando alguien escribe, que es el peor momento posible para
+ * gastar el presupuesto de 16ms de
+ * [RNF-02](../../../../../docs/04-requerimientos-no-funcionales.md#performance).
+ * Diagnósticos 50ms tarde son invisibles; un frame perdido no.
  */
-const serverByPath = new Map<string, string>();
+const DEBOUNCE_MS = 50;
 
 /**
- * Le avisa al main que hay un documento abierto.
+ * Techo del debounce.
+ *
+ * Sin él, escribir sin parar durante un minuto no manda nada en todo ese
+ * minuto: cada tecla reagenda el temporizador. El techo garantiza que el
+ * servidor vea el documento al menos cinco veces por segundo mientras se tipea.
+ */
+const MAX_DELAY_MS = 200;
+
+/** Lo que se sabe de un documento que el LSP está siguiendo. */
+interface TrackedDocument {
+  readonly model: MonacoApi.editor.ITextModel;
+  readonly subscription: MonacoApi.IDisposable;
+  /** Los cambios acumulados desde la última descarga, en orden. */
+  changes: DocumentChange[];
+  timer: ReturnType<typeof setTimeout> | null;
+  /** Cuándo vence el techo de `MAX_DELAY_MS`. */
+  ceiling: number;
+}
+
+/**
+ * Los documentos que un servidor está atendiendo, por ruta.
+ *
+ * Vive afuera de un store porque no se pinta. Que un `.md` abierto no esté acá
+ * es lo que evita que cruce el IPC en cada tecla para que del otro lado lo
+ * descarten.
+ */
+const tracked = new Map<string, TrackedDocument>();
+
+/**
+ * Le avisa al main que hay un documento abierto y empieza a seguir sus cambios.
  *
  * Se dispara desde `onDidCreateModel` y no desde la apertura de una pestaña: un
  * modelo puede nacer por una restauración de sesión, sin que nadie lo mire
@@ -42,8 +74,15 @@ export async function openLspDocument(model: MonacoApi.editor.ITextModel): Promi
 
   if (!result.ok) return;
 
-  if (result.value.serverId === null) serverByPath.delete(path);
-  else serverByPath.set(path, result.value.serverId);
+  if (result.value.serverId === null) {
+    untrack(path);
+    return;
+  }
+
+  // Reabrir después de un reinicio pasa por acá otra vez: sin esta guarda
+  // quedarían dos suscripciones sobre el mismo modelo y cada tecla mandaría
+  // sus cambios dos veces, que es exactamente cómo se desincroniza un servidor.
+  if (!tracked.has(path)) track(path, model);
 
   const stored = useProblemsStore.getState().byPath.get(path);
 
@@ -63,10 +102,54 @@ export async function openLspDocument(model: MonacoApi.editor.ITextModel): Promi
 export async function closeLspDocument(model: MonacoApi.editor.ITextModel): Promise<void> {
   const path = model.uri.fsPath;
 
-  if (!serverByPath.has(path)) return;
+  if (!tracked.has(path)) return;
 
-  serverByPath.delete(path);
+  untrack(path);
   await window.pastecode.invoke('lsp:closeDocument', { path });
+}
+
+/**
+ * Descarga ahora mismo los cambios pendientes de un archivo.
+ *
+ * **Toda request de completado, hover o definición llama a esto primero.** Es
+ * una línea y elimina la clase entera de bugs de "me sugiere el identificador
+ * que acabo de borrar": sin ella, el servidor contesta sobre el documento que
+ * tenía hace hasta 50ms, que en medio de una palabra es otro documento.
+ *
+ * @param path Ruta absoluta del archivo.
+ * @returns Cuando el main aceptó los cambios, o enseguida si no había ninguno.
+ * @example
+ * await flushDocumentChanges(path);
+ */
+export async function flushDocumentChanges(path: string): Promise<void> {
+  const document = tracked.get(path);
+
+  if (document === undefined) return;
+
+  if (document.timer !== null) {
+    clearTimeout(document.timer);
+    document.timer = null;
+  }
+
+  if (document.changes.length === 0) return;
+
+  const changes = document.changes;
+
+  document.changes = [];
+
+  await window.pastecode.invoke('lsp:changeDocument', {
+    path,
+    // La versión se lee al descargar y no al acumular: es la del documento que
+    // resulta de aplicar exactamente estos cambios, y es contra ella que el
+    // main descarta las descargas viejas.
+    version: document.model.getVersionId(),
+    changes,
+  });
+}
+
+/** Si el archivo tiene un servidor que lo atienda. */
+export function hasLanguageServer(path: string): boolean {
+  return tracked.has(path);
 }
 
 /**
@@ -91,7 +174,72 @@ export async function reopenAllDocuments(): Promise<void> {
   await Promise.all(monaco.editor.getModels().map((model) => openLspDocument(model)));
 }
 
-/** Olvida el mapa de servidores. Se llama al cambiar de workspace. */
+/** Deja de seguir todos los documentos. Se llama al cambiar de workspace. */
 export function forgetLspDocuments(): void {
-  serverByPath.clear();
+  for (const path of [...tracked.keys()]) untrack(path);
+}
+
+/** Empieza a seguir los cambios de un modelo. */
+function track(path: string, model: MonacoApi.editor.ITextModel): void {
+  const subscription = model.onDidChangeContent((event) => {
+    noteChanges(path, event);
+  });
+
+  tracked.set(path, {
+    model,
+    subscription,
+    changes: [],
+    timer: null,
+    ceiling: 0,
+  });
+}
+
+/** Deja de seguirlo y tira lo pendiente. */
+function untrack(path: string): void {
+  const document = tracked.get(path);
+
+  if (document === undefined) return;
+
+  if (document.timer !== null) clearTimeout(document.timer);
+  document.subscription.dispose();
+  tracked.delete(path);
+}
+
+/**
+ * Acumula los cambios de un evento y reagenda la descarga.
+ *
+ * Los cambios de Monaco se pasan **en el orden en que vienen**, que es de atrás
+ * hacia adelante en el documento. No es un detalle cosmético: LSP aplica los
+ * cambios de un lote en secuencia, cada uno sobre el resultado del anterior, y
+ * empezar por el final es lo que hace que los desplazamientos de los que
+ * quedan sigan siendo válidos. Reordenarlos o mandarlos de a uno por evento
+ * rompe cualquier edición multi-cursor.
+ */
+function noteChanges(path: string, event: MonacoApi.editor.IModelContentChangedEvent): void {
+  const document = tracked.get(path);
+
+  if (document === undefined) return;
+
+  if (document.changes.length === 0) document.ceiling = Date.now() + MAX_DELAY_MS;
+
+  for (const change of event.changes) {
+    document.changes.push({
+      range: {
+        // Monaco ya trabaja en base 1, igual que el contrato: la única
+        // conversión del proyecto vive en `main/lsp` y no llega hasta acá.
+        start: { line: change.range.startLineNumber, column: change.range.startColumn },
+        end: { line: change.range.endLineNumber, column: change.range.endColumn },
+      },
+      text: change.text,
+    });
+  }
+
+  if (document.timer !== null) clearTimeout(document.timer);
+
+  const delay = Math.max(0, Math.min(DEBOUNCE_MS, document.ceiling - Date.now()));
+
+  document.timer = setTimeout(() => {
+    document.timer = null;
+    void flushDocumentChanges(path);
+  }, delay);
 }

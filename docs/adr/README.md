@@ -27,6 +27,7 @@ Un ADR registra una decisión técnica relevante, el contexto en el que se tomó
 | [0015](./0015-presupuestos-absolutos-de-performance.md)        | Presupuestos de performance absolutos, no relativos a `main`                   | ✅ Aceptado  |
 | [0016](./0016-supervisor-de-procesos-generico.md)              | Un supervisor de procesos genérico sobre un handle mínimo                      | ✅ Aceptado  |
 | [0017](./0017-cliente-lsp-con-vscode-jsonrpc.md)               | Hablar LSP con `vscode-jsonrpc`, sin `monaco-languageclient`                   | ✅ Aceptado  |
+| [0018](./0018-sincronizacion-incremental-de-documentos.md)     | Sincronizar documentos desde el renderer, incremental y con debounce           | ✅ Aceptado  |
 | [0020](./0020-watcher-unico-con-chokidar.md)                   | Un único watcher del workspace con chokidar, con fan-out en el main            | ✅ Aceptado  |
 | [0022](./0022-cascaron-con-barra-de-actividades.md)            | Cascarón con barra de actividades y vistas por registro                        | ✅ Aceptado  |
 
