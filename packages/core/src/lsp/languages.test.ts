@@ -42,6 +42,20 @@ describe('languageServerFor', () => {
     expect(languageServerFor('typescript')?.serverId).toBe('typescript');
   });
 
+  it('encuentra los de Python y Rust (RF-410)', () => {
+    expect(languageServerFor('python')?.serverId).toBe('python');
+    expect(languageServerFor('rust')?.serverId).toBe('rust');
+  });
+
+  it('no le pasa --stdio a rust-analyzer, que no la acepta', () => {
+    expect(languageServerFor('rust')?.args).toEqual([]);
+  });
+
+  it('deja los servidores externos sin módulo empaquetado', () => {
+    expect(languageServerFor('python')?.bundledModule).toBeNull();
+    expect(languageServerFor('rust')?.bundledModule).toBeNull();
+  });
+
   it('devuelve undefined para un lenguaje sin servidor', () => {
     expect(languageServerFor('plaintext')).toBeUndefined();
   });

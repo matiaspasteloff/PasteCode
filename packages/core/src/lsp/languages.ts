@@ -100,6 +100,35 @@ export const LANGUAGE_SERVERS: readonly LanguageServerDefinition[] = [
     ],
     initializationOptions: {},
   },
+  {
+    serverId: 'python',
+    languageIds: ['python'],
+    extensions: ['.py', '.pyi'],
+    args: ['--stdio'],
+    rootMarkers: ['pyproject.toml', 'setup.py', 'setup.cfg', 'requirements.txt', 'Pipfile'],
+    completionTriggers: ['.'],
+    // No se empaqueta: `pyright` son ~50MB y depende de una instalación de
+    // Python que igual tiene que estar en la máquina. La ruta sale de
+    // `lsp.serverPaths.python`, que sólo puede escribir el usuario.
+    bundledModule: null,
+    workspaceModules: [],
+    initializationOptions: {},
+  },
+  {
+    serverId: 'rust',
+    languageIds: ['rust'],
+    extensions: ['.rs'],
+    // **Sin `--stdio`**: `rust-analyzer` habla por stdio sin bandera y pasársela
+    // lo hace fallar al arrancar. Es la razón exacta por la que `args` es dato
+    // por entrada y no una constante compartida.
+    args: [],
+    rootMarkers: ['Cargo.toml'],
+    completionTriggers: ['.', ':'],
+    // ~70MB de binario contra los 22,3MB de margen de RNF-05.
+    bundledModule: null,
+    workspaceModules: [],
+    initializationOptions: {},
+  },
 ];
 
 /**
