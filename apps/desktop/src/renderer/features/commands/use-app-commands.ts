@@ -4,6 +4,7 @@ import { useCommandStore } from '../../stores/command-store.js';
 import { useEditorStore } from '../../stores/editor-store.js';
 import { useThemeStore } from '../../stores/theme-store.js';
 import { useWorkspaceStore } from '../../stores/workspace-store.js';
+import { searchCommands } from '../search/search-commands.js';
 import { terminalCommands } from '../terminal/terminal-commands.js';
 
 /**
@@ -66,5 +67,6 @@ export function useAppCommands(): void {
     });
 
     for (const command of terminalCommands()) register(command);
+    for (const command of searchCommands()) register(command);
   }, [register]);
 }

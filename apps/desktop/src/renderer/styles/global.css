@@ -434,3 +434,127 @@ body {
   padding: 0.6rem;
   color: var(--color-danger);
 }
+
+/* --- Búsqueda en workspace (RF-201 a RF-203) ------------------------------ */
+
+.search-panel {
+  display: flex;
+  overflow: hidden;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem;
+}
+
+.search-panel__query,
+.search-panel__globs {
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font: inherit;
+  padding: 0.3rem 0.4rem;
+}
+
+.search-panel__options {
+  display: flex;
+  gap: 0.6rem;
+  color: var(--color-muted);
+  font-size: 0.85em;
+}
+
+.search-panel__options label {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  cursor: pointer;
+}
+
+.search-panel__status {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.85em;
+  min-height: 1.2em;
+}
+
+.search-panel__error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 0.85em;
+}
+
+/* Mismo patrón que el árbol: un contenedor con scroll y un lienzo de alto
+   total, con las filas posicionadas en absoluto por el virtualizador. */
+.search-panel__results {
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+.search-panel__canvas {
+  position: relative;
+  width: 100%;
+}
+
+.search-panel__file,
+.search-panel__match {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  overflow: hidden;
+  width: 100%;
+  height: 22px;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.search-panel__file {
+  color: var(--color-foreground);
+  font-weight: 600;
+}
+
+.search-panel__file-folder {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-weight: 400;
+  font-size: 0.85em;
+  text-overflow: ellipsis;
+}
+
+.search-panel__file-count {
+  margin-left: auto;
+  color: var(--color-muted);
+  font-weight: 400;
+  font-size: 0.85em;
+}
+
+.search-panel__match {
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  font: inherit;
+  padding-left: 1rem;
+  text-align: left;
+}
+
+.search-panel__match:hover {
+  background: var(--color-selection);
+}
+
+.search-panel__match-line {
+  min-width: 2.5rem;
+  color: var(--color-muted);
+  font-size: 0.85em;
+  text-align: right;
+}
+
+.search-panel__match-preview {
+  overflow: hidden;
+  color: var(--color-foreground);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.9em;
+  text-overflow: ellipsis;
+}

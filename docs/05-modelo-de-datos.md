@@ -184,6 +184,36 @@ Tres decisiones que el contrato fija y conviene no re-discutir:
 
 El tamaño se valida en el schema (entero positivo) y se **acota** en `packages/core/src/terminal/dimensions.ts`. Son cosas distintas: un `cols: -1` es el renderer mandando algo imposible y se rechaza; un `cols: 4` es xterm midiendo un panel que todavía no terminó de aparecer, y ahí acotar es lo correcto.
 
+## Contrato de la búsqueda
+
+Definido en `packages/ipc-contract/src/schemas/search.ts`. Dos canales y dos eventos, porque los resultados llegan **mientras** ripgrep busca y no cuando termina: es lo que hace alcanzable el segundo de [RF-201](./03-requerimientos-funcionales.md#búsqueda-en-workspace). Ver [ADR-0007](./adr/0007-ripgrep-como-binario-externo.md).
+
+| Canal           | Request                                                                       | Response |
+| --------------- | ----------------------------------------------------------------------------- | -------- |
+| `search:start`  | `{ searchId, query, isRegex, isCaseSensitive, matchWholeWord, includeGlobs }` | `{}`     |
+| `search:cancel` | `{}`                                                                          | `{}`     |
+
+| Evento          | Payload                                      |
+| --------------- | -------------------------------------------- |
+| `search:result` | `{ searchId, matches }` — un lote de matches |
+| `search:done`   | `{ searchId, truncated, error }`             |
+
+```typescript
+interface SearchMatch {
+  path: string;
+  line: number;
+  column: number;
+  /** La línea entera, sin el salto. Es el contexto de RF-202. */
+  preview: string;
+  matchLength: number;
+}
+```
+
+- **El `searchId` lo elige el renderer** y vuelve en cada evento. Sin él, los resultados de una consulta que se está cancelando se pintan sobre los de la siguiente: entre que se pide cancelar y que ripgrep muere, sigue escribiendo.
+- **Las exclusiones no viajan en el request**: salen de `files.exclude` de las settings, que ya vive en el main. [RF-005](./03-requerimientos-funcionales.md#gestión-de-workspace-y-archivos) dice que ésa es la clave configurable y el schema de settings no tiene ninguna sección `search.*`.
+- **`truncated` es distinto de "no había más"**: dice que se cortó por el tope de 1.000 matches. La UI tiene que poder decir "al menos mil" sin mentir.
+- **Un match por línea, no por ocurrencia.** Una línea con tres coincidencias es un resultado.
+
 ## Contrato del portapapeles
 
 `clipboard:readText` y `clipboard:writeText`, sólo texto plano. Existen para [RF-304](./03-requerimientos-funcionales.md#terminal-integrada): en una terminal, `Ctrl+C` es la señal de interrupción y no se la puede usar para copiar.

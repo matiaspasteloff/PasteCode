@@ -1,6 +1,33 @@
-import type { Settings } from '@pastecode/core';
+import type { SearchMatch, Settings } from '@pastecode/core';
 
 import type { SerializedError } from './result.js';
+
+/**
+ * Payload de `search:result`: un lote de matches de la búsqueda en curso.
+ *
+ * Viaja de a lotes y no de a uno: una búsqueda sobre un repo grande produce
+ * miles de matches, y un salto de proceso por cada uno cuesta más que la
+ * búsqueda misma. El `searchId` lo eligió el renderer al pedirla y vuelve acá
+ * para que pueda tirar lo que llegue de una consulta que ya reemplazó.
+ */
+export interface SearchResultEvent {
+  searchId: string;
+  matches: SearchMatch[];
+}
+
+/**
+ * Payload de `search:done`: la búsqueda terminó.
+ *
+ * `truncated` dice que se cortó por el tope y no porque no hubiera más. Es la
+ * diferencia entre "hay 40 resultados" y "hay al menos 1000", y la UI tiene
+ * que poder decirlo sin mentir.
+ */
+export interface SearchDoneEvent {
+  searchId: string;
+  truncated: boolean;
+  /** `null` si terminó bien. Si no, qué mostrar (RNF-25). */
+  error: SerializedError | null;
+}
 
 /**
  * Payload de `settings:changed`: las settings resueltas, después del cambio.
@@ -71,6 +98,8 @@ export interface IpcEvents {
   'terminal:data': TerminalDataEvent;
   'terminal:exit': TerminalExitEvent;
   'settings:changed': SettingsChangedEvent;
+  'search:result': SearchResultEvent;
+  'search:done': SearchDoneEvent;
 }
 
 export type EventName = keyof IpcEvents;
@@ -93,6 +122,8 @@ export const EVENT_NAMES = [
   'terminal:data',
   'terminal:exit',
   'settings:changed',
+  'search:result',
+  'search:done',
 ] as const satisfies readonly EventName[];
 
 /**
