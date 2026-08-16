@@ -136,13 +136,43 @@ const api = {
 contextBridge.exposeInMainWorld('pastecode', api);
 ```
 
+### Eventos: lo que el main empuja
+
+`invoke` sólo sabe responder preguntas del renderer. Hay tres cosas que el renderer no puede preguntar —la salida de un PTY, un archivo de settings que cambió en disco, los resultados de una búsqueda que llegan de a chorros— y para eso el contrato tiene un segundo mapa, espejo del primero. Ver [ADR-0013](./adr/0013-eventos-tipados-en-el-ipc.md).
+
+```typescript
+// packages/ipc-contract/src/events.ts
+export interface IpcEvents {
+  'terminal:data': { sessionId: string; chunk: string };
+  'terminal:exit': { sessionId: string; exitCode: number | null; signal: string | null };
+}
+
+export type EventName = keyof IpcEvents;
+export type EventPayload<E extends EventName> = IpcEvents[E];
+
+// La misma lista, en runtime: el preload necesita algo contra qué comparar.
+export const EVENT_NAMES = [
+  'terminal:data',
+  'terminal:exit',
+] as const satisfies readonly EventName[];
+```
+
+El renderer se suscribe y recibe la función que corta la suscripción:
+
+```typescript
+useEffect(() => window.pastecode.subscribe('terminal:data', onData), [onData]);
+```
+
+Del lado del main, `emit` en `apps/desktop/src/main/ipc/emitter.ts` es a los eventos lo que `registerHandler` es a los canales: el único lugar donde se decide cómo viaja uno.
+
 ### Reglas de IPC
 
-1. Nunca exponer `ipcRenderer` completo al renderer. Sólo el wrapper `invoke` de arriba.
+1. Nunca exponer `ipcRenderer` completo al renderer. Sólo los wrappers `invoke` y `subscribe` de arriba.
 2. Todo handler del main valida su input con Zod antes de tocar nada. **El renderer no es de confianza.**
 3. Toda ruta de archivo recibida por IPC se resuelve y se verifica que esté dentro del workspace abierto. Ver [RNF-11](./04-requerimientos-no-funcionales.md#seguridad) y [validación de rutas](./convenciones/seguridad.md#validación-de-rutas).
-4. Los canales se nombran `dominio:acción` en camelCase.
-5. Al agregar un canal, se actualiza `packages/ipc-contract` **primero**. El contrato es la fuente de verdad.
+4. Los canales se nombran `dominio:acción` en camelCase. Los eventos también, y comparten el espacio de nombres: un nombre no puede ser canal y evento a la vez.
+5. Al agregar un canal, se actualiza `packages/ipc-contract` **primero**. El contrato es la fuente de verdad. Vale igual para un evento, con la diferencia de que además hay que agregarlo a `EVENT_NAMES`, que es lo que existe en runtime.
+6. **Los eventos van del main al renderer y nunca al revés.** El renderer pide con `invoke`. No hay un `publish` en `PasteCodeApi` y no lo va a haber: un renderer que puede empujar mensajes al main es un renderer que puede llamar a cualquier handler sin pasar por la validación del canal. Si el renderer necesita avisar algo, es un canal, con su schema.
 
 ---
 

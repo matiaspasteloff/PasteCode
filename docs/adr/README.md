@@ -22,6 +22,7 @@ Un ADR registra una decisión técnica relevante, el contexto en el que se tomó
 | [0010](./0010-import-x-no-cycle.md)                            | Detectar dependencias circulares con `import-x/no-cycle` en vez de madge            | ✅ Aceptado  |
 | [0011](./0011-resultado-tipado-en-el-limite-de-ipc.md)         | Devolver un resultado tipado y errores serializados en el límite de IPC             | ✅ Aceptado  |
 | [0012](./0012-servir-el-renderer-desde-un-protocolo-propio.md) | Servir el renderer desde un protocolo propio en vez de `file://`                    | ✅ Aceptado  |
+| [0013](./0013-eventos-tipados-en-el-ipc.md)                    | Eventos tipados del main al renderer, sobre `ipcRenderer.on`                        | ✅ Aceptado  |
 
 **Estados posibles:** `Propuesto` · `Aceptado` · `Reemplazado por ADR-NNNN` · `Obsoleto`
 
