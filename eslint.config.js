@@ -196,7 +196,13 @@ export default tseslint.config(
     languageOptions: {
       // Sin tipos, `no-undef` vuelve a ser útil, pero necesita saber qué
       // globals existen. Son scripts de Node.
-      globals: { process: 'readonly', console: 'readonly' },
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        Buffer: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+      },
     },
   },
 
