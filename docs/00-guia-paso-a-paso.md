@@ -96,9 +96,18 @@ Es tentador arrancar por la pantalla porque se ve. No lo hagas: si el patrón de
 
 ---
 
-## Etapa 3 — Herramientas de desarrollo
+## Etapa 3 — Herramientas de desarrollo ✅
 
-_~4 semanas_
+_~4 semanas estimadas_ · **Cerrada**
+
+> **Cerrada.** Los seis pasos están hechos, en siete PRs. Lo que salió distinto de lo previsto:
+>
+> - **Apareció un paso 19½ que no estaba.** `PasteCodeApi` sólo tenía `invoke`, y la terminal, la recarga en caliente de settings y el streaming de búsqueda necesitan que el main empuje. El primitivo de eventos se hizo primero y lo comparten las tres ([ADR-0013](./adr/0013-eventos-tipados-en-el-ipc.md)).
+> - **El schema de settings documentado no se podía usar.** Tenía `.default()` por campo pero no en los grupos, así que un archivo parcial —el único que alguien escribe— no parseaba. Se partió en dos ([ADR-0005](./adr/0005-settings-en-json-con-schema-zod.md)).
+> - **RNF-05 se dio vuelta.** `electron-builder` copiaba Monaco al asar aunque Vite ya lo bundlea: el instalador bajó de 110MB a 97,7MB **agregando** node-pty, xterm y ripgrep.
+> - **RNF-10 describía sólo la mitad del problema.** En Windows no hay señales; conpty termina la consola con un `kill()` sin argumentos y pasarle una señal lanza.
+> - **El primer número de RNF-04 dio 402MB contra un techo de 400**, y el desglose por proceso mostró que era doble conteo de las páginas compartidas de Chromium.
+> - **Los ADRs que produjo:** [0005](./adr/0005-settings-en-json-con-schema-zod.md), [0007](./adr/0007-ripgrep-como-binario-externo.md), [0013](./adr/0013-eventos-tipados-en-el-ipc.md), [0014](./adr/0014-node-pty-con-binarios-precompilados.md) y [0015](./adr/0015-presupuestos-absolutos-de-performance.md).
 
 **20. Terminal integrada.** `node-pty` en el main, `xterm.js` en el renderer. Es tu primer proceso hijo de verdad: escribí acá el patrón de supervisión (spawn, resize, kill, limpieza al cerrar) porque lo vas a reutilizar para LSP y DAP. Verificá con el Administrador de tareas que no quedan procesos huérfanos.
 

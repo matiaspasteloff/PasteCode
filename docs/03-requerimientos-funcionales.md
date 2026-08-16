@@ -59,6 +59,8 @@ Los IDs son estables y no se reciclan. Si un requerimiento se elimina, su ID que
 
 > **Nota de implementación (RF-102):** Monaco no soporta bien "un editor por pestaña con estado independiente" sin cuidado. Se debe implementar un `EditorModelRegistry` que reutilice modelos. Ver [ADR-0002](./adr/0002-monaco-editor.md).
 
+> **Nota de verificación (RF-103 y RF-105), Etapa 3.** Los dos son funcionalidad nativa de Monaco y no llevan código propio: `Alt+Click`, `Ctrl+D` y `Ctrl+Shift+L` para los cursores, `Ctrl+F` y `Ctrl+H` para buscar y reemplazar en el archivo activo, con regex, mayúsculas y palabra entera. Lo que sí hacía falta verificar es que el resolver de keybindings de la aplicación **no les robe los atajos**, que es el riesgo que introdujo esta etapa al sumar `Ctrl+Shift+F` y `Ctrl+P` al mapa global. Lo cubre `e2e/tests/editing.spec.ts`.
+
 ## Búsqueda en workspace
 
 | ID     | Prioridad | Requerimiento                                          | Criterio de aceptación                                                                                |
