@@ -40,45 +40,58 @@ interface TabState {
 
 ## Schema de settings
 
-```typescript
-// packages/core/src/settings/schema.ts
-import { z } from 'zod';
+Los campos y sus rangos están en `packages/core/src/settings/schema.ts`, y los valores por defecto en la constante `DEFAULT_SETTINGS` del mismo archivo:
 
-export const SettingsSchema = z.object({
-  editor: z.object({
-    fontSize: z.number().int().min(6).max(72).default(14),
-    fontFamily: z.string().default('Consolas, "Courier New", monospace'),
-    tabSize: z.number().int().min(1).max(16).default(2),
-    insertSpaces: z.boolean().default(true),
-    wordWrap: z.enum(['off', 'on', 'bounded']).default('off'),
-    minimap: z.boolean().default(true),
-    formatOnSave: z.boolean().default(false),
-    renderWhitespace: z.enum(['none', 'boundary', 'all']).default('none'),
-  }),
-  files: z.object({
-    autoSave: z.enum(['off', 'afterDelay', 'onFocusChange']).default('off'),
-    autoSaveDelay: z.number().int().min(100).default(1000),
-    exclude: z.array(z.string()).default(['**/node_modules', '**/.git', '**/dist']),
-    trimTrailingWhitespace: z.boolean().default(true),
-  }),
-  terminal: z.object({
-    shell: z.string().nullable().default(null), // null = shell por defecto del SO
-    fontSize: z.number().int().min(6).max(72).default(13),
-  }),
-  window: z.object({
-    theme: z.enum(['light', 'dark', 'system']).default('system'),
-    zoomLevel: z.number().min(-5).max(5).default(0),
-  }),
+| Grupo      | Claves                                                                                                         |
+| ---------- | -------------------------------------------------------------------------------------------------------------- |
+| `editor`   | `fontSize`, `fontFamily`, `tabSize`, `insertSpaces`, `wordWrap`, `minimap`, `formatOnSave`, `renderWhitespace` |
+| `files`    | `autoSave`, `autoSaveDelay`, `exclude`, `trimTrailingWhitespace`                                               |
+| `terminal` | `shell` (`null` = el del sistema operativo), `fontSize`                                                        |
+| `window`   | `theme`, `zoomLevel`                                                                                           |
+
+**Son dos schemas y no uno**, y la diferencia es la que hace que esto funcione:
+
+```typescript
+/** Lo que se lee del disco: todo opcional, hasta los grupos. */
+export const SettingsFileSchema = z.strictObject({
+  version: z.literal(SETTINGS_VERSION).optional(),
+  editor: z.strictObject(editorFields).partial().optional(),
+  // ...
 });
 
-export type Settings = z.infer<typeof SettingsSchema>;
+/** Lo que ve el resto de la aplicación: todo presente, todo válido. */
+export const SettingsSchema = z.strictObject({
+  editor: z.strictObject(editorFields),
+  // ...
+});
 ```
 
-**Precedencia de settings** (de menor a mayor):
+> **Nota de corrección, Etapa 3.** La versión original de este documento tenía un solo schema, con `.default()` en cada campo pero no en los grupos. Con eso, `SettingsSchema.parse({})` **fallaba**: un archivo parcial —el único que alguien escribe a mano— no se podía leer. Los defaults se sacaron de los campos y pasaron a ser una constante, porque la precedencia los necesita como una capa más del merge y no como un comportamiento adentro del parser. Ver [ADR-0005](./adr/0005-settings-en-json-con-schema-zod.md).
 
-1. Valores por defecto del schema
+**Precedencia** (de menor a mayor):
+
+1. `DEFAULT_SETTINGS`
 2. `~/.pastecode/settings.json` (usuario)
 3. `<workspace>/.pastecode/settings.json` (workspace)
+
+Los objetos se combinan **por grupo** y los arrays se **reemplazan enteros**. Poner `editor.fontSize` en el workspace no borra el `editor.tabSize` del usuario; poner `files.exclude` sí reemplaza la lista completa, porque si concatenara no habría forma de **quitar** una exclusión heredada.
+
+**`terminal.shell` es la excepción: el workspace no puede setearlo.** Es la única clave con la precedencia invertida, y existe porque un `.pastecode/settings.json` viaja adentro de cualquier repositorio clonado. Ver [Procesos hijo y binarios externos](./convenciones/seguridad.md#procesos-hijo-y-binarios-externos).
+
+El campo `version` va desde el primer archivo escrito: [git.md](./convenciones/git.md#versionado) declara al formato como contrato público, y sin versión no hay forma de migrar un archivo viejo el día que cambie.
+
+### Canales y evento
+
+| Canal             | Request               | Response              |
+| ----------------- | --------------------- | --------------------- |
+| `settings:get`    | `{}`                  | `{ settings, error }` |
+| `settings:update` | `{ scope, settings }` | `{ settings, error }` |
+
+| Evento             | Payload                                              |
+| ------------------ | ---------------------------------------------------- |
+| `settings:changed` | `{ settings, error }` — lo emite el watcher del main |
+
+El `error` viaja **al lado** de las settings y no en lugar de ellas: un archivo con una coma de más deja la aplicación andando con los últimos valores buenos **y** con algo que mostrar ([RNF-25](./04-requerimientos-no-funcionales.md#usabilidad-y-accesibilidad)). Devolver una cosa o la otra obligaría a elegir entre seguir funcionando y avisar.
 
 ## Manifest de extensión
 

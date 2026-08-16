@@ -56,8 +56,9 @@ Cada fase tiene un entregable demostrable. La regla: **no se empieza una fase si
 - [x] RF-301 a RF-305 (terminal integrada)
 - [ ] RF-201 a RF-203, RF-205 (búsqueda en workspace y quick open)
 - [ ] RF-103, RF-105 (multi-cursor, buscar/reemplazar)
-- [ ] RF-704, RF-705, RF-707 (settings y persistencia de sesión)
-- [ ] RF-005, RF-702 — lo que la Fase 1 dejó a medias, que las settings cierran
+- [ ] RF-704, RF-705, RF-707 (settings y persistencia de sesión) — falta RF-707
+- [x] RF-005 — `files.exclude` reemplaza a la constante `DEFAULT_EXCLUDES`
+- [ ] RF-702 — el `keybindings.json` del usuario
 - [ ] RNF-01, RNF-02 y RNF-04 medidos y con presupuesto en CI
 
 **Criterio de salida:** las métricas de performance están automatizadas y dentro de presupuesto.

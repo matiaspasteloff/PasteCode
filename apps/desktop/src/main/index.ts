@@ -6,6 +6,7 @@ import { isDevelopment } from './environment.js';
 import { registerAppIpcHandlers } from './ipc/app.js';
 import { registerClipboardIpcHandlers } from './ipc/clipboard.js';
 import { registerFsIpcHandlers } from './ipc/fs.js';
+import { registerSettingsIpcHandlers, startSettings } from './ipc/settings.js';
 import { disposeAllTerminals, registerTerminalIpcHandlers } from './ipc/terminal.js';
 import { registerWorkspaceIpcHandlers } from './ipc/workspace.js';
 import { registerAppScheme, serveRendererFrom } from './windows/app-protocol.js';
@@ -20,6 +21,7 @@ registerFsIpcHandlers();
 registerWorkspaceIpcHandlers();
 registerTerminalIpcHandlers();
 registerClipboardIpcHandlers();
+registerSettingsIpcHandlers();
 
 /**
  * Si la salida ya se está ejecutando. Sin esto, el `app.quit()` de abajo
@@ -42,7 +44,12 @@ app.on('before-quit', (event) => {
   });
 });
 
-void app.whenReady().then(() => {
+void app.whenReady().then(async () => {
+  // Antes de la ventana: el renderer pide `settings:get` apenas monta, y
+  // servirle los defaults para corregirlos un tick después es un parpadeo de
+  // tema y de tamaño de fuente en cada arranque.
+  await startSettings();
+
   // En desarrollo el renderer lo sirve Vite con su HMR; el esquema propio sólo
   // hace falta para el build empaquetado.
   if (!isDevelopment) serveRendererFrom(join(__dirname, '../renderer'));

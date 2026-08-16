@@ -134,6 +134,10 @@ importers:
         version: 1.62.1
 
   packages/core:
+    dependencies:
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
     devDependencies:
       '@vitest/coverage-v8':
         specifier: 4.1.10
@@ -144,6 +148,9 @@ importers:
 
   packages/ipc-contract:
     dependencies:
+      '@pastecode/core':
+        specifier: workspace:*
+        version: link:../core
       zod:
         specifier: 4.4.3
         version: 4.4.3

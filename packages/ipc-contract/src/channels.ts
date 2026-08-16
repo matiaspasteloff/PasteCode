@@ -16,6 +16,12 @@ import type {
   WriteFileResponseSchema,
 } from './schemas/fs.js';
 import type {
+  GetSettingsRequestSchema,
+  GetSettingsResponseSchema,
+  UpdateSettingsRequestSchema,
+  UpdateSettingsResponseSchema,
+} from './schemas/settings.js';
+import type {
   CreateTerminalRequestSchema,
   DisposeTerminalRequestSchema,
   DisposeTerminalResponseSchema,
@@ -89,6 +95,14 @@ export interface IpcChannels {
   'terminal:list': {
     request: z.infer<typeof ListTerminalsRequestSchema>;
     response: z.infer<typeof ListTerminalsResponseSchema>;
+  };
+  'settings:get': {
+    request: z.infer<typeof GetSettingsRequestSchema>;
+    response: z.infer<typeof GetSettingsResponseSchema>;
+  };
+  'settings:update': {
+    request: z.infer<typeof UpdateSettingsRequestSchema>;
+    response: z.infer<typeof UpdateSettingsResponseSchema>;
   };
   'clipboard:readText': {
     request: z.infer<typeof ReadClipboardRequestSchema>;

@@ -2,6 +2,7 @@ import type * as MonacoApi from 'monaco-editor/editor/editor.api';
 import { useEffect, useRef, useState } from 'react';
 
 import { useEditorStore } from '../../stores/editor-store.js';
+import { useSettingsStore } from '../../stores/settings-store.js';
 import { currentResolvedTheme, monacoThemeFor } from '../theme/use-theme.js';
 
 import { rememberViewState, savedViewState, syncModelWithDisk } from './model-registry.js';
@@ -91,7 +92,46 @@ export function useMonacoEditor(activePath: string | null): MonacoEditorHandle {
     };
   }, [setContentReader]);
 
+  useEditorSettings(editorRef, status, activePath);
+
   return { containerRef, status };
+}
+
+/**
+ * Aplica `editor.*` de las settings, en caliente.
+ *
+ * Es la mitad visible de [RF-704](../../../../../../docs/03-requerimientos-funcionales.md#comandos-atajos-y-configuración):
+ * cambiar `editor.fontSize` en el archivo y ver la letra crecer sin reiniciar.
+ *
+ * `tabSize` e `insertSpaces` van por el **modelo** y no por el editor: en
+ * Monaco son propiedades del texto, no de la vista, y por eso viven en
+ * `ITextModel.updateOptions`. De ahí que el efecto dependa también de la
+ * pestaña activa — cada modelo se configura por separado.
+ */
+function useEditorSettings(
+  editorRef: React.RefObject<MonacoApi.editor.IStandaloneCodeEditor | null>,
+  status: EditorStatus,
+  activePath: string | null
+): void {
+  const editorSettings = useSettingsStore((state) => state.settings.editor);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (editor === null || status !== 'ready') return;
+
+    editor.updateOptions({
+      fontSize: editorSettings.fontSize,
+      fontFamily: editorSettings.fontFamily,
+      wordWrap: editorSettings.wordWrap,
+      minimap: { enabled: editorSettings.minimap },
+      renderWhitespace: editorSettings.renderWhitespace,
+    });
+
+    editor.getModel()?.updateOptions({
+      tabSize: editorSettings.tabSize,
+      insertSpaces: editorSettings.insertSpaces,
+    });
+  }, [editorRef, editorSettings, status, activePath]);
 }
 
 /**
@@ -115,13 +155,19 @@ function useMountedEditor(
 
         monacoRef.current = monaco;
         setLoadedMonaco(monaco);
+        // Nace con el tema y las settings ya aplicados en vez de parpadear con
+        // los valores de fábrica y corregirse un tick después.
+        const { editor: initial } = useSettingsStore.getState().settings;
+
         editorRef.current = monaco.editor.create(containerRef.current, {
           automaticLayout: true,
-          minimap: { enabled: false },
           scrollBeyondLastLine: false,
-          // Nace con el tema ya aplicado en vez de parpadear en claro y
-          // corregirse en el efecto del tema.
           theme: monacoThemeFor(currentResolvedTheme()),
+          fontSize: initial.fontSize,
+          fontFamily: initial.fontFamily,
+          wordWrap: initial.wordWrap,
+          minimap: { enabled: initial.minimap },
+          renderWhitespace: initial.renderWhitespace,
         });
         setStatus('ready');
       })

@@ -34,10 +34,28 @@ export interface ReadFileResult {
 }
 
 /**
- * Las exclusiones son una constante y no un setting hasta la Etapa 3. Se
- * compila una sola vez porque el predicado corre una vez por entrada.
+ * El último matcher compilado, junto a los patrones que lo produjeron.
+ *
+ * El predicado corre **una vez por entrada de directorio**, así que compilar
+ * los globs en cada llamada sería la diferencia entre cumplir
+ * [RF-001](../../../../../docs/03-requerimientos-funcionales.md) con 5.000
+ * archivos y no cumplirlo. Se memoiza por identidad del array: `resolveSettings`
+ * devuelve el mismo array mientras nadie toque `files.exclude`, así que la
+ * comparación por referencia alcanza y no hay que recorrer la lista.
  */
-const isExcluded = createExclusionMatcher(DEFAULT_EXCLUDES);
+let compiled: { patterns: readonly string[]; matches: (relativePath: string) => boolean } = {
+  patterns: DEFAULT_EXCLUDES,
+  matches: createExclusionMatcher(DEFAULT_EXCLUDES),
+};
+
+/** El matcher de un conjunto de patrones, recompilando sólo si cambiaron. */
+function exclusionMatcher(patterns: readonly string[]): (relativePath: string) => boolean {
+  if (patterns !== compiled.patterns) {
+    compiled = { patterns, matches: createExclusionMatcher(patterns) };
+  }
+
+  return compiled.matches;
+}
 
 /**
  * Lista **un nivel** de un directorio, ya ordenado y ya filtrado.
@@ -60,8 +78,10 @@ const isExcluded = createExclusionMatcher(DEFAULT_EXCLUDES);
  */
 export async function readDirectoryLevel(
   path: string,
-  workspaceRoot: string
+  workspaceRoot: string,
+  excludePatterns: readonly string[] = DEFAULT_EXCLUDES
 ): Promise<DirectoryEntry[]> {
+  const isExcluded = exclusionMatcher(excludePatterns);
   const found = await readdir(path, { withFileTypes: true }).catch((cause: unknown) => {
     throw new FileAccessError(path, cause);
   });

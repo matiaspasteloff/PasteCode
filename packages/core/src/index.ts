@@ -19,6 +19,14 @@ export {
 export { PasteCodeError } from './errors/pastecode-error.js';
 export { TerminalSpawnError, UnknownTerminalSessionError } from './errors/terminal-errors.js';
 export { PathOutsideWorkspaceError, WorkspaceNotOpenError } from './errors/workspace-errors.js';
+export { resolveSettings } from './settings/merge.js';
+export {
+  DEFAULT_SETTINGS,
+  SETTINGS_VERSION,
+  SettingsFileSchema,
+  SettingsSchema,
+} from './settings/schema.js';
+export type { Settings, SettingsFile } from './settings/schema.js';
 export { clampDimensions } from './terminal/dimensions.js';
 export type { TerminalDimensions } from './terminal/dimensions.js';
 export { displayNameFor, nextSessionId } from './terminal/sessions.js';

@@ -2,6 +2,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import { useEffect, useRef } from 'react';
 
+import { useSettingsStore } from '../../stores/settings-store.js';
 import { useTerminalStore } from '../../stores/terminal-store.js';
 
 import { registerTerminal, releaseTerminal } from './terminal-registry.js';
@@ -21,7 +22,7 @@ function attachTerminal(
   const terminal = new Terminal({
     cursorBlink: true,
     fontFamily: 'Consolas, "Cascadia Mono", monospace',
-    fontSize: 13,
+    fontSize: useSettingsStore.getState().settings.terminal.fontSize,
     // Los colores salen de los tokens CSS y no de una paleta propia: es lo que
     // hace que la terminal siga al tema de RF-801/802 sin código de tema.
     theme: {
@@ -104,6 +105,7 @@ export function useTerminal(
   const hostRef = useRef<HTMLDivElement | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const terminalRef = useRef<Terminal | null>(null);
+  const fontSize = useSettingsStore((state) => state.settings.terminal.fontSize);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -120,6 +122,17 @@ export function useTerminal(
       terminalRef.current = null;
     };
   }, [sessionId]);
+
+  useEffect(() => {
+    const terminal = terminalRef.current;
+    if (terminal === null) return;
+
+    // El tamaño de letra cambia cuántas celdas entran, así que después de
+    // tocarlo hay que remedir: sin el `fit`, el PTY sigue creyendo que la
+    // grilla es la de antes y los programas de pantalla completa dibujan mal.
+    terminal.options.fontSize = fontSize;
+    fitRef.current?.fit();
+  }, [fontSize]);
 
   useEffect(() => {
     if (!isVisible) return;
