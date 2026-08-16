@@ -1,6 +1,7 @@
 import type { Command } from '@pastecode/core';
 
 import { useTerminalStore } from '../../stores/terminal-store.js';
+import { useViewStore } from '../../stores/view-store.js';
 
 import { getTerminal } from './terminal-registry.js';
 
@@ -49,15 +50,33 @@ export function terminalCommands(): readonly Command[] {
   ];
 }
 
-/** Abre el panel —creando la primera sesión si hace falta— o lo esconde. */
+/**
+ * Abre el panel en la pestaña de la terminal —creando la primera sesión si hace
+ * falta— o lo esconde.
+ *
+ * El comando coordina dos stores a propósito: si el panel se ve es del
+ * cascarón, y qué sesiones existen es de la terminal. Antes las dos cosas
+ * estaban en `terminal-store`, que es lo que hacía imposible que el panel
+ * alojara una segunda pestaña.
+ *
+ * Cerrar el panel **no mata nada**: un `npm run dev` corriendo tiene que seguir
+ * corriendo aunque no se lo esté mirando. Sí se suelta el foco, que si no
+ * dejaría `terminalFocus` en verdadero con el panel escondido y `Ctrl+Shift+C`
+ * robándole la combinación al editor.
+ */
 function toggle(): Promise<void> | undefined {
-  const terminal = useTerminalStore.getState();
+  const view = useViewStore.getState();
 
-  if (!terminal.isPanelOpen) return terminal.openPanel();
+  if (view.panelView === 'terminal') {
+    view.closePanel();
+    useTerminalStore.getState().setFocus(false);
 
-  terminal.closePanel();
+    return undefined;
+  }
 
-  return undefined;
+  view.showPanel('terminal');
+
+  return useTerminalStore.getState().ensureSession();
 }
 
 /** Copia la selección de la terminal activa al portapapeles del sistema. */

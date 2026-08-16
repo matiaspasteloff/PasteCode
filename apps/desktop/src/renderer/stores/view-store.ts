@@ -12,9 +12,16 @@ export const SIDE_VIEWS = ['explorer', 'search'] as const;
 
 export type SideView = (typeof SIDE_VIEWS)[number];
 
+/** Las vistas del panel inferior. Mismo criterio que `SIDE_VIEWS`. */
+export const PANEL_VIEWS = ['terminal'] as const;
+
+export type PanelView = (typeof PANEL_VIEWS)[number];
+
 interface ViewState {
   /** La vista lateral visible, o `null` si la barra está colapsada. */
   sideView: SideView | null;
+  /** La pestaña del panel inferior visible, o `null` si el panel está cerrado. */
+  panelView: PanelView | null;
   /** Muestra una vista. Si ya estaba visible, no hace nada. */
   showSide: (view: SideView) => void;
   /**
@@ -24,6 +31,12 @@ interface ViewState {
    * que la gente espera de `Ctrl+Shift+F` y de un click en el rail.
    */
   toggleSide: (view: SideView) => void;
+  /** Muestra una pestaña del panel inferior, abriéndolo si estaba cerrado. */
+  showPanel: (view: PanelView) => void;
+  /** Muestra la pestaña, o cierra el panel si esa pestaña ya estaba visible. */
+  togglePanel: (view: PanelView) => void;
+  /** Cierra el panel inferior. Lo que hay adentro sigue vivo. */
+  closePanel: () => void;
 }
 
 /**
@@ -44,6 +57,9 @@ export const useViewStore = create<ViewState>((set, get) => ({
   // El explorador arranca abierto: es lo primero que alguien quiere ver al
   // abrir una carpeta, y arrancar colapsado obliga a un click antes de nada.
   sideView: 'explorer',
+  // El panel inferior arranca cerrado: ocupa 18rem de alto y lo que se quiere
+  // ver al abrir una carpeta es el código.
+  panelView: null,
 
   showSide: (view) => {
     set({ sideView: view });
@@ -51,5 +67,17 @@ export const useViewStore = create<ViewState>((set, get) => ({
 
   toggleSide: (view) => {
     set({ sideView: get().sideView === view ? null : view });
+  },
+
+  showPanel: (view) => {
+    set({ panelView: view });
+  },
+
+  togglePanel: (view) => {
+    set({ panelView: get().panelView === view ? null : view });
+  },
+
+  closePanel: () => {
+    set({ panelView: null });
   },
 }));

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 import { t } from '../../i18n/index.js';
 import { useTerminalStore } from '../../stores/terminal-store.js';
+import { useViewStore } from '../../stores/view-store.js';
 
 import { TerminalTabs } from './TerminalTabs.js';
 import { useTerminal } from './use-terminal.js';
@@ -38,16 +39,25 @@ function TerminalSurface({
  * Se suscribe a `terminal:exit` una sola vez para todo el panel y no una vez
  * por sesión: el evento dice a qué sesión pertenece, y una suscripción por
  * instancia significaría N listeners recibiendo N eventos cada uno.
+ *
+ * Desde el paso 26½ **no decide si se ve**: es un inquilino del panel inferior,
+ * que es quien tiene el `role="tablist"`, el alto, el borde y la decisión de
+ * qué pestaña está a la vista.
+ *
+ * Lo que sí conserva es su propia `<section>` con su nombre accesible. No es
+ * decoración: es la región que un lector de pantalla anuncia al entrar, y es el
+ * ancla de los E2E de la terminal. La regla dura del rediseño es que ningún
+ * selector existente cambie de nombre, y la primera versión de este PR la violó
+ * —el panel pasó a ser un `<div>` y los dos specs de terminal se cayeron—.
  */
-export function TerminalPanel(): React.JSX.Element | null {
+export function TerminalPanel(): React.JSX.Element {
   const sessions = useTerminalStore((state) => state.sessions);
   const activeSessionId = useTerminalStore((state) => state.activeSessionId);
-  const isPanelOpen = useTerminalStore((state) => state.isPanelOpen);
   const error = useTerminalStore((state) => state.error);
   const activate = useTerminalStore((state) => state.activate);
   const dispose = useTerminalStore((state) => state.dispose);
   const create = useTerminalStore((state) => state.create);
-  const closePanel = useTerminalStore((state) => state.closePanel);
+  const closePanel = useViewStore((state) => state.closePanel);
   const forget = useTerminalStore((state) => state.forget);
 
   useEffect(
@@ -57,8 +67,6 @@ export function TerminalPanel(): React.JSX.Element | null {
       }),
     [forget]
   );
-
-  if (!isPanelOpen) return null;
 
   return (
     <section className="terminal-panel" aria-label={t('terminal.panel')}>

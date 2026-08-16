@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 
 import { ActivityBar } from './components/ActivityBar.js';
+import { BottomPanel } from './components/BottomPanel.js';
 import { SideView } from './components/SideView.js';
 import { StatusBar } from './components/StatusBar.js';
+import { TitleToolbar } from './components/TitleToolbar.js';
 import { CommandPalette } from './features/commands/CommandPalette.js';
 import { useAppCommands } from './features/commands/use-app-commands.js';
 import { useKeybindings } from './features/commands/use-keybindings.js';
@@ -14,7 +16,6 @@ import { FilePalette } from './features/files/FilePalette.js';
 import { useSearchEvents } from './features/search/use-search-events.js';
 import { useSession } from './features/session/use-session.js';
 import { useSettings } from './features/settings/use-settings.js';
-import { TerminalPanel } from './features/terminal/TerminalPanel.js';
 import { useTheme } from './features/theme/use-theme.js';
 import { useEditorStore } from './stores/editor-store.js';
 import { useFileIndexStore } from './stores/file-index-store.js';
@@ -22,8 +23,8 @@ import { useFileTreeStore } from './stores/file-tree-store.js';
 import { useWorkspaceStore } from './stores/workspace-store.js';
 
 /**
- * Cascarón de la aplicación: rail de vistas, barra lateral, área de edición y
- * barra de estado.
+ * Cascarón de la aplicación: toolbar, rail de vistas, barra lateral, área de
+ * edición con su panel inferior, y barra de estado.
  */
 export function App(): React.JSX.Element {
   const workspace = useWorkspaceStore((state) => state.workspace);
@@ -72,13 +73,14 @@ export function App(): React.JSX.Element {
 
   return (
     <div className="app">
+      <TitleToolbar />
       <ActivityBar />
       <SideView />
 
       <main className="editor-area">
         <TabStrip />
         <EditorArea />
-        <TerminalPanel />
+        <BottomPanel />
       </main>
 
       <StatusBar />

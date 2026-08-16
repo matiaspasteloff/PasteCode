@@ -13,7 +13,6 @@ beforeEach(() => {
   useTerminalStore.setState({
     sessions: [],
     activeSessionId: null,
-    isPanelOpen: false,
     hasFocus: false,
     error: null,
   });
@@ -43,35 +42,25 @@ describe('useTerminalStore', () => {
     expect(useTerminalStore.getState().error?.code).toBe('WORKSPACE_NOT_OPEN');
   });
 
-  it('abre el panel creando la primera sesión', async () => {
+  it('crea la primera sesión cuando no hay ninguna', async () => {
     installFakeApi({ 'terminal:create': { ok: true, value: session('terminal-1') } });
 
-    await useTerminalStore.getState().openPanel();
+    await useTerminalStore.getState().ensureSession();
 
-    expect(useTerminalStore.getState().isPanelOpen).toBe(true);
     expect(useTerminalStore.getState().sessions).toHaveLength(1);
   });
 
-  it('no crea una segunda sesión al reabrir el panel', async () => {
+  it('no crea una segunda sesión si ya había una', async () => {
+    // Es lo que hace que abrir y cerrar el panel varias veces no deje una pila
+    // de shells vivos. Si el panel se ve o no ya no es asunto de este store.
     const invoke = installFakeApi({
       'terminal:create': { ok: true, value: session('terminal-1') },
     });
 
-    await useTerminalStore.getState().openPanel();
-    useTerminalStore.getState().closePanel();
-    await useTerminalStore.getState().openPanel();
+    await useTerminalStore.getState().ensureSession();
+    await useTerminalStore.getState().ensureSession();
 
     expect(invoke).toHaveBeenCalledTimes(1);
-  });
-
-  it('cerrar el panel no mata las sesiones', async () => {
-    installFakeApi({ 'terminal:create': { ok: true, value: session('terminal-1') } });
-
-    await useTerminalStore.getState().openPanel();
-    useTerminalStore.getState().closePanel();
-
-    // Un `npm run dev` corriendo tiene que seguir corriendo aunque no se lo mire.
-    expect(useTerminalStore.getState().sessions).toHaveLength(1);
   });
 
   it('no saca la sesión de la lista hasta que el main avisa que murió', async () => {
