@@ -7,6 +7,7 @@ import type { LspServerStatus } from '@pastecode/ipc-contract';
 import { app } from 'electron';
 
 import { currentSettings } from '../services/settings.js';
+import { SHUTDOWN_GRACE_MS } from '../services/shutdown.js';
 import { getWorkspace } from '../services/workspace.js';
 
 import type { LanguageClient } from './client.js';
@@ -38,8 +39,15 @@ const failures = new Map<string, LspServerStatus>();
 /** Los documentos abiertos, compartidos por todos los servidores. */
 const documents: DocumentRegistry = createDocumentRegistry();
 
+/** Cuándo se usó cada servidor por última vez, en epoch ms. */
+const lastUsed = new Map<string, number>();
+
+/** Cada cuánto se busca un servidor para apagar. */
+const IDLE_SWEEP_MS = 60_000;
+
 let callbacks: LspRegistryCallbacks | null = null;
 let batcher: DiagnosticsBatcher | null = null;
+let idleSweep: ReturnType<typeof setInterval> | null = null;
 
 /**
  * Conecta el registro con quien empuja los eventos al renderer.
@@ -57,6 +65,44 @@ export function configureLspRegistry(next: LspRegistryCallbacks): void {
   batcher = createDiagnosticsBatcher((serverId, batch) => {
     next.onDiagnostics(serverId, batch);
   });
+
+  if (idleSweep !== null) clearInterval(idleSweep);
+
+  idleSweep = setInterval(() => {
+    void stopIdleServers();
+  }, IDLE_SWEEP_MS);
+  // Sin esto, un intervalo de un minuto mantiene vivo el event loop del main.
+  idleSweep.unref();
+}
+
+/**
+ * Apaga los servidores que no atienden ningún documento hace rato.
+ *
+ * Es la mitigación de RNF-04 que hace sostenible el segundo presupuesto de
+ * [ADR-0021](../../../../../docs/adr/0021-presupuesto-de-ram-partido.md): un
+ * `tsserver` ocupa 150-300MB y no tiene por qué seguir ahí media hora después
+ * de que se cerró la última pestaña de su lenguaje.
+ *
+ * **Sólo se apagan los que no tienen documentos abiertos.** Matar uno que sí
+ * los tiene dejaría los diagnósticos muertos en silencio: el renderer reabre
+ * sus documentos cuando ve `running`, y un servidor apagado no vuelve hasta
+ * que alguien abra un archivo nuevo.
+ */
+async function stopIdleServers(): Promise<void> {
+  const idleMinutes = currentSettings().lsp.idleShutdownMinutes;
+
+  if (idleMinutes <= 0) return;
+
+  const deadline = Date.now() - idleMinutes * 60_000;
+
+  for (const [serverId, client] of [...clients]) {
+    if (documents.forServer(serverId).length > 0) continue;
+    if ((lastUsed.get(serverId) ?? Date.now()) > deadline) continue;
+
+    clients.delete(serverId);
+    lastUsed.delete(serverId);
+    await client.stop(SHUTDOWN_GRACE_MS);
+  }
 }
 
 /** El registro de documentos abiertos. */
@@ -81,7 +127,7 @@ export function openDocuments(): DocumentRegistry {
 export function clientForLanguage(languageId: string): LanguageClient | null {
   const definition = languageServerFor(languageId);
 
-  return definition === undefined ? null : clientFor(definition);
+  return definition === undefined ? null : noteUsed(clientFor(definition));
 }
 
 /**
@@ -98,7 +144,7 @@ export function clientForPath(path: string): LanguageClient | null {
 
   if (definition === undefined) return null;
 
-  return clients.get(definition.serverId) ?? null;
+  return noteUsed(clients.get(definition.serverId) ?? null);
 }
 
 /**
@@ -114,7 +160,14 @@ export function clientForPath(path: string): LanguageClient | null {
  * clientById('typescript');
  */
 export function clientById(serverId: string): LanguageClient | null {
-  return clients.get(serverId) ?? null;
+  return noteUsed(clients.get(serverId) ?? null);
+}
+
+/** Anota que el servidor se acaba de usar. Devuelve lo mismo que recibió. */
+function noteUsed(client: LanguageClient | null): LanguageClient | null {
+  if (client !== null) lastUsed.set(client.serverId, Date.now());
+
+  return client;
 }
 
 /** El estado de todos los servidores conocidos: los vivos y los que fallaron. */
@@ -138,6 +191,7 @@ export async function stopLspServers(graceMs: number): Promise<void> {
 
   clients.clear();
   failures.clear();
+  lastUsed.clear();
   documents.clear();
   batcher?.flush();
 

@@ -149,3 +149,28 @@ test('al cerrar queda la de la derecha, y el estado vacío si era la última', a
   await expect(window.getByRole('tab')).toHaveCount(0);
   await expect(window.getByText('Abrí una carpeta para empezar a editar.')).toBeVisible();
 });
+
+test('RF-107: parte la pantalla y cerrar en un grupo no rompe el otro', async () => {
+  const window = await openFiles('uno.ts', 'dos.ts');
+
+  await window.getByTestId('tabs-split').first().click();
+
+  const groups = window.getByTestId('editor-groups');
+  await expect(groups.locator('.editor-group')).toHaveCount(2);
+
+  // El mismo archivo abierto en los dos paneles comparte el modelo de Monaco.
+  // Cerrarlo en uno **no** puede desecharlo: sin `allOpenPaths`, el otro panel
+  // se queda con un modelo disposeado y Monaco tira al siguiente render.
+  await window
+    .getByTestId('editor-group-secondary')
+    .getByRole('button', { name: 'Cerrar' })
+    .click();
+
+  await expect(groups.locator('.editor-group')).toHaveCount(1);
+  await expect(window.locator('.monaco-editor')).toContainText('dos');
+
+  // Y el editor sigue vivo: si el modelo se hubiera desechado, escribir acá
+  // tiraría una excepción en el renderer en vez de escribir.
+  await typeMarker(window);
+  await expect(window.locator('.monaco-editor')).toContainText(MARKER);
+});

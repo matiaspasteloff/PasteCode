@@ -2,7 +2,7 @@
 
 > **Proyecto:** `PasteCode`
 > **Tipo:** IDE de escritorio multiplataforma
-> **Estado:** Fase 3 — Inteligencia de lenguaje (por empezar) · Fases 0, 1 y 2 cerradas, falta la primera corrida del CI en GitHub
+> **Estado:** Fase 4 — Extensibilidad y debugging (por empezar) · Fases 0 a 3 cerradas, falta la primera corrida del CI en GitHub
 > **Autor:** Matías Pasteloff
 > **Licencia:** MIT
 > **Versión de la documentación:** 1.1

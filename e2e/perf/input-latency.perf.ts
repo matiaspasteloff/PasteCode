@@ -8,6 +8,10 @@ import { DESKTOP_ROOT } from '../tests/support/desktop.js';
 
 import { record } from './support/report.js';
 import { summarize } from './support/statistics.js';
+import { linkTypeScript, writeUserSettings } from './support/workspace.js';
+
+/** Cuánto se le da al servidor de lenguaje para levantar antes de tipear. */
+const SERVER_WARMUP_MS = 20_000;
 
 /** RNF-02: p99 por debajo de un frame a 60Hz. */
 const BUDGET_MS = 16;
@@ -72,20 +76,8 @@ async function collectSamples(window: Page): Promise<number[]> {
  * propósito: el ida y vuelta del protocolo de automatización es de milisegundos
  * y arruinaría un presupuesto de dieciséis.
  */
-test('RNF-02: latencia de input', async () => {
-  const workspace = await mkdtemp(join(tmpdir(), 'pastecode-perf-input-'));
-  await writeFile(join(workspace, 'uno.ts'), 'const uno = 1;\n', 'utf8');
-
-  const app = await electron.launch({
-    args: [DESKTOP_ROOT],
-    env: { ...process.env, PASTECODE_E2E_WORKSPACE: workspace },
-  });
-  const window = await app.firstWindow();
-
-  await window.getByRole('button', { name: 'Abrir carpeta' }).click();
-  await window.getByRole('treeitem', { name: 'uno.ts' }).click();
-  await expect(window.locator('.monaco-editor')).toContainText('const uno = 1;');
-
+/** Escribe `KEYSTROKES` teclas en el editor y devuelve las latencias. */
+async function typeAndCollect(window: Page): Promise<number[]> {
   await window.locator('.monaco-editor .view-lines').click();
   await window.keyboard.press('Control+End');
 
@@ -95,13 +87,96 @@ test('RNF-02: latencia de input', async () => {
     await window.keyboard.type('a');
   }
 
-  const values = await collectSamples(window);
+  return collectSamples(window);
+}
+
+test('RNF-02: latencia de input sin servidores de lenguaje', async () => {
+  const workspace = await mkdtemp(join(tmpdir(), 'pastecode-perf-input-'));
+  const home = await mkdtemp(join(tmpdir(), 'pastecode-perf-input-home-'));
+
+  await writeFile(join(workspace, 'uno.ts'), 'const uno = 1;\n', 'utf8');
+  await writeUserSettings(home, { lsp: { enabled: false } });
+
+  const app = await electron.launch({
+    args: [DESKTOP_ROOT],
+    env: {
+      ...process.env,
+      PASTECODE_E2E_WORKSPACE: workspace,
+      PASTECODE_E2E_HOME: home,
+    },
+  });
+  const window = await app.firstWindow();
+
+  await window.getByRole('button', { name: 'Abrir carpeta' }).click();
+  await window.getByRole('treeitem', { name: 'uno.ts' }).click();
+  await expect(window.locator('.monaco-editor')).toContainText('const uno = 1;');
+
+  const values = await typeAndCollect(window);
 
   await app.close();
   await rm(workspace, { recursive: true, force: true });
+  await rm(home, { recursive: true, force: true });
+
   const measurement = summarize({
     requirement: 'RNF-02',
-    description: 'latencia de tecla a frame',
+    description: 'latencia de tecla a frame, sin LSP',
+    values,
+    percentile: 99,
+    budget: BUDGET_MS,
+    unit: 'ms',
+  });
+
+  await record(measurement);
+
+  expect(measurement.value).toBeLessThanOrEqual(BUDGET_MS);
+});
+
+/**
+ * El mismo número, con el servidor de lenguaje andando.
+ *
+ * **Es el escenario que importa desde la Etapa 4.** Sin él, la sonda sigue
+ * midiendo el mundo pre-LSP y pasando: la sincronización de documentos de
+ * ADR-0018 corre en cada tecla —acumula, agenda, y cada 50ms cruza el IPC— y
+ * si algo de eso se hiciera mal, el escenario de arriba no se enteraría.
+ */
+test('RNF-02: latencia de input con TypeScript activo', async () => {
+  const workspace = await mkdtemp(join(tmpdir(), 'pastecode-perf-input-lsp-'));
+  const home = await mkdtemp(join(tmpdir(), 'pastecode-perf-input-lsp-home-'));
+
+  await writeFile(join(workspace, 'uno.ts'), 'const uno = 1;\n', 'utf8');
+
+  const isLinked = await linkTypeScript(
+    workspace,
+    join(DESKTOP_ROOT, '..', '..', 'node_modules', 'typescript')
+  );
+
+  test.skip(!isLinked, 'No se pudo enlazar typescript en el workspace de prueba');
+
+  const app = await electron.launch({
+    args: [DESKTOP_ROOT],
+    env: {
+      ...process.env,
+      PASTECODE_E2E_WORKSPACE: workspace,
+      PASTECODE_E2E_HOME: home,
+    },
+  });
+  const window = await app.firstWindow();
+
+  await window.getByRole('button', { name: 'Abrir carpeta' }).click();
+  await window.getByRole('treeitem', { name: 'uno.ts' }).click();
+  await expect(window.locator('.monaco-editor')).toContainText('const uno = 1;');
+
+  await window.waitForTimeout(SERVER_WARMUP_MS);
+
+  const values = await typeAndCollect(window);
+
+  await app.close();
+  await rm(workspace, { recursive: true, force: true });
+  await rm(home, { recursive: true, force: true });
+
+  const measurement = summarize({
+    requirement: 'RNF-02',
+    description: 'latencia de tecla a frame, con tsserver activo',
     values,
     percentile: 99,
     budget: BUDGET_MS,

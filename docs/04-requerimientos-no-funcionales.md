@@ -8,14 +8,14 @@
 
 ## Performance
 
-| ID     | Requerimiento                                | Objetivo                                                         | Cómo se mide                                                                                                    |
-| ------ | -------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| RNF-01 | Tiempo de arranque en frío hasta interactivo | < 1.5s (p95)                                                     | `e2e/perf/startup.perf.ts`: 20 arranques, p95 del tiempo hasta el primer contenido                              |
-| RNF-02 | Latencia de input en el editor               | < 16ms (p99)                                                     | `e2e/perf/input-latency.perf.ts`: delta entre `keydown` y el `requestAnimationFrame` siguiente, 120 pulsaciones |
-| RNF-03 | Apertura de archivo grande                   | Archivo de 10MB / 200k líneas abre en < 2s sin congelar la UI    | `e2e/tests/performance.spec.ts`, con archivo generado                                                           |
-| RNF-04 | Consumo de RAM en reposo                     | < 400MB con un workspace de 1.000 archivos y 3 pestañas abiertas | `e2e/perf/memory.perf.ts`: suma de `privateBytes` de **todos** los procesos, vía `app.getAppMetrics()`          |
-| RNF-05 | Tamaño del instalador                        | < 120MB para Windows x64                                         | Job `build` del CI, sobre el `.exe` recién generado; falla el build si excede                                   |
-| RNF-06 | La UI nunca se bloquea                       | Ninguna operación en el hilo del renderer excede 50ms            | Long Task API; cualquier violación se loguea en desarrollo                                                      |
+| ID     | Requerimiento                                | Objetivo                                                                                                                             | Cómo se mide                                                                                                                  |
+| ------ | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| RNF-01 | Tiempo de arranque en frío hasta interactivo | < 1.5s (p95)                                                                                                                         | `e2e/perf/startup.perf.ts`: 20 arranques, p95 del tiempo hasta el primer contenido                                            |
+| RNF-02 | Latencia de input en el editor               | < 16ms (p99)                                                                                                                         | `e2e/perf/input-latency.perf.ts`: delta entre `keydown` y el `requestAnimationFrame` siguiente, 120 pulsaciones               |
+| RNF-03 | Apertura de archivo grande                   | Archivo de 10MB / 200k líneas abre en < 2s sin congelar la UI                                                                        | `e2e/tests/performance.spec.ts`, con archivo generado                                                                         |
+| RNF-04 | Consumo de RAM en reposo                     | **< 400MB sin servidores de lenguaje** y **< 700MB con TypeScript activo**, con un workspace de 1.000 archivos y 3 pestañas abiertas | `e2e/perf/memory.perf.ts`: suma de `privateBytes` de **todos** los procesos, vía `app.getAppMetrics()`, en los dos escenarios |
+| RNF-05 | Tamaño del instalador                        | < 120MB para Windows x64                                                                                                             | Job `build` del CI, sobre el `.exe` recién generado; falla el build si excede                                                 |
+| RNF-06 | La UI nunca se bloquea                       | Ninguna operación en el hilo del renderer excede 50ms                                                                                | Long Task API; cualquier violación se loguea en desarrollo                                                                    |
 
 **Regla de performance: los presupuestos son absolutos y no relativos.** El job `perf-budget` del CI mide en cada PR y falla si un número supera su presupuesto, sin comparar contra `main`. Los valores quedan en el resumen del job y en un comentario del PR.
 
@@ -23,18 +23,22 @@
 
 > **Nota de método (RNF-04), Etapa 3.** Se suma `privateBytes` y no `workingSetSize`: el working set de cada proceso incluye las páginas **compartidas** de Chromium, así que sumarlo entre los cuatro procesos las cuenta cuatro veces. En una corrida real la diferencia fue 409MB por working set contra 307MB por memoria privada. El presupuesto no se movió; lo que se corrigió fue el doble conteo.
 
+> **Nota de método (RNF-04), Etapa 4.** El presupuesto se partió en dos. `tsserver` sobre un proyecto real ocupa 150-300MB **él solo**, así que un único número obligaba a elegir entre un techo incumplible en cuanto alguien abre un `.ts` —el caso de uso central— y uno tan alto que dejaba de decir nada sobre la aplicación sin LSP. Los dos son absolutos, como pide [ADR-0015](./adr/0015-presupuestos-absolutos-de-performance.md), y los dos se miden en la misma corrida. La diferencia entre ellos **es** cuánto cuesta la inteligencia de lenguaje. Ver [ADR-0021](./adr/0021-presupuesto-de-ram-partido.md).
+>
+> La mitigación es parte del presupuesto y no un extra: `lsp.idleShutdownMinutes` apaga a los 5 minutos un servidor que nadie usa.
+
 > RNF-04 y RNF-05 existen porque son la crítica obvia a Electron. Medirlos y defenderlos activamente es parte del valor de portfolio. Ver [ADR-0001](./adr/0001-electron-typescript.md).
 
 **Hardware de referencia:** CPU de 4 núcleos ~2.5GHz, 8GB RAM, SSD, Windows 11.
 
 ## Confiabilidad
 
-| ID     | Requerimiento                                                                                                                                                                              |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| RNF-07 | Nunca perder datos del usuario. Todo guardado es atómico: escribir a un archivo temporal, luego `rename()`. Un corte de energía a mitad de guardado no puede corromper el archivo original |
-| RNF-08 | Auto-guardado de recuperación cada 30s en `~/.pastecode/backups/`. Al reabrir después de un crash, se ofrece restaurar                                                                     |
-| RNF-09 | El crash de cualquier proceso hijo (LSP, DAP, PTY, extension host) es recuperable y no tumba el IDE                                                                                        |
-| RNF-10 | Cero procesos huérfanos. Al cerrar la app, todos los hijos reciben `SIGTERM` y luego `SIGKILL` tras 3s. Verificado con test automatizado                                                   |
+| ID     | Requerimiento                                                                                                                                                                                                                                                                                                        |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RNF-07 | Nunca perder datos del usuario. Todo guardado es atómico: escribir a un archivo temporal, luego `rename()`. Un corte de energía a mitad de guardado no puede corromper el archivo original                                                                                                                           |
+| RNF-08 | Auto-guardado de recuperación cada 30s en `~/.pastecode/backups/`. Al reabrir después de un crash, se ofrece restaurar                                                                                                                                                                                               |
+| RNF-09 | El crash de cualquier proceso hijo (LSP, DAP, PTY, extension host) es recuperable y no tumba el IDE. **Alcance, Etapa 4:** cubierto para PTY y LSP —tres reintentos con backoff, health check pasivo, y un estado `failed` visible al rendirse—; DAP y extension host llegan en la Etapa 5 sobre el mismo supervisor |
+| RNF-10 | Cero procesos huérfanos. Al cerrar la app, todos los hijos reciben `SIGTERM` y luego `SIGKILL` tras 3s. Verificado con test automatizado                                                                                                                                                                             |
 
 ## Seguridad
 

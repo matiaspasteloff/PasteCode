@@ -129,7 +129,18 @@ Esto va acá, no al final. Si medís en la semana 24 vas a descubrir una regresi
 
 ## Etapa 4 — Inteligencia de lenguaje y Git
 
-_~6 semanas_
+_~6 semanas estimadas_ · **Cerrada**
+
+> **Cerrada.** Los cinco pasos están hechos, en trece PRs. Lo que salió distinto de lo previsto:
+>
+> - **Apareció un paso 26½ que no estaba.** El cascarón —barra de actividades, vistas por registro, barra de estado compuesta— se hizo **antes** que el LSP y que Git. Sin él, cada feature nueva habría tenido que negociar con las otras dónde dibujarse: el panel de problemas y el de Git son hoy una entrada en un registro cada uno ([ADR-0022](./adr/0022-cascaron-con-barra-de-actividades.md)). Mismo precedente que el paso 19½ de la Etapa 3.
+> - **`simple-git` se descartó por nombre.** El paso 29 lo sugería; no resuelve el problema del `PATH`, lo esconde. `seguridad.md` **se enmendó, no se violó**: candidatos absolutos conocidos primero y `PATH` sólo para construir candidatos que después se verifican ([ADR-0019](./adr/0019-git-con-spawn-crudo.md)).
+> - **`monaco-languageclient` tampoco entró.** Arrastra decenas de MB contra los 22,3MB de margen de RNF-05, y espera un Monaco parcheado. Se habla el protocolo con `vscode-jsonrpc`, que son ~200KB y cero dependencias de runtime ([ADR-0017](./adr/0017-cliente-lsp-con-vscode-jsonrpc.md)).
+> - **El paso 28 pasó su propio examen.** Agregar Python y Rust fueron **dos archivos y cero código nuevo**: dos filas en `LANGUAGE_SERVERS` y sus tests.
+> - **RNF-04 se partió en dos presupuestos.** `tsserver` en reposo son 150-300MB, y un solo número obligaba a elegir entre un techo que no se puede cumplir con LSP o uno que no dice nada sin él ([ADR-0021](./adr/0021-presupuesto-de-ram-partido.md)).
+> - **RF-107 se entrega con dos grupos y no con tres.** El módulo puro está escrito para N; lo que falta es UI ([ADR-0023](./adr/0023-dos-grupos-sobre-modelos-compartidos.md)).
+> - **El límite de la suite E2E se corrigió**, no se ignoró: decía "30 tests" y describía spec files. Ver [testing.md](./convenciones/testing.md).
+> - **Los ADRs que produjo:** [0016](./adr/0016-supervisor-de-procesos-generico.md), [0017](./adr/0017-cliente-lsp-con-vscode-jsonrpc.md), [0018](./adr/0018-sincronizacion-incremental-de-documentos.md), [0019](./adr/0019-git-con-spawn-crudo.md), [0020](./adr/0020-watcher-unico-con-chokidar.md), [0021](./adr/0021-presupuesto-de-ram-partido.md), [0022](./adr/0022-cascaron-con-barra-de-actividades.md) y [0023](./adr/0023-dos-grupos-sobre-modelos-compartidos.md).
 
 **26. Generalizá el supervisor de procesos.** Antes de tocar LSP, extraé lo que aprendiste con el PTY a un supervisor reutilizable: spawn, health check, reinicio con backoff, límite de 3 intentos, logging.
 
@@ -138,6 +149,8 @@ _~6 semanas_
 **28. Agregá Python y Rust.** Este paso es un test de tu diseño: si agregar un lenguaje requiere sólo configuración y cero código nuevo, la abstracción está bien. Si tenés que escribir código específico por lenguaje, volvé al paso 27 y arreglalo. **Es más barato ahora que nunca.**
 
 **29. Panel de Git.** Status, stage, commit, branch, indicadores en el gutter. Usá `simple-git` o los comandos directamente; no uses `isomorphic-git`, que no maneja bien repos grandes.
+
+> Se hizo con los comandos directamente. `simple-git` lanza `git` por nombre y deja que el sistema operativo lo busque en el `PATH` en el momento de la llamada, que es lo que `seguridad.md` prohíbe.
 
 **30. Split view.** Ahora que hay algo que valga la pena mirar en paralelo.
 

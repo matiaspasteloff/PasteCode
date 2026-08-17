@@ -76,16 +76,31 @@ Cada fase tiene un entregable demostrable. La regla: **no se empieza una fase si
 
 > **RNF-04 entra acá.** El checklist original listaba sólo RNF-01 y RNF-02, pero el [paso 25 de la guía](./00-guia-paso-a-paso.md#etapa-3--herramientas-de-desarrollo) pide medir también la RAM. Medir dos de los tres presupuestos y dejar el tercero para la Fase 5 contradice la razón por la que existen: RNF-04 y RNF-05 son la respuesta a la crítica obvia a Electron, y descubrir en la semana 24 que se pasan no deja margen para hacer nada.
 
-## Fase 3 — Inteligencia de lenguaje
+## Fase 3 — Inteligencia de lenguaje ✅
 
 **Entregable:** autocompletado y errores en vivo. Acá el proyecto se vuelve serio.
 
-- [ ] RF-401 a RF-405, RF-410 (LSP: completado, diagnósticos, hover, go-to-def)
-- [ ] RF-601 a RF-606 (Git básico)
-- [ ] RF-107 (split view)
-- [ ] Supervisión de procesos con reinicio ante crash (RNF-09)
+- [x] RF-401 a RF-405, RF-410 (LSP: completado, diagnósticos, hover, go-to-def)
+- [x] RF-601 a RF-606 (Git básico)
+- [x] RF-107 (split view) — **con 2 grupos y una nota de alcance**
+- [x] Supervisión de procesos con reinicio ante crash (RNF-09) — para PTY y LSP
+- [x] RF-004 (cambios externos), que venía sin fase desde la Fase 2
 
 **Criterio de salida:** el IDE se autoedita con autocompletado de TypeScript funcionando.
+
+**Números medidos al cerrar:**
+
+| Presupuesto                      | Techo  | Medido        |
+| -------------------------------- | ------ | ------------- |
+| RNF-01 arranque (p95)            | 1,5s   | 533ms         |
+| RNF-02 latencia de tecla (p99)   | 16ms   | 7,18ms        |
+| RNF-04 RAM sin servidores        | 400MB  | 303,5MB       |
+| RNF-04 RAM con TypeScript activo | 700MB  | _sonda nueva_ |
+| RNF-05 instalador                | 120MB  | 97,7MB        |
+| RF-401 tecla → diagnóstico (p95) | 1500ms | _sonda nueva_ |
+| RF-402 popup de completado (p95) | 200ms  | _sonda nueva_ |
+
+Las tres sondas marcadas son nuevas de esta fase: `lsp-latency.perf.ts` y el segundo escenario de `memory.perf.ts`. Los números se llenan con la primera corrida en el CI.
 
 ## Fase 4 — Extensibilidad y debugging
 
@@ -115,19 +130,24 @@ Cada fase tiene un entregable demostrable. La regla: **no se empieza una fase si
 
 ## Riesgos identificados
 
-| Riesgo                                                                  | Impacto  | Probabilidad | Mitigación                                                                                                                                                                     |
-| ----------------------------------------------------------------------- | -------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Scope creep — "una feature más"                                         | Alto     | **Alta**     | La [lista de fuera de alcance](./01-vision-y-alcance.md#alcance--fuera-out-of-scope) es un contrato. Toda feature nueva requiere sacar otra                                    |
-| Monaco no permite alguna customización necesaria                        | Medio    | **Baja**     | Bajó al cerrar la Fase 2: lo único que Monaco no permitió fue TextMate, y se resolvió corrigiendo RF-101 y difiriendo RF-113                                                   |
-| Performance de Electron insuficiente para archivos grandes              | Alto     | **Baja**     | Bajó: los cuatro presupuestos se miden en el CI y ninguno pasa del 76% de su techo                                                                                             |
-| Complejidad del extension host consume la Fase 4 entera                 | Medio    | Media        | Empezar por una API mínima (comandos + status bar) y crecer                                                                                                                    |
-| Pérdida de motivación en un proyecto largo                              | **Alto** | Media        | Bajó: la Fase 2 cerró con siete PRs y el IDE ya se usa para escribirse a sí mismo                                                                                              |
-| **Deuda de requerimientos `M` sin fase asignada**                       | Medio    | **Alta**     | **Nuevo en la Fase 2.** RF-003, RF-004 y RF-702 son `Must have` y no están en ninguna fase. Se asignan al planificar la Fase 3, antes de sumarle alcance nuevo                 |
-| **Un binario de terceros cambia de formato y rompe una feature entera** | Medio    | Baja         | **Nuevo en la Fase 2.** ripgrep y node-pty son procesos externos que se actualizan por su cuenta. Se verifica la forma de su salida en vez de asumirla, y los tests la ejercen |
+| Riesgo                                                                  | Impacto  | Probabilidad | Mitigación                                                                                                                                                                                                                                                    |
+| ----------------------------------------------------------------------- | -------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Scope creep — "una feature más"                                         | Alto     | **Alta**     | La [lista de fuera de alcance](./01-vision-y-alcance.md#alcance--fuera-out-of-scope) es un contrato. Toda feature nueva requiere sacar otra                                                                                                                   |
+| Monaco no permite alguna customización necesaria                        | Medio    | **Baja**     | Bajó al cerrar la Fase 2: lo único que Monaco no permitió fue TextMate, y se resolvió corrigiendo RF-101 y difiriendo RF-113                                                                                                                                  |
+| Performance de Electron insuficiente para archivos grandes              | Alto     | **Baja**     | Bajó: los cuatro presupuestos se miden en el CI y ninguno pasa del 76% de su techo                                                                                                                                                                            |
+| Complejidad del extension host consume la Fase 4 entera                 | Medio    | Media        | Empezar por una API mínima (comandos + status bar) y crecer                                                                                                                                                                                                   |
+| Pérdida de motivación en un proyecto largo                              | **Alto** | Media        | Bajó: la Fase 2 cerró con siete PRs y el IDE ya se usa para escribirse a sí mismo                                                                                                                                                                             |
+| **Deuda de requerimientos `M` sin fase asignada**                       | Medio    | Media        | Bajó en la Fase 3: RF-004 se cerró, y **RF-003, RF-702 y RNF-08 quedan asignados a la Fase 4**. Dejarlos sin fase una etapa más sería repetir el error que este riesgo señala                                                                                 |
+| **Un binario de terceros cambia de formato y rompe una feature entera** | Medio    | **Media**    | Subió en la Fase 3: ahora son **cuatro** —ripgrep, node-pty, `git` y los servidores LSP—. Se verifica la forma de su salida en vez de asumirla, con parsers puros y testeados en `packages/core`                                                              |
+| **`tsserver` en reposo consume el margen de RNF-04**                    | **Alto** | **Alta**     | **Nuevo en la Fase 3.** Son 150-300MB él solo. El presupuesto se partió en dos ([ADR-0021](./adr/0021-presupuesto-de-ram-partido.md)) y se apaga por inactividad a los 5 minutos, pero el escenario con tres lenguajes activos sigue sin margen               |
+| **`git` ausente, o anterior a 2.23**                                    | Medio    | Media        | **Nuevo en la Fase 3.** Sin `git` la app anda igual y la UI de Git no se dibuja. Con uno anterior a 2.23 falla el unstage, que usa `git restore --staged`. Se detecta al arrancar y el mensaje es accionable                                                  |
+| **Un rediseño de UI rompe los E2E existentes**                          | Medio    | **Alta**     | **Nuevo en la Fase 3, y ya se materializó dos veces** —un `role="tab"` duplicado y el `role="region"` perdido de la terminal—. La red los cazó las dos veces. Regla dura: no se renombra ni se borra un `data-testid`, y los selectores conservan sus nombres |
 
 ### Cómo revisar los riesgos
 
 Al cerrar cada fase, se revisa esta tabla: se actualizan las probabilidades, se agregan los riesgos nuevos que aparecieron y se retiran los que ya no aplican. Un registro de riesgos que nunca cambia es un registro que nadie lee.
+
+**Revisión al cerrar la Fase 3.** Tres riesgos nuevos, los tres de cosas que la fase reveló al implementarlas: el costo real de `tsserver`, la dependencia de una instalación de `git` que no controlamos, y la fragilidad de los E2E ante un rediseño —que no es hipotética, ya pasó dos veces—. Dos riesgos se movieron: el de los binarios de terceros subió porque ahora son cuatro, y el de la deuda de requerimientos bajó porque esta vez sí se asignaron.
 
 **Revisión al cerrar la Fase 2.** Tres riesgos bajaron de probabilidad porque la fase produjo la evidencia que faltaba: Monaco resultó suficiente, los presupuestos se cumplen con margen, y el proyecto llegó al punto donde se usa a sí mismo. Aparecieron dos nuevos, los dos de la misma naturaleza —cosas que la fase reveló al implementarlas y no al planificarlas—.
 

@@ -53,6 +53,13 @@ El nombre es el hash y no la ruta escapada por dos razones: una ruta larga de Wi
 
 El `rootPath` y el `lastSavedAt` los pone el main: el primero porque dejar que el renderer lo mande sería dejarle elegir de qué workspace leer la sesión, y el segundo porque el reloj del que escribe es el único que puede dar esa marca sin mentir.
 
+> **Grupos de edición, desde la Etapa 4.** `WorkspaceState` gana `groups`,
+> `layout` y `activeGroupId`, los tres **opcionales**, y conserva `openTabs`
+> como espejo del grupo primario. Al leer, la ausencia de `groups` significa un
+> solo grupo armado desde `openTabs`; al escribir se escriben las dos formas.
+> Ésa es toda la migración, y es para lo que el schema es laxo
+> ([ADR-0023](./adr/0023-dos-grupos-sobre-modelos-compartidos.md)).
+
 ## Schema de settings
 
 Los campos y sus rangos están en `packages/core/src/settings/schema.ts`, y los valores por defecto en la constante `DEFAULT_SETTINGS` del mismo archivo:
@@ -61,8 +68,12 @@ Los campos y sus rangos están en `packages/core/src/settings/schema.ts`, y los 
 | ---------- | -------------------------------------------------------------------------------------------------------------- |
 | `editor`   | `fontSize`, `fontFamily`, `tabSize`, `insertSpaces`, `wordWrap`, `minimap`, `formatOnSave`, `renderWhitespace` |
 | `files`    | `autoSave`, `autoSaveDelay`, `exclude`, `trimTrailingWhitespace`                                               |
+| `git`      | `enabled`, `path` (`null` = resolvelo al arrancar), `decorationsEnabled`, `refreshIntervalMs` (`0` = nunca)    |
+| `lsp`      | `enabled`, `serverPaths`, `requestTimeoutMs`, `maxDiagnosticsPerFile`, `idleShutdownMinutes`                   |
 | `terminal` | `shell` (`null` = el del sistema operativo), `fontSize`                                                        |
 | `window`   | `theme`, `zoomLevel`                                                                                           |
+
+`lsp.serverPaths` es un mapa de `serverId` a ruta absoluta, con `null` para "usá el empaquetado". Es un `Record` y no un campo por lenguaje **a propósito**: la tabla de lenguajes crece con datos y no con código, así que agregar Python no puede obligar a tocar el schema.
 
 **Son dos schemas y no uno**, y la diferencia es la que hace que esto funcione:
 
@@ -107,6 +118,46 @@ El campo `version` va desde el primer archivo escrito: [git.md](./convenciones/g
 | `settings:changed` | `{ settings, error }` — lo emite el watcher del main |
 
 El `error` viaja **al lado** de las settings y no en lugar de ellas: un archivo con una coma de más deja la aplicación andando con los últimos valores buenos **y** con algo que mostrar ([RNF-25](./04-requerimientos-no-funcionales.md#usabilidad-y-accesibilidad)). Devolver una cosa o la otra obligaría a elegir entre seguir funcionando y avisar.
+
+## Contratos de LSP y de Git
+
+Los dos dominios que agregó la Etapa 4. Las coordenadas son **base 1** en línea
+y columna, como `SearchMatch` y `TabState`: la conversión a la base 0 del
+protocolo vive **sólo** en `apps/desktop/src/main/lsp` ([ADR-0017](./adr/0017-cliente-lsp-con-vscode-jsonrpc.md)).
+
+| Canal                   | Request                                | Response                             |
+| ----------------------- | -------------------------------------- | ------------------------------------ |
+| `lsp:openDocument`      | `{ path, languageId, version, text }`  | `{ serverId }` — `null` sin servidor |
+| `lsp:changeDocument`    | `{ path, version, changes }`           | `{}`                                 |
+| `lsp:closeDocument`     | `{ path }`                             | `{}`                                 |
+| `lsp:completion`        | `{ path, position, triggerCharacter }` | `{ isIncomplete, items }`            |
+| `lsp:resolveCompletion` | `{ serverId, id }`                     | `{ item }`                           |
+| `lsp:hover`             | `{ path, position }`                   | `{ contents, range }`                |
+| `lsp:definition`        | `{ path, position }`                   | `{ locations }`                      |
+| `lsp:status`            | `{}`                                   | `{ servers }`                        |
+| `git:getStatus`         | `{}`                                   | `{ repository }` — `null` sin repo   |
+| `git:stage` / `unstage` | `{ paths }`                            | `{}`                                 |
+| `git:commit`            | `{ message }`                          | `{}`                                 |
+| `git:listBranches`      | `{}`                                   | `{ branches }`                       |
+| `git:checkoutBranch`    | `{ branch }`                           | `{}`                                 |
+| `git:getFileDiff`       | `{ path }`                             | `{ hunks }`                          |
+
+| Evento              | Payload                                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------------------------- |
+| `lsp:diagnostics`   | `{ serverId, documents }` — lotes de 30ms o 50 documentos                                               |
+| `lsp:serverChanged` | `{ server }` — el hecho; `lsp:status` es la pregunta                                                    |
+| `git:changed`       | `{ repository }` — el estado **resuelto**, como `settings:changed`                                      |
+| `files:changed`     | `{ changes, isBulk }` — el watcher del workspace ([ADR-0020](./adr/0020-watcher-unico-con-chokidar.md)) |
+
+El `id` de un ítem de completado es **su índice en la respuesta que lo produjo**,
+y es lo único que vuelve para resolverlo: el objeto crudo del servidor, con su
+campo `data` opaco, se queda en el main.
+
+**Limitación documentada de Git:** la raíz del repositorio puede estar por
+encima de la del workspace —si se abrió una subcarpeta—. Todo corre con `cwd` en
+la raíz del workspace y se rechaza tocar archivos afuera aunque pertenezcan al
+repositorio, así que [RNF-11](./04-requerimientos-no-funcionales.md#seguridad)
+queda intacto en vez de tener una excepción tallada.
 
 ## Manifest de extensión
 

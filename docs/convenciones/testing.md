@@ -7,7 +7,7 @@
 ## Pirámide de tests
 
 ```
-        ╱╲          E2E (Playwright)          ~30 tests
+        ╱╲          E2E (Playwright)          ~30 spec files
        ╱  ╲         Flujos críticos completos
       ╱────╲
      ╱      ╲       Integración (Vitest)      ~150 tests
@@ -144,7 +144,13 @@ test('abrir workspace, editar archivo y guardar', async () => {
 3. **Cero tests flaky tolerados.** Un test flaky se arregla o se borra, no se reintenta.
 4. Todo bug reportado se convierte primero en un test que falla, y después se arregla.
 5. Los tests no dependen del orden de ejecución ni comparten estado.
-6. Tests E2E: máximo 30, todos por debajo de 30s cada uno. **Al llegar al tope, se fusionan casos relacionados en vez de subir el número**: el límite existe para que la suite siga siendo rápida y para obligar a elegir qué flujos valen un E2E.
+6. Tests E2E: máximo **30 spec files**, todos por debajo de 30s cada uno. **Al llegar al tope, se fusionan casos relacionados en vez de subir el número**: el límite existe para que la suite siga siendo rápida y para obligar a elegir qué flujos valen un E2E.
+
+> **Corrección de redacción, Etapa 4.** Hasta acá la regla decía "máximo 30 tests" y el diagrama de arriba decía lo mismo. Antes de la Etapa 4 la suite tenía exactamente **30 tests en 12 archivos**, así que el número era ambiguo: podía leerse de las dos formas y nadie se había cruzado con la diferencia.
+>
+> Se corrige a **spec files** y no se sube el número, por dos razones. La primera es que es lo que el límite quiere controlar: un spec file arranca su propia instancia de Electron —que es lo que cuesta— mientras que un `test()` más adentro de un archivo ya levantado cuesta segundos. La segunda es que la unidad de decisión real es "¿este flujo merece un E2E propio?", y ésa se toma por archivo.
+>
+> El techo de 30 segundos por test **no se toca**: es el que mantiene la suite usable, y es el que de verdad duele cuando se rompe.
 
 ---
 

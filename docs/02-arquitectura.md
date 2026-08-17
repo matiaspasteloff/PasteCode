@@ -62,14 +62,16 @@ pastecode/
 ├── packages/
 │   ├── core/                    # Lógica pura, sin dependencias de Electron
 │   │   ├── src/
-│   │   │   ├── workspace/
+│   │   │   ├── workspace/       # Árbol, pestañas y grupos de edición
 │   │   │   ├── commands/        # Registry de comandos
+│   │   │   ├── git/             # Argumentos y parsers de porcelana, puros
+│   │   │   ├── lsp/             # Tabla de lenguajes y traducción de coordenadas
 │   │   │   ├── keybindings/     # Parser y resolver de atajos
 │   │   │   └── settings/        # Schema y validación
 │   ├── ipc-contract/            # Tipos compartidos main ↔ renderer
 │   ├── extension-api/           # API pública para extensiones
 │   ├── extension-host/          # Runtime del host de extensiones
-│   └── ui/                      # Design system
+│   └── ui/                      # Design system — **todavía no existe, a propósito**
 ├── extensions/
 │   ├── theme-nord/              # Extensión de ejemplo — tema
 │   └── word-count/              # Extensión de ejemplo — status bar
@@ -79,6 +81,10 @@ pastecode/
 ├── CLAUDE.md
 └── package.json
 ```
+
+> **`ui/` sigue sin existir y es deliberado.** Un design system se extrae de componentes que ya se repiten, no se escribe antes de tenerlos. Al cerrar la Etapa 4 los candidatos son dos —`QuickPick`, que la paleta, quick open y el selector de ramas comparten sin tocarlo, y el lienzo virtualizado que la búsqueda y el panel de problemas comparten por CSS—. Dos casos no son un sistema; cuando haya cuatro, se extrae.
+>
+> El main de la Etapa 4 gana además `src/main/lsp/` y `src/main/git/`, cada uno con su servicio y su resolución de ejecutable, y `src/renderer/features/` gana `lsp/`, `git/` y `problems/`.
 
 ## Regla de dependencias
 
