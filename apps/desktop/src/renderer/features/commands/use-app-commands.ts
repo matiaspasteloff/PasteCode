@@ -1,3 +1,4 @@
+import type { Command } from '@pastecode/core';
 import { useEffect } from 'react';
 
 import { useCommandStore } from '../../stores/command-store.js';
@@ -27,26 +28,54 @@ import { viewCommands } from '../workspace/view-commands.js';
  */
 export function useAppCommands(): void {
   const register = useCommandStore((state) => state.register);
+  const unregister = useCommandStore((state) => state.unregister);
 
   useEffect(() => {
-    const openWorkspace = useWorkspaceStore.getState().open;
-    const editor = useEditorStore.getState();
+    const commands = appCommands();
 
-    // `getState()` y no el hook: el registro corre una sola vez y las acciones
-    // de Zustand son estables, así que suscribirse sólo agregaría re-renders.
-    register({
+    for (const command of commands) register(command);
+
+    // La baja no es higiene opcional: `StrictMode` monta el efecto, lo
+    // desmonta y lo vuelve a montar en desarrollo justo para sacar a la luz
+    // los efectos que no se pueden repetir. Sin esto, el segundo montaje
+    // vuelve a registrar `workspace.open`, el registro lanza
+    // `DuplicateCommandError` —registrar dos veces es un error a propósito— y
+    // la app queda en blanco. En producción no pasaba, así que el bug sólo se
+    // veía con `pnpm dev`.
+    return () => {
+      for (const command of commands) unregister(command.id);
+    };
+  }, [register, unregister]);
+}
+
+/**
+ * Los comandos del cascarón, los que no son de ninguna feature en particular,
+ * más los que cada feature aporta.
+ *
+ * Es una función y no una constante de módulo porque los handlers leen los
+ * stores en el momento de construirse: evaluarla al importar el módulo los
+ * ataría al estado inicial.
+ *
+ * @returns Los comandos, listos para registrar.
+ */
+function appCommands(): readonly Command[] {
+  // `getState()` y no el hook: el registro corre una sola vez y las acciones
+  // de Zustand son estables, así que suscribirse sólo agregaría re-renders.
+  const openWorkspace = useWorkspaceStore.getState().open;
+  const editor = useEditorStore.getState();
+
+  return [
+    {
       id: 'workspace.open',
       title: 'command.workspaceOpen',
       handler: () => openWorkspace(),
-    });
-
-    register({
+    },
+    {
       id: 'file.save',
       title: 'command.fileSave',
       handler: () => useEditorStore.getState().save(),
-    });
-
-    register({
+    },
+    {
       id: 'file.closeTab',
       title: 'command.fileCloseTab',
       handler: () => {
@@ -57,26 +86,23 @@ export function useAppCommands(): void {
           state.closeTab(activeGroupId(state), tabs.activeTabIndex);
         }
       },
-    });
-
-    register({
+    },
+    {
       id: 'view.cycleTheme',
       title: 'command.viewCycleTheme',
       handler: () => {
         useThemeStore.getState().cycleTheme();
       },
-    });
-
-    register({
+    },
+    {
       id: 'file.closeAll',
       title: 'command.fileCloseAll',
       handler: editor.closeAll,
-    });
-
-    for (const command of terminalCommands()) register(command);
-    for (const command of searchCommands()) register(command);
-    for (const command of gitCommands()) register(command);
-    for (const command of fileCommands()) register(command);
-    for (const command of viewCommands()) register(command);
-  }, [register]);
+    },
+    ...terminalCommands(),
+    ...searchCommands(),
+    ...gitCommands(),
+    ...fileCommands(),
+    ...viewCommands(),
+  ];
 }

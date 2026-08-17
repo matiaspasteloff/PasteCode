@@ -13,6 +13,7 @@ interface CommandState {
   error: SerializedError | null;
 
   register: (command: Command) => void;
+  unregister: (id: string) => void;
   openPalette: () => void;
   closePalette: () => void;
   run: (id: string, ...args: unknown[]) => Promise<void>;
@@ -39,6 +40,11 @@ export const useCommandStore = create<CommandState>((set, get) => ({
 
   register: (command) => {
     get().registry.register(command);
+    set({ revision: get().revision + 1 });
+  },
+
+  unregister: (id) => {
+    get().registry.unregister(id);
     set({ revision: get().revision + 1 });
   },
 
