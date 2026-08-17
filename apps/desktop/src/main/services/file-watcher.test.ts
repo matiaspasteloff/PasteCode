@@ -60,6 +60,28 @@ describe('startFileWatcher', () => {
     await new Promise((resolve) => setTimeout(resolve, 300));
   }
 
+  /**
+   * Espera a que el watcher deje de reportar y descarta lo reportado.
+   *
+   * Los 300ms de `start` son una apuesta a que el escaneo inicial ya terminó, y
+   * en un runner lento —macOS en el CI— esa apuesta se pierde: el alta del
+   * archivo que el test creó **antes** de arrancar aparece después, y un caso
+   * que afirma que cierta ruta no está en los lotes falla por ruido de arranque
+   * en vez de por lo que quiere probar. Esperar el silencio en lugar de un
+   * plazo fijo hace que el test mida la supresión de escritura propia y nada
+   * más.
+   */
+  async function settleAndForget(): Promise<void> {
+    let seen = -1;
+
+    while (seen !== batches.length) {
+      seen = batches.length;
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+
+    batches.length = 0;
+  }
+
   it('avisa cuando se crea un archivo', async () => {
     await start();
 
@@ -121,6 +143,7 @@ describe('startFileWatcher', () => {
     const file = join(root, 'propio.ts');
     await writeFile(file, 'inicial');
     await start();
+    await settleAndForget();
 
     watcher.noteOwnWrite(file);
     await writeFile(file, 'guardado por nosotros');
@@ -134,6 +157,10 @@ describe('startFileWatcher', () => {
     const file = join(root, 'propio.ts');
     await writeFile(file, 'inicial');
     await start();
+    // Sin esto la espera de abajo se puede dar por satisfecha con el alta del
+    // escaneo inicial, y el test pasaría sin haber visto nunca el cambio
+    // externo que dice verificar.
+    await settleAndForget();
 
     watcher.noteOwnWrite(file);
     await writeFile(file, 'primera');
