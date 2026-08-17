@@ -41,6 +41,19 @@ export default defineConfig({
         'src/main/windows/**',
         // Punto de entrada del renderer: monta el root de React y nada más.
         'src/renderer/main.tsx',
+        // La capa que le habla a la API de Monaco, por el mismo criterio que
+        // `src/main/windows/**`: sin el editor vivo, testearla es escribir un
+        // doble de `monaco.editor` y verificar que se llamó a ese doble. Lo que
+        // hace se verifica en el E2E, contra Monaco de verdad. Ver
+        // [ADR-0024](../../docs/adr/0024-cobertura-sin-la-capa-de-monaco.md).
+        'src/renderer/features/editor/MonacoEditor.tsx',
+        'src/renderer/features/editor/monaco-instance.ts',
+        'src/renderer/features/editor/monaco-setup.ts',
+        'src/renderer/features/editor/model-registry.ts',
+        'src/renderer/features/editor/navigation.ts',
+        'src/renderer/features/editor/use-cursor-position.ts',
+        'src/renderer/features/editor/use-monaco-editor.ts',
+        'src/renderer/features/editor/use-reveal-position.ts',
       ],
       // Los umbrales de docs/convenciones/testing.md, por carpeta. Un único
       // umbral global dejaría que la cobertura alta del main tape un renderer
