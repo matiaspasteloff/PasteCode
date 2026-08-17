@@ -1,5 +1,6 @@
 import {
   CheckoutBranchRequestSchema,
+  GetFileDiffRequestSchema,
   GetGitStatusRequestSchema,
   GitCommitRequestSchema,
   GitPathsRequestSchema,
@@ -12,14 +13,17 @@ import { startGitWatcher } from '../git/git-watcher.js';
 import {
   checkoutBranch,
   commitStaged,
+  fileDiffHunks,
   gitRepositoryStatus,
   listBranches,
   resetGitRepository,
   stageFiles,
   unstageFiles,
 } from '../git/service.js';
+import { resolveInsideWorkspace } from '../services/path-guard.js';
 import { currentSettings } from '../services/settings.js';
 import { registerDisposer } from '../services/shutdown.js';
+import { requireWorkspaceRoot } from '../services/workspace.js';
 
 import { emit } from './emitter.js';
 import { registerHandler } from './handler.js';
@@ -157,6 +161,14 @@ export function registerGitIpcHandlers(): void {
 
   registerHandler('git:listBranches', ListBranchesRequestSchema, async () => ({
     branches: await listBranches(),
+  }));
+
+  registerHandler('git:getFileDiff', GetFileDiffRequestSchema, async (payload) => ({
+    // RNF-11, sin excepciones: la ruta se valida contra el workspace aunque el
+    // repositorio pueda ser más grande que él.
+    hunks: await fileDiffHunks(
+      await resolveInsideWorkspace(payload.path, requireWorkspaceRoot())
+    ),
   }));
 
   registerHandler('git:checkoutBranch', CheckoutBranchRequestSchema, async (payload) => {

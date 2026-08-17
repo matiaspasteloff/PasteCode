@@ -6,6 +6,7 @@ import { useFileTreeStore } from '../../stores/file-tree-store.js';
 import { useProblemsStore } from '../../stores/problems-store.js';
 import { useWorkspaceStore } from '../../stores/workspace-store.js';
 import { releaseAllModels } from '../editor/model-registry.js';
+import { clearGutter } from '../git/gutter.js';
 import { forgetLspDocuments } from '../lsp/document-sync.js';
 
 /**
@@ -44,6 +45,7 @@ export function useWorkspaceReset(): void {
     // de archivos que ya no se pueden abrir.
     clearProblems();
     forgetLspDocuments();
+    clearGutter();
 
     if (workspace === null) clearTree();
     else void loadRoot(workspace.root);

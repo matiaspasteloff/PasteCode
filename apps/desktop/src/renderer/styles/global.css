@@ -1106,3 +1106,29 @@ body {
 .file-tree__name--conflict {
   color: var(--color-git-conflict);
 }
+
+/*
+ * RF-605: la franja del gutter, no la línea entera. Pintar la línea pelearía
+ * con la selección y con los subrayados del LSP, que ocupan el mismo lugar.
+ */
+.git-gutter {
+  width: 3px !important;
+  margin-left: 3px;
+}
+
+.git-gutter--added {
+  background: var(--color-git-added);
+}
+
+.git-gutter--modified {
+  background: var(--color-git-modified);
+}
+
+/* Un borrado no tiene líneas que marcar: se dibuja como un triángulo en el
+   borde entre las dos que quedaron pegadas. */
+.git-gutter--deleted {
+  width: 0 !important;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 4px solid var(--color-git-deleted);
+}

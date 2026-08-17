@@ -81,4 +81,31 @@ export const CheckoutBranchRequestSchema = z.strictObject({
 
 export const CheckoutBranchResponseSchema = z.strictObject({});
 
+/** Qué le pasó a un bloque de líneas. Es la unión de `DiffHunkKind` de core. */
+export const DIFF_HUNK_KINDS = ['added', 'modified', 'deleted'] as const;
+
+/**
+ * Un bloque contiguo de líneas cambiadas, en coordenadas del archivo actual.
+ *
+ * Sale de las cabeceras `@@` de `git diff -U0` y no de un algoritmo de diff
+ * propio: quince líneas de función pura contra sesenta de Myers, y encima
+ * coincide exactamente con lo que git considera cambiado.
+ */
+export const DiffHunkSchema = z.strictObject({
+  startLine: z.int().min(1),
+  /** Cero en un borrado: lo que se borró no está, y la marca va en el borde. */
+  lineCount: z.int().min(0),
+  kind: z.enum(DIFF_HUNK_KINDS),
+});
+
+/** Payload de `git:getFileDiff`. La ruta es absoluta, como en todo el contrato. */
+export const GetFileDiffRequestSchema = z.strictObject({
+  path: z.string().min(1),
+});
+
+/** Respuesta de `git:getFileDiff`: los bloques, o una lista vacía sin cambios. */
+export const GetFileDiffResponseSchema = z.strictObject({
+  hunks: z.array(DiffHunkSchema),
+});
+
 export type GitRepository = z.infer<typeof GitRepositorySchema>;

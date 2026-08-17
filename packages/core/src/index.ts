@@ -38,6 +38,8 @@ export {
   buildToplevelArgs,
   buildUnstageArgs,
 } from './git/args.js';
+export { parseDiffHunks } from './git/diff-hunks.js';
+export type { DiffHunk, DiffHunkKind } from './git/diff-hunks.js';
 export { parseBranchList, parsePorcelainV2, parseToplevel } from './git/porcelain.js';
 export { EMPTY_GIT_STATUS } from './git/status.js';
 export type { GitBranchInfo, GitFileChange, GitFileStatus, GitStatus } from './git/status.js';

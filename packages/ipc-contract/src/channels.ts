@@ -17,6 +17,8 @@ import type {
   WriteFileResponseSchema,
 } from './schemas/fs.js';
 import type {
+  GetFileDiffRequestSchema,
+  GetFileDiffResponseSchema,
   CheckoutBranchRequestSchema,
   CheckoutBranchResponseSchema,
   GetGitStatusRequestSchema,
@@ -222,6 +224,10 @@ export interface IpcChannels {
   'git:checkoutBranch': {
     request: z.infer<typeof CheckoutBranchRequestSchema>;
     response: z.infer<typeof CheckoutBranchResponseSchema>;
+  };
+  'git:getFileDiff': {
+    request: z.infer<typeof GetFileDiffRequestSchema>;
+    response: z.infer<typeof GetFileDiffResponseSchema>;
   };
   'clipboard:readText': {
     request: z.infer<typeof ReadClipboardRequestSchema>;

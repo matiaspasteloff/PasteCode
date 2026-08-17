@@ -16,6 +16,7 @@ import { useExternalChanges } from './features/editor/use-external-changes.js';
 import { FilePalette } from './features/files/FilePalette.js';
 import { BranchPicker } from './features/git/BranchPicker.js';
 import { useGitEvents } from './features/git/use-git-events.js';
+import { useGutter } from './features/git/use-gutter.js';
 import { useLsp } from './features/lsp/use-lsp.js';
 import { useSearchEvents } from './features/search/use-search-events.js';
 import { useSession } from './features/session/use-session.js';
@@ -41,6 +42,7 @@ export function App(): React.JSX.Element {
   useExternalChanges();
   useLsp();
   useGitEvents();
+  useGutter();
   useTheme();
   useWorkspaceReset();
 

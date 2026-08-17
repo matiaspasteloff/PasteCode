@@ -1,14 +1,18 @@
-import type { GitStatus } from '@pastecode/core';
+import { relative, sep } from 'node:path';
+
+import type { DiffHunk, GitStatus } from '@pastecode/core';
 import {
   buildBranchListArgs,
   buildCheckoutArgs,
   buildCommitArgs,
+  buildFileDiffArgs,
   buildStageArgs,
   buildStatusArgs,
   buildToplevelArgs,
   buildUnstageArgs,
   GitUnavailableError,
   parseBranchList,
+  parseDiffHunks,
   parsePorcelainV2,
   parseToplevel,
 } from '@pastecode/core';
@@ -228,4 +232,32 @@ export async function listBranches(): Promise<string[]> {
  */
 export async function checkoutBranch(branch: string): Promise<void> {
   await runGit({ ...requireGit(), args: buildCheckoutArgs(branch) });
+}
+
+/**
+ * Los bloques cambiados de un archivo ([RF-605](../../../../../docs/03-requerimientos-funcionales.md)).
+ *
+ * Devuelve una lista vacía —y no un error— cuando no hay git o el archivo no
+ * cambió: el gutter es decoración, y hacer que una pestaña no se pueda abrir
+ * porque git no está instalado sería absurdo.
+ *
+ * @param absolutePath Ruta absoluta, ya validada contra el workspace.
+ * @returns Los bloques, en el orden en que git los escribió.
+ * @example
+ * const hunks = await fileDiffHunks('C:\p\src\a.ts');
+ */
+export async function fileDiffHunks(absolutePath: string): Promise<DiffHunk[]> {
+  const active = activeGit();
+
+  if (active === null || (await detectRepository()) === null) return [];
+
+  // git acepta rutas relativas al `cwd`, y el `cwd` es la raíz del workspace.
+  // Se normaliza el separador porque git habla con `/` en las dos plataformas.
+  const relativePath = relative(active.cwd, absolutePath).split(sep).join('/');
+
+  if (relativePath === '' || relativePath.startsWith('..')) return [];
+
+  return runGit({ ...active, args: buildFileDiffArgs(relativePath) })
+    .then(parseDiffHunks)
+    .catch(() => []);
 }

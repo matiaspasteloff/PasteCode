@@ -17,6 +17,10 @@ export type {
   TerminalExitEvent,
 } from './events.js';
 export {
+  DIFF_HUNK_KINDS,
+  DiffHunkSchema,
+  GetFileDiffRequestSchema,
+  GetFileDiffResponseSchema,
   CheckoutBranchRequestSchema,
   CheckoutBranchResponseSchema,
   GetGitStatusRequestSchema,
