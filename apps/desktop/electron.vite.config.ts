@@ -12,9 +12,24 @@ const DEV_SERVER_PORT = 5173;
 // después de instalar, nunca en desarrollo.
 const WORKSPACE_PACKAGES = ['@pastecode/core', '@pastecode/ipc-contract'];
 
+// Lo mismo, pero para una dependencia de verdad. `chokidar` lo importa el main,
+// así que externalizarlo lo deja como un `require` que dentro del asar no
+// resuelve: la app instalada moría al arrancar con "Cannot find module
+// 'chokidar'" mientras `pnpm dev` y los E2E —que corren sobre `out/`, con el
+// node_modules al lado— pasaban sin una queja.
+//
+// Se bundlea en vez de agregarlo a `files` de electron-builder.yml porque es JS
+// puro: así no hay que acordarse de arrastrar también a `readdirp`, su única
+// dependencia, ni a lo que `readdirp` sume mañana. Lo que **no** se puede
+// bundlear es node-pty, que es un binario nativo, ni ripgrep, que es un
+// ejecutable; ésos sí viajan como módulos y están declarados allá.
+const BUNDLED_DEPENDENCIES = ['chokidar'];
+
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin({ exclude: WORKSPACE_PACKAGES })],
+    plugins: [
+      externalizeDepsPlugin({ exclude: [...WORKSPACE_PACKAGES, ...BUNDLED_DEPENDENCIES] }),
+    ],
     build: {
       rollupOptions: { input: resolve(__dirname, 'src/main/index.ts') },
     },
