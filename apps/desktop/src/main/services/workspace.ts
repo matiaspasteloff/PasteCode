@@ -1,7 +1,23 @@
-import { realpath } from 'node:fs/promises';
+import { realpath as realpathWithCallback } from 'node:fs';
+import { promisify } from 'node:util';
 
 import { FileAccessError, workspaceDisplayName, WorkspaceNotOpenError } from '@pastecode/core';
 import type { WorkspaceInfo } from '@pastecode/ipc-contract';
+
+/**
+ * `realpath` que además expande los nombres 8.3 de Windows.
+ *
+ * La implementación en JS de `node:fs/promises` resuelve symlinks pero deja
+ * `C:\PROGRA~1` tal cual, y esa mitad no es opcional: la raíz que se guarda acá
+ * termina en `startFileWatcher` y `startGitWatcher`, y un watcher de libuv sobre
+ * una ruta corta **aborta el proceso** —`Assertion failed: !_wcsnicmp(filename,
+ * dir, dirlen)`, `src\win\fs-event.c`—. Un abort en el main no es un error que
+ * se pueda reportar: se lleva la ventana, la sesión y las pestañas sin guardar.
+ *
+ * `node:fs/promises` no expone la variante nativa, así que se promisifica la de
+ * `node:fs`.
+ */
+const realpath = promisify(realpathWithCallback.native);
 
 /**
  * Workspace abierto, en memoria.
@@ -34,7 +50,9 @@ export function getWorkspace(): WorkspaceInfo | null {
  * Resuelve la raíz con `realpath` antes de guardarla. No es un detalle: todo
  * `isInsideRoot` posterior compara contra este valor, y si la raíz quedara sin
  * resolver mientras las rutas candidatas sí se resuelven, un workspace abierto
- * a través de un symlink rechazaría todos sus propios archivos.
+ * a través de un symlink rechazaría todos sus propios archivos. Y en Windows
+ * hace además que la raíz nunca llegue a un watcher en formato 8.3, que es lo
+ * que evita un abort del main.
  *
  * @param root Ruta absoluta de la carpeta elegida.
  * @returns El workspace abierto, con su nombre para mostrar.

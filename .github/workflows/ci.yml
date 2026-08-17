@@ -66,6 +66,20 @@ jobs:
   test:
     name: Tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    env:
+      # Los tests que vigilan un directorio lo crean con `mkdtemp` bajo
+      # `os.tmpdir()`, y en el runner de Windows esa variable apunta al perfil
+      # del usuario: `C:\Users\RUNNER~1\...`, en formato 8.3 porque
+      # `runneradmin` pasa los ocho caracteres. libuv resuelve la forma larga
+      # para reportar el cambio, la compara contra el directorio corto que se le
+      # dio, no coincide, y **aborta el proceso** —`src\win\fs-event.c`—; el
+      # worker de vitest desaparece sin reportar sus tests. libuv le puso un
+      # fallback recién en junio de 2026, así que el runner puede tener un Node
+      # anterior. `runner.temp` ya es una ruta larga, y además está en el disco
+      # rápido. `makeTempDirectory` cubre lo mismo del lado del código: son dos
+      # capas para el mismo agujero, a propósito.
+      TEMP: ${{ runner.temp }}
+      TMP: ${{ runner.temp }}
     strategy:
       # Que falle en Windows no cancela la corrida de macOS: cuando un test es
       # específico de una plataforma, querés ver en cuáles pasa y en cuáles no.
