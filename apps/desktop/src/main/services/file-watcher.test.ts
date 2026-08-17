@@ -25,6 +25,13 @@ function pathsOf(batches: readonly FileChangeBatch[]): string[] {
   return batches.flatMap((batch) => batch.changes.map((change) => change.path));
 }
 
+/** Si llegó un cambio de esa clase para esa ruta, en cualquier lote. */
+function sawChange(batches: readonly FileChangeBatch[], path: string, kind: string): boolean {
+  return batches.some((batch) =>
+    batch.changes.some((change) => change.path === path && change.kind === kind)
+  );
+}
+
 describe('startFileWatcher', () => {
   let root: string;
   let watcher: FileWatcher;
@@ -69,9 +76,14 @@ describe('startFileWatcher', () => {
     await start();
 
     await rm(file);
-    await waitFor(() => pathsOf(batches).length > 0, 'nunca llegó la baja');
 
-    expect(batches.at(-1)?.changes.at(-1)).toMatchObject({ path: file, kind: 'deleted' });
+    // Se espera **la baja**, no el primer cambio que llegue. Borrar un archivo
+    // no siempre produce un solo evento: en macOS aparece un cambio de
+    // contenido antes del `unlink`, así que mirar el último cambio recibido
+    // apenas llegó alguno leía el evento equivocado.
+    await waitFor(() => sawChange(batches, file, 'deleted'), 'nunca llegó la baja');
+
+    expect(sawChange(batches, file, 'deleted')).toBe(true);
   });
 
   it('no vigila lo que está excluido', async () => {
@@ -125,7 +137,10 @@ describe('startFileWatcher', () => {
 
     watcher.noteOwnWrite(file);
     await writeFile(file, 'primera');
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    // Bien afuera de la gracia con la que el watcher se traga los coletazos de
+    // una misma escritura: lo que se verifica acá es la semántica —la marca no
+    // vale para siempre— y no dónde cae exactamente ese borde.
+    await new Promise((resolve) => setTimeout(resolve, 1200));
     await writeFile(file, 'segunda, esta es externa');
 
     await waitFor(() => pathsOf(batches).includes(file), 'nunca avisó el cambio externo');

@@ -37,6 +37,9 @@ const SERVER_WARMUP_MS = 30_000;
 /** Dónde deja el renderer las mediciones, para que Playwright las lea. */
 const PROBE_KEY = '__pastecodeLspLatency';
 
+/** Lo mismo, para la sonda del popup de completado. */
+const SUGGEST_PROBE_KEY = '__pastecodeCompletionLatency';
+
 /**
  * Instala una sonda que cronometra hasta que el contador de problemas cambie.
  *
@@ -67,26 +70,62 @@ async function installProbe(window: Page, selector: string): Promise<void> {
   );
 }
 
+/**
+ * Instala una sonda que cronometra hasta que el popup de completado se ve.
+ *
+ * Es la de arriba pero mirando una condición y no cualquier mutación: adentro
+ * del editor pasan cosas todo el tiempo —el cursor parpadea, el token que se
+ * escribió se re-tokeniza— y un observador que acepta la primera mutación que
+ * ve mediría eso. Acá cada mutación pregunta si el popup ya está visible, y la
+ * muestra se toma recién cuando lo está.
+ *
+ * Se observa `document.body` porque Monaco puede montar el widget afuera del
+ * `.monaco-editor`, en su contenedor de widgets que desbordan.
+ */
+async function installSuggestProbe(window: Page): Promise<void> {
+  await window.evaluate((key: string) => {
+    const samples: number[] = [];
+    const probe = { startedAt: 0, samples };
+
+    Reflect.set(globalThis, key, probe);
+
+    const check = (): void => {
+      if (probe.startedAt === 0) return;
+      if (document.querySelector('.suggest-widget.visible') === null) return;
+
+      samples.push(performance.now() - probe.startedAt);
+      probe.startedAt = 0;
+    };
+
+    new MutationObserver(check).observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['class', 'style'],
+    });
+  }, SUGGEST_PROBE_KEY);
+}
+
 /** Arranca el cronómetro justo antes de la acción que se mide. */
-async function startTiming(window: Page): Promise<void> {
+async function startTiming(window: Page, key: string = PROBE_KEY): Promise<void> {
   await window.evaluate((key: string) => {
     const probe: unknown = Reflect.get(globalThis, key);
 
     if (typeof probe === 'object' && probe !== null && 'startedAt' in probe) {
       Reflect.set(probe, 'startedAt', performance.now());
     }
-  }, PROBE_KEY);
+  }, key);
 }
 
 /** Las muestras acumuladas por la sonda. */
-async function samplesOf(window: Page): Promise<number[]> {
+async function samplesOf(window: Page, key: string = PROBE_KEY): Promise<number[]> {
   const reported: unknown = await window.evaluate((key: string): unknown => {
     const probe: unknown = Reflect.get(globalThis, key);
 
     if (typeof probe !== 'object' || probe === null || !('samples' in probe)) return [];
 
     return Reflect.get(probe, 'samples');
-  }, PROBE_KEY);
+  }, key);
 
   return Array.isArray(reported)
     ? reported.filter((sample): sample is number => typeof sample === 'number')
@@ -188,22 +227,27 @@ test('RF-402: latencia del popup de completado', async () => {
 
   test.skip(!session.isReady, 'No se pudo enlazar typescript en el workspace de prueba');
 
-  await installProbe(session.window, '.monaco-editor');
+  await installSuggestProbe(session.window);
   await session.window.locator('.monaco-editor .view-lines').click();
   await session.window.keyboard.press('Control+End');
 
-  const values: number[] = [];
-
-  for (let sample = 0; sample < SAMPLES; sample += 1) {
+  /**
+   * Pide un completado y espera a que el popup se vea.
+   *
+   * El número no sale de acá: lo toma la sonda adentro del renderer. Este
+   * `waitFor` sólo secuencia el ciclo —no seguir hasta que el popup esté— y su
+   * costo de protocolo queda **afuera** de la medición, que es todo el punto.
+   * Medir con `Date.now()` de este lado era meter el ida y vuelta de la
+   * automatización adentro de un presupuesto de 200ms.
+   */
+  async function requestCompletion(): Promise<void> {
     await session.window.keyboard.type('sal');
-
-    const startedAt = Date.now();
-
+    await startTiming(session.window, SUGGEST_PROBE_KEY);
     await session.window.keyboard.press('Control+Space');
+
     await session.window
       .locator('.suggest-widget.visible')
       .waitFor({ state: 'visible', timeout: 5000 })
-      .then(() => values.push(Date.now() - startedAt))
       .catch(() => undefined);
 
     await session.window.keyboard.press('Escape');
@@ -212,6 +256,27 @@ test('RF-402: latencia del popup de completado', async () => {
       await session.window.keyboard.press('Backspace');
     }
   }
+
+  // La primera pedida se descarta, como en el resto de la suite. `tsserver`
+  // arma la caché de completado del archivo la primera vez que se le pregunta:
+  // esa muestra mide la construcción de la caché y no lo que RF-402 promete,
+  // que es lo que tarda el popup mientras alguien trabaja. Con veinte muestras
+  // el p95 es la segunda peor, así que esa única corrida fría era la que
+  // decidía el número.
+  await requestCompletion();
+  await session.window.evaluate((key: string) => {
+    const probe: unknown = Reflect.get(globalThis, key);
+
+    if (typeof probe === 'object' && probe !== null && 'samples' in probe) {
+      Reflect.set(probe, 'samples', []);
+    }
+  }, SUGGEST_PROBE_KEY);
+
+  for (let sample = 0; sample < SAMPLES; sample += 1) {
+    await requestCompletion();
+  }
+
+  const values = await samplesOf(session.window, SUGGEST_PROBE_KEY);
 
   await session.close();
 

@@ -27,6 +27,24 @@ const BULK_THRESHOLD = 500;
 /** Cuánto se recuerda una escritura propia antes de olvidarla. */
 const OWN_WRITE_TTL_MS = 5000;
 
+/**
+ * Cuánto se sigue tragando un archivo después de consumir su marca.
+ *
+ * Una escritura no siempre produce **un** evento. En macOS, `fsevents` emite el
+ * truncado y el volcado por separado, y `awaitWriteFinish` los junta sólo
+ * cuando caen adentro de su ventana de estabilidad. Con la marca consumida por
+ * el primero, el segundo pasaba como cambio externo: exactamente la recarga
+ * espuria que `noteOwnWrite` existe para evitar, y que en el CI de macOS se veía
+ * como el test de escritura propia fallando.
+ *
+ * La gracia se cuenta desde que llega el **primer** evento y no desde que se
+ * puso la marca, que es lo que la vuelve estable en un runner lento: si todo
+ * llega tarde, la ventana llega tarde con ello. Y es corta a propósito, porque
+ * un cambio externo de verdad sobre el archivo recién guardado tiene que
+ * avisarse igual.
+ */
+const DUPLICATE_GRACE_MS = 250;
+
 /** Qué le pasó a un archivo. Los tres casos que el renderer distingue. */
 type FileChangeKind = 'created' | 'modified' | 'deleted';
 
@@ -95,6 +113,8 @@ export function startFileWatcher(config: FileWatcherConfig): FileWatcher {
   const isExcluded = createExclusionMatcher(config.excludeGlobs);
   /** Ruta → `mtime` del momento en que la escribimos nosotros. */
   const ownWrites = new Map<string, number>();
+  /** Ruta → hasta cuándo se siguen tragando los coletazos de esa escritura. */
+  const swallowUntil = new Map<string, number>();
   const pending = new Map<string, FileChangeKind>();
   let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -112,7 +132,7 @@ export function startFileWatcher(config: FileWatcherConfig): FileWatcher {
   }
 
   function record(path: string, kind: FileChangeKind): void {
-    if (consumeOwnWrite(ownWrites, path)) return;
+    if (isOurs(ownWrites, swallowUntil, path)) return;
 
     // La última noticia gana: si un archivo se creó y se modificó en la misma
     // ráfaga, lo que el renderer necesita saber es que ahora existe y cambió.
@@ -176,6 +196,36 @@ function shouldIgnore(
   if (relativePath === '') return false;
 
   return isExcluded(relativePath.split(sep).join('/'));
+}
+
+/**
+ * Si el cambio lo produjimos nosotros y hay que tragárselo.
+ *
+ * Son dos casos: el evento que consume la marca, y los coletazos de esa misma
+ * escritura que llegan enseguida detrás. Ver `DUPLICATE_GRACE_MS`.
+ */
+function isOurs(
+  ownWrites: Map<string, number>,
+  swallowUntil: Map<string, number>,
+  path: string
+): boolean {
+  if (consumeOwnWrite(ownWrites, path)) {
+    swallowUntil.set(path, Date.now() + DUPLICATE_GRACE_MS);
+
+    return true;
+  }
+
+  const graceEndsAt = swallowUntil.get(path);
+
+  if (graceEndsAt === undefined) return false;
+
+  // La gracia no se extiende con cada coletazo: se mide una vez desde el primer
+  // evento y se vence, o un archivo que cambia seguido no avisaría nunca.
+  if (Date.now() < graceEndsAt) return true;
+
+  swallowUntil.delete(path);
+
+  return false;
 }
 
 /**

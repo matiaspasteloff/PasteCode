@@ -1,6 +1,6 @@
 import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { delimiter, join } from 'node:path';
+import { join, posix, win32 } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -22,6 +22,10 @@ async function fakeGit(directory: string): Promise<string> {
   return path;
 }
 
+// Estos cuatro le preguntan por una plataforma concreta, así que las
+// expectativas se escriben con la gramática de esa plataforma y no con la del
+// sistema que corre el test. Con `join` a secas, el caso de Windows pasaba en
+// Windows y fallaba en Linux y macOS sin que la función tuviera nada malo.
 describe('gitSearchDirectories', () => {
   it('pone los directorios conocidos antes que los del PATH', () => {
     const directories = gitSearchDirectories(
@@ -29,17 +33,18 @@ describe('gitSearchDirectories', () => {
       'win32'
     );
 
-    expect(directories.indexOf(join('C:\\Archivos', 'Git', 'cmd'))).toBeLessThan(
+    expect(directories.indexOf(win32.join('C:\\Archivos', 'Git', 'cmd'))).toBeLessThan(
       directories.indexOf('C:\\otro')
     );
   });
 
   it('descarta las entradas relativas del PATH', () => {
     const directories = gitSearchDirectories(
-      { PATH: ['.', '..', '/usr/x'].join(delimiter) },
+      { PATH: ['.', '..', '/usr/x'].join(posix.delimiter) },
       'linux'
     );
 
+    expect(directories).toContain('/usr/x');
     expect(directories).not.toContain('.');
     expect(directories).not.toContain('..');
   });

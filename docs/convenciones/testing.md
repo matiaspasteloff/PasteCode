@@ -164,6 +164,8 @@ test('abrir workspace, editar archivo y guardar', async () => {
 | `apps/desktop/src/renderer` | 50%              |
 | **Global**                  | **60%**          |
 
+Del denominador queda afuera lo que **no se puede ejercer sin el programa vivo**, que es trabajo del E2E y no del test unitario: el arranque y la creación de ventanas del main, el punto de entrada del renderer, y la capa que le habla a la API de Monaco ([ADR-0024](../adr/0024-cobertura-sin-la-capa-de-monaco.md)). La lista exacta vive en el `vitest.config.ts` de cada paquete. Excluir algo de ahí es una decisión que se argumenta, no un atajo para que el número suba: si un módulo se puede testear sin mentir, se testea.
+
 El CI falla si la cobertura queda **por debajo de estos umbrales absolutos**, no si baja respecto de `main`. Es el mismo razonamiento de [ADR-0015](../adr/0015-presupuestos-absolutos-de-performance.md): un umbral relativo convierte cualquier PR grande y bien testeado en un fallo cuando toca código que ya estaba mejor cubierto que el promedio, y obliga a tener un `main` de referencia disponible en cada corrida. Ver [RNF-17](../04-requerimientos-no-funcionales.md#mantenibilidad).
 
 ---
