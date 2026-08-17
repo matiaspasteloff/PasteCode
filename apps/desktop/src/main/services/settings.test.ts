@@ -1,9 +1,10 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { Settings } from '@pastecode/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { makeTempDirectory } from '../test-support/temp-directory.js';
 
 import {
   currentSettings,
@@ -40,8 +41,8 @@ async function writeLayer(path: string, contents: string): Promise<void> {
 }
 
 beforeEach(async () => {
-  home = await mkdtemp(join(tmpdir(), 'pastecode-settings-home-'));
-  workspace = await mkdtemp(join(tmpdir(), 'pastecode-settings-ws-'));
+  home = await makeTempDirectory('pastecode-settings-home-');
+  workspace = await makeTempDirectory('pastecode-settings-ws-');
   userFile = join(home, '.pastecode', 'settings.json');
   changes = [];
 

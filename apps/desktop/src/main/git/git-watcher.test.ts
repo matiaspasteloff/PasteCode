@@ -1,8 +1,9 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+import { makeTempDirectory } from '../test-support/temp-directory.js';
 
 import type { GitWatcher } from './git-watcher.js';
 import { startGitWatcher } from './git-watcher.js';
@@ -26,7 +27,7 @@ describe('startGitWatcher', () => {
   let notifications: number;
 
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), 'pastecode-gitwatch-'));
+    root = await makeTempDirectory('pastecode-gitwatch-');
     notifications = 0;
 
     await mkdir(join(root, '.git', 'refs', 'heads'), { recursive: true });

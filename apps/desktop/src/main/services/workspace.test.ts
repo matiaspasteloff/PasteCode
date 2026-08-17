@@ -1,15 +1,16 @@
-import { mkdir, mkdtemp, realpath, rm, symlink } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, rm, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+import { makeTempDirectory } from '../test-support/temp-directory.js';
 
 import { getWorkspace, openWorkspaceAt, requireWorkspaceRoot } from './workspace.js';
 
 let sandbox: string;
 
 beforeEach(async () => {
-  sandbox = await realpath(await mkdtemp(join(tmpdir(), 'pastecode-ws-')));
+  sandbox = await makeTempDirectory('pastecode-ws-');
 });
 
 afterEach(async () => {

@@ -1,8 +1,9 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+import { makeTempDirectory } from '../test-support/temp-directory.js';
 
 import type { FileChangeBatch, FileWatcher } from './file-watcher.js';
 import { startFileWatcher } from './file-watcher.js';
@@ -38,7 +39,7 @@ describe('startFileWatcher', () => {
   let batches: FileChangeBatch[];
 
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), 'pastecode-watch-'));
+    root = await makeTempDirectory('pastecode-watch-');
     batches = [];
   });
 
