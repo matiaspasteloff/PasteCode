@@ -16,6 +16,7 @@ export {
   FileTooLargeError,
   StaleFileError,
 } from './errors/filesystem-errors.js';
+export { GitCommandError, GitUnavailableError } from './errors/git-errors.js';
 export { PasteCodeError } from './errors/pastecode-error.js';
 export {
   backoffDelay,

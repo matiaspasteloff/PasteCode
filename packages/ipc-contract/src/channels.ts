@@ -17,6 +17,18 @@ import type {
   WriteFileResponseSchema,
 } from './schemas/fs.js';
 import type {
+  CheckoutBranchRequestSchema,
+  CheckoutBranchResponseSchema,
+  GetGitStatusRequestSchema,
+  GetGitStatusResponseSchema,
+  GitCommitRequestSchema,
+  GitCommitResponseSchema,
+  GitPathsRequestSchema,
+  GitPathsResponseSchema,
+  ListBranchesRequestSchema,
+  ListBranchesResponseSchema,
+} from './schemas/git.js';
+import type {
   ChangeDocumentRequestSchema,
   ChangeDocumentResponseSchema,
   CloseDocumentRequestSchema,
@@ -186,6 +198,30 @@ export interface IpcChannels {
   'lsp:status': {
     request: z.infer<typeof LspStatusRequestSchema>;
     response: z.infer<typeof LspStatusResponseSchema>;
+  };
+  'git:getStatus': {
+    request: z.infer<typeof GetGitStatusRequestSchema>;
+    response: z.infer<typeof GetGitStatusResponseSchema>;
+  };
+  'git:stage': {
+    request: z.infer<typeof GitPathsRequestSchema>;
+    response: z.infer<typeof GitPathsResponseSchema>;
+  };
+  'git:unstage': {
+    request: z.infer<typeof GitPathsRequestSchema>;
+    response: z.infer<typeof GitPathsResponseSchema>;
+  };
+  'git:commit': {
+    request: z.infer<typeof GitCommitRequestSchema>;
+    response: z.infer<typeof GitCommitResponseSchema>;
+  };
+  'git:listBranches': {
+    request: z.infer<typeof ListBranchesRequestSchema>;
+    response: z.infer<typeof ListBranchesResponseSchema>;
+  };
+  'git:checkoutBranch': {
+    request: z.infer<typeof CheckoutBranchRequestSchema>;
+    response: z.infer<typeof CheckoutBranchResponseSchema>;
   };
   'clipboard:readText': {
     request: z.infer<typeof ReadClipboardRequestSchema>;

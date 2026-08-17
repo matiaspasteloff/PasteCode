@@ -1,6 +1,7 @@
 import type { DocumentDiagnostics, SearchMatch, Settings } from '@pastecode/core';
 
 import type { SerializedError } from './result.js';
+import type { GitRepository } from './schemas/git.js';
 import type { LspServerStatus } from './schemas/lsp.js';
 
 /**
@@ -133,6 +134,19 @@ export interface LspServerChangedEvent {
 }
 
 /**
+ * Payload de `git:changed`: el estado del repositorio, después del cambio.
+ *
+ * Viaja el estado **resuelto** y no un aviso vacío, por lo mismo que
+ * `settings:changed`: el main acaba de correr `git status` para decidir que
+ * había algo que contar, y hacer que el renderer lo vuelva a pedir sería correr
+ * el mismo comando dos veces. `git:getStatus` sigue existiendo porque hace
+ * falta al montar, cuando no hay ningún hecho nuevo que contar.
+ */
+export interface GitChangedEvent {
+  repository: GitRepository | null;
+}
+
+/**
  * Mapa de eventos que el main empuja al renderer. **Es la fuente de verdad**,
  * igual que `IpcChannels` lo es para el request/response.
  *
@@ -158,6 +172,7 @@ export interface IpcEvents {
   'files:changed': FilesChangedEvent;
   'lsp:diagnostics': LspDiagnosticsEvent;
   'lsp:serverChanged': LspServerChangedEvent;
+  'git:changed': GitChangedEvent;
 }
 
 export type EventName = keyof IpcEvents;
@@ -185,6 +200,7 @@ export const EVENT_NAMES = [
   'files:changed',
   'lsp:diagnostics',
   'lsp:serverChanged',
+  'git:changed',
 ] as const satisfies readonly EventName[];
 
 /**

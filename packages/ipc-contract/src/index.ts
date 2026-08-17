@@ -6,6 +6,7 @@ export type {
   EventPayload,
   FileChangePayload,
   FilesChangedEvent,
+  GitChangedEvent,
   IpcEvents,
   LspDiagnosticsEvent,
   LspServerChangedEvent,
@@ -15,6 +16,23 @@ export type {
   TerminalDataEvent,
   TerminalExitEvent,
 } from './events.js';
+export {
+  CheckoutBranchRequestSchema,
+  CheckoutBranchResponseSchema,
+  GetGitStatusRequestSchema,
+  GetGitStatusResponseSchema,
+  GIT_FILE_STATUSES,
+  GitBranchInfoSchema,
+  GitCommitRequestSchema,
+  GitCommitResponseSchema,
+  GitFileChangeSchema,
+  GitPathsRequestSchema,
+  GitPathsResponseSchema,
+  GitRepositorySchema,
+  ListBranchesRequestSchema,
+  ListBranchesResponseSchema,
+} from './schemas/git.js';
+export type { GitRepository } from './schemas/git.js';
 export {
   ChangeDocumentRequestSchema,
   ChangeDocumentResponseSchema,

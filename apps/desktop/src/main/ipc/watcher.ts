@@ -6,6 +6,7 @@ import { currentSettings } from '../services/settings.js';
 import { registerDisposer } from '../services/shutdown.js';
 
 import { emit } from './emitter.js';
+import { scheduleGitRefresh } from './git.js';
 
 /** El watcher del workspace abierto. Hay uno o ninguno. */
 let watcher: FileWatcher | undefined;
@@ -40,6 +41,12 @@ export function startWatchingWorkspace(root: string): void {
       for (const window of BrowserWindow.getAllWindows()) {
         emit(window, 'files:changed', { changes: [...batch.changes], isBulk: batch.isBulk });
       }
+
+      // El fan-out prometido por ADR-0020: un archivo que cambia en el disco
+      // ensucia el estado de Git, lo haya tocado el editor o cualquier otra
+      // cosa. El debounce de `scheduleGitRefresh` es el que impide que un
+      // `git checkout` de mil archivos sean mil `git status`.
+      scheduleGitRefresh();
     },
   });
 }

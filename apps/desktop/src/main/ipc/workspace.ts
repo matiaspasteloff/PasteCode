@@ -11,6 +11,7 @@ import { setSettingsWorkspace } from '../services/settings.js';
 import { SHUTDOWN_GRACE_MS } from '../services/shutdown.js';
 import { getWorkspace, openWorkspaceAt } from '../services/workspace.js';
 
+import { startWatchingGit } from './git.js';
 import { registerHandler } from './handler.js';
 import { startWatchingWorkspace } from './watcher.js';
 
@@ -65,6 +66,9 @@ async function handleOpenWorkspace(): Promise<WorkspaceInfo | null> {
   // Ponerlo en el camino crítico gastaría el presupuesto de RNF-01 en algo que
   // nadie está esperando.
   startWatchingWorkspace(workspace.root);
+  // El segundo scope, angosto: el matcher por defecto excluye `**/.git`, así
+  // que sin esto Git no se entera de un commit hecho desde la terminal.
+  startWatchingGit(workspace.root);
 
   return workspace;
 }
