@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useEditorStore } from '../../stores/editor-store.js';
-import { resetEditorStore, tabsWith } from '../../test-support/editor-state.js';
+import { groupsWith, resetEditorStore } from '../../test-support/editor-state.js';
 
 import { EditorArea } from './EditorArea.js';
 
@@ -51,7 +51,7 @@ describe('EditorArea', () => {
   });
 
   it('muestra el editor con la pestaña activa', () => {
-    useEditorStore.setState({ tabs: tabsWith([A]) });
+    useEditorStore.setState({ groups: groupsWith([A]) });
 
     render(<EditorArea />);
 
@@ -60,7 +60,7 @@ describe('EditorArea', () => {
 
   it('mantiene el editor en pantalla si se está abriendo otro archivo', () => {
     // Sacarlo dejaría la pantalla en blanco entre archivo y archivo.
-    useEditorStore.setState({ tabs: tabsWith([A]), isLoading: true });
+    useEditorStore.setState({ groups: groupsWith([A]), isLoading: true });
 
     render(<EditorArea />);
 

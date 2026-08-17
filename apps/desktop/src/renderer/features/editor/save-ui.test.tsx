@@ -1,9 +1,10 @@
+import type { EditorGroup } from '@pastecode/core';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { useEditorStore } from '../../stores/editor-store.js';
-import { resetEditorStore, tabsWith } from '../../test-support/editor-state.js';
+import { selectActiveTabs, useEditorStore } from '../../stores/editor-store.js';
+import { groupsWith, resetEditorStore } from '../../test-support/editor-state.js';
 import { installFakeApi } from '../../test-support/fake-api.js';
 
 import { ConflictDialog } from './ConflictDialog.js';
@@ -17,17 +18,26 @@ beforeEach(() => {
   resetEditorStore();
 });
 
+/** El grupo primario tal como está en el store ahora mismo. */
+function primaryGroup(): EditorGroup {
+  const [group] = useEditorStore.getState().groups.groups;
+
+  if (group === undefined) throw new Error('El store siempre tiene un grupo');
+
+  return group;
+}
+
 describe('TabStrip', () => {
   it('no muestra nada sin pestañas abiertas', () => {
-    const { container } = render(<TabStrip />);
+    const { container } = render(<TabStrip group={primaryGroup()} />);
 
     expect(container.firstChild).toBeNull();
   });
 
   it('muestra una pestaña por archivo, con el nombre y sin la ruta', () => {
-    useEditorStore.setState({ tabs: tabsWith([A, B]) });
+    useEditorStore.setState({ groups: groupsWith([A, B]) });
 
-    render(<TabStrip />);
+    render(<TabStrip group={primaryGroup()} />);
 
     expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
       'saludo.ts×',
@@ -36,9 +46,9 @@ describe('TabStrip', () => {
   });
 
   it('marca cuál es la pestaña seleccionada', () => {
-    useEditorStore.setState({ tabs: tabsWith([A, B], 1) });
+    useEditorStore.setState({ groups: groupsWith([A, B], 1) });
 
-    render(<TabStrip />);
+    render(<TabStrip group={primaryGroup()} />);
 
     expect(screen.getAllByRole('tab').map((tab) => tab.getAttribute('aria-selected'))).toEqual([
       'false',
@@ -47,19 +57,19 @@ describe('TabStrip', () => {
   });
 
   it('cambia de pestaña al hacer click', async () => {
-    useEditorStore.setState({ tabs: tabsWith([A, B], 0) });
-    render(<TabStrip />);
+    useEditorStore.setState({ groups: groupsWith([A, B], 0) });
+    render(<TabStrip group={primaryGroup()} />);
 
     await userEvent.click(screen.getByTestId('tab-otro.ts'));
 
-    expect(useEditorStore.getState().tabs.activeTabIndex).toBe(1);
+    expect(selectActiveTabs(useEditorStore.getState()).activeTabIndex).toBe(1);
   });
 
   it('muestra el punto de cambios sin guardar sólo en la pestaña sucia', () => {
-    useEditorStore.setState({ tabs: tabsWith([A, B], 1) });
+    useEditorStore.setState({ groups: groupsWith([A, B], 1) });
     useEditorStore.getState().markDirty();
 
-    render(<TabStrip />);
+    render(<TabStrip group={primaryGroup()} />);
 
     expect(screen.getAllByTestId('tab-dirty-indicator')).toHaveLength(1);
   });
@@ -67,13 +77,15 @@ describe('TabStrip', () => {
   it('cierra la pestaña sin activarla primero', async () => {
     // Sin `stopPropagation`, cerrar la pestaña de la derecha activaría esa
     // misma pestaña antes de cerrarla, y quedaría la activa equivocada.
-    useEditorStore.setState({ tabs: tabsWith([A, B], 0) });
-    render(<TabStrip />);
+    useEditorStore.setState({ groups: groupsWith([A, B], 0) });
+    render(<TabStrip group={primaryGroup()} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Cerrar otro.ts' }));
 
-    expect(useEditorStore.getState().tabs.tabs.map((tab) => tab.path)).toEqual([A]);
-    expect(useEditorStore.getState().tabs.activeTabIndex).toBe(0);
+    expect(selectActiveTabs(useEditorStore.getState()).tabs.map((tab) => tab.path)).toEqual([
+      A,
+    ]);
+    expect(selectActiveTabs(useEditorStore.getState()).activeTabIndex).toBe(0);
   });
 });
 
@@ -87,7 +99,7 @@ describe('ConflictDialog', () => {
   });
 
   it('ofrece las dos salidas cuando hay conflicto', () => {
-    useEditorStore.setState({ tabs: tabsWith([A]), conflict: CONFLICT });
+    useEditorStore.setState({ groups: groupsWith([A]), conflict: CONFLICT });
 
     render(<ConflictDialog />);
 
@@ -99,7 +111,7 @@ describe('ConflictDialog', () => {
   it('sobrescribir guarda sin mandar el expectedMtimeMs', async () => {
     const invoke = installFakeApi({ 'fs:writeFile': { ok: true, value: { mtimeMs: 300 } } });
     useEditorStore.setState({
-      tabs: tabsWith([A]),
+      groups: groupsWith([A]),
       mtimes: { [A]: 100 },
       conflict: CONFLICT,
       readContent: () => 'mio',
@@ -118,7 +130,7 @@ describe('ConflictDialog', () => {
       'fs:readFile': { ok: true, value: { content: 'del disco', mtimeMs: 900 } },
     });
     useEditorStore.setState({
-      tabs: tabsWith([A]),
+      groups: groupsWith([A]),
       conflict: CONFLICT,
       readContent: () => 'mio',
     });

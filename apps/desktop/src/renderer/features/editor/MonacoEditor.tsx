@@ -5,6 +5,8 @@ import { useMonacoEditor } from './use-monaco-editor.js';
 interface MonacoEditorProps {
   /** Ruta de la pestaña activa. */
   activePath: string;
+  /** A qué grupo pertenece esta instancia. */
+  groupId: string;
 }
 
 /**
@@ -19,8 +21,8 @@ interface MonacoEditorProps {
  * destruiría el editor y con él el view state que el registro justo acaba de
  * guardar; el punto de tener una sola instancia es cambiarle el modelo.
  */
-export function MonacoEditor({ activePath }: MonacoEditorProps): React.JSX.Element {
-  const { containerRef, status } = useMonacoEditor(activePath);
+export function MonacoEditor({ activePath, groupId }: MonacoEditorProps): React.JSX.Element {
+  const { containerRef, status } = useMonacoEditor(activePath, groupId);
 
   return (
     <div className="editor">
@@ -32,7 +34,12 @@ export function MonacoEditor({ activePath }: MonacoEditorProps): React.JSX.Eleme
 
       {/* Siempre montado: Monaco necesita un contenedor con medidas reales al
           momento de crearse, y uno detrás de un condicional todavía no existe. */}
-      <div ref={containerRef} className="editor__surface" data-testid="editor-surface" />
+      <div
+        ref={containerRef}
+        className="editor__surface"
+        data-testid="editor-surface"
+        data-group={groupId}
+      />
     </div>
   );
 }

@@ -62,6 +62,11 @@ export function registerSessionIpcHandlers(): void {
         openTabs: [...plan.openTabs],
         activeTabIndex: plan.activeTabIndex,
         expandedFolders: [...plan.expandedFolders],
+        // Las claves se omiten en vez de mandarse en `undefined`: el schema es
+        // estricto y con `exactOptionalPropertyTypes` no son lo mismo.
+        ...(plan.groups === undefined ? {} : { groups: [...plan.groups] }),
+        ...(plan.layout === undefined ? {} : { layout: plan.layout }),
+        ...(plan.activeGroupId === undefined ? {} : { activeGroupId: plan.activeGroupId }),
       },
     };
   });

@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { EDITOR_LAYOUTS } from '../workspace/groups.js';
+
 /**
  * Posición del cursor. Base 1 en las dos coordenadas, que es la convención de
  * LSP y la que ya usa el resto del proyecto.
@@ -48,6 +50,13 @@ export type TabState = z.infer<typeof TabStateSchema>;
  * y llega con el DAP en la Etapa 5. Hasta entonces el campo no se escribe, y
  * la laxitud es lo que hace que un archivo que sí lo tenga siga siendo legible.
  */
+/** Un grupo de edición, tal como queda guardado. */
+export const PersistedGroupSchema = z.strictObject({
+  id: z.string().min(1),
+  openTabs: z.array(TabStateSchema),
+  activeTabIndex: z.int().min(-1),
+});
+
 export const WorkspaceStateSchema = z.looseObject({
   /** Ruta absoluta de la raíz. Se verifica al restaurar. */
   rootPath: z.string().min(1),
@@ -56,8 +65,23 @@ export const WorkspaceStateSchema = z.looseObject({
   activeTabIndex: z.int().min(-1),
   /** Carpetas expandidas en el árbol, **relativas** a `rootPath`. */
   expandedFolders: z.array(z.string()),
+  /**
+   * Los grupos de edición, si los escribió una versión que los conoce.
+   *
+   * **Es opcional y `openTabs` sigue existiendo al lado**, con las pestañas del
+   * grupo primario. Ésa es toda la migración: al leer, la ausencia de `groups`
+   * significa un solo grupo armado desde `openTabs`; al escribir se escriben
+   * las dos formas, así que un build anterior restaura algo sensato en vez de
+   * una ventana vacía. Sin bump de versión y sin código de migración, que es
+   * para lo que este schema es laxo. Ver
+   * [ADR-0023](../../../../docs/adr/0023-dos-grupos-sobre-modelos-compartidos.md).
+   */
+  groups: z.array(PersistedGroupSchema).optional(),
+  layout: z.enum(EDITOR_LAYOUTS).optional(),
+  activeGroupId: z.string().min(1).optional(),
   /** Momento del último guardado, en epoch ms. */
   lastSavedAt: z.number(),
 });
 
 export type WorkspaceState = z.infer<typeof WorkspaceStateSchema>;
+export type PersistedGroup = z.infer<typeof PersistedGroupSchema>;

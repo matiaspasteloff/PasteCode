@@ -25,6 +25,11 @@ export const LoadSessionResponseSchema = z.strictObject({
       openTabs: WorkspaceStateSchema.shape.openTabs,
       activeTabIndex: WorkspaceStateSchema.shape.activeTabIndex,
       expandedFolders: WorkspaceStateSchema.shape.expandedFolders,
+      // Opcionales: una sesión escrita por una versión anterior al split no los
+      // tiene, y ausencia significa "un solo grupo, armado desde `openTabs`".
+      groups: WorkspaceStateSchema.shape.groups,
+      layout: WorkspaceStateSchema.shape.layout,
+      activeGroupId: WorkspaceStateSchema.shape.activeGroupId,
     })
     .nullable(),
 });
@@ -37,9 +42,13 @@ export const LoadSessionResponseSchema = z.strictObject({
  * dar sin mentir.
  */
 export const SaveSessionRequestSchema = z.strictObject({
+  /** El grupo primario, espejado. Es lo que lee un build anterior al split. */
   openTabs: WorkspaceStateSchema.shape.openTabs,
   activeTabIndex: WorkspaceStateSchema.shape.activeTabIndex,
   expandedFolders: WorkspaceStateSchema.shape.expandedFolders,
+  groups: WorkspaceStateSchema.shape.groups,
+  layout: WorkspaceStateSchema.shape.layout,
+  activeGroupId: WorkspaceStateSchema.shape.activeGroupId,
 });
 
 /** Respuesta de `session:save`. */

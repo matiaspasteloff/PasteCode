@@ -6,7 +6,7 @@ import { useSettingsStore } from '../../stores/settings-store.js';
 import { currentResolvedTheme, monacoThemeFor } from '../theme/use-theme.js';
 
 import { rememberViewState, savedViewState, syncModelWithDisk } from './model-registry.js';
-import { setActiveEditor, setLoadedMonaco } from './monaco-instance.js';
+import { setFocusedGroup, setGroupEditor, setLoadedMonaco } from './monaco-instance.js';
 import { takeRestorePosition } from './restore-position.js';
 import { useCursorPosition } from './use-cursor-position.js';
 
@@ -29,11 +29,15 @@ interface MonacoEditorHandle {
  * una carpeta vacía.
  *
  * @param activePath Ruta de la pestaña activa, o `null` si no hay ninguna.
+ * @param groupId A qué grupo pertenece esta instancia.
  * @returns El ref del contenedor y el estado del montaje.
  * @example
- * const { containerRef, status } = useMonacoEditor(activePath);
+ * const { containerRef, status } = useMonacoEditor(activePath, groupId);
  */
-export function useMonacoEditor(activePath: string | null): MonacoEditorHandle {
+export function useMonacoEditor(
+  activePath: string | null,
+  groupId: string
+): MonacoEditorHandle {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<MonacoApi.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof MonacoApi | null>(null);
@@ -42,10 +46,9 @@ export function useMonacoEditor(activePath: string | null): MonacoEditorHandle {
 
   const pendingFile = useEditorStore((state) => state.pendingFile);
   const consumePendingFile = useEditorStore((state) => state.consumePendingFile);
-  const setContentReader = useEditorStore((state) => state.setContentReader);
   const markDirty = useEditorStore((state) => state.markDirty);
 
-  useMountedEditor(containerRef, editorRef, monacoRef, setStatus);
+  useMountedEditor(containerRef, editorRef, monacoRef, setStatus, groupId);
 
   // El contenido recién leído se convierte en modelo una sola vez: de ahí en
   // más la fuente de verdad es el modelo, no el store.
@@ -86,18 +89,47 @@ export function useMonacoEditor(activePath: string | null): MonacoEditorHandle {
     };
   }, [activePath, status, pendingFile, markDirty]);
 
-  useEffect(() => {
-    setContentReader(() => editorRef.current?.getValue() ?? '');
-
-    return () => {
-      setContentReader(null);
-    };
-  }, [setContentReader]);
+  useContentReader(editorRef, status, groupId);
 
   useEditorSettings(editorRef, status, activePath);
   useCursorPosition(editorRef, status, activePath);
 
   return { containerRef, status };
+}
+
+/**
+ * Publica el lector de contenido y sigue qué grupo tiene el foco.
+ *
+ * El lector lo instala **el grupo enfocado**: guardar escribe lo que la persona
+ * está mirando, no lo que quedó en el otro panel. Con un solo editor esto era
+ * un `useEffect` de tres líneas; con dos, quién es "el activo" pasa a ser una
+ * pregunta con respuesta.
+ */
+function useContentReader(
+  editorRef: React.RefObject<MonacoApi.editor.IStandaloneCodeEditor | null>,
+  status: EditorStatus,
+  groupId: string
+): void {
+  const setContentReader = useEditorStore((state) => state.setContentReader);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+
+    if (editor === null || status !== 'ready') return undefined;
+
+    const subscription = editor.onDidFocusEditorText(() => {
+      setFocusedGroup(groupId);
+      useEditorStore.getState().focusGroup(groupId);
+      setContentReader(() => editorRef.current?.getValue() ?? '');
+    });
+
+    setContentReader(() => editorRef.current?.getValue() ?? '');
+
+    return () => {
+      subscription.dispose();
+      setContentReader(null);
+    };
+  }, [editorRef, setContentReader, status, groupId]);
 }
 
 /**
@@ -147,7 +179,8 @@ function useMountedEditor(
   containerRef: React.RefObject<HTMLDivElement | null>,
   editorRef: React.RefObject<MonacoApi.editor.IStandaloneCodeEditor | null>,
   monacoRef: React.RefObject<typeof MonacoApi | null>,
-  setStatus: (status: EditorStatus) => void
+  setStatus: (status: EditorStatus) => void,
+  groupId: string
 ): void {
   useEffect(() => {
     let isCancelled = false;
@@ -172,7 +205,7 @@ function useMountedEditor(
           minimap: { enabled: initial.minimap },
           renderWhitespace: initial.renderWhitespace,
         });
-        setActiveEditor(editorRef.current);
+        setGroupEditor(groupId, editorRef.current);
         setStatus('ready');
       })
       .catch(() => {
@@ -184,11 +217,11 @@ function useMountedEditor(
       // Se desecha el editor pero **no** los modelos: son del registro, que
       // los mantiene vivos mientras la pestaña esté abierta. Desecharlos acá
       // perdería el historial de undo al desmontar el componente.
-      setActiveEditor(null);
+      setGroupEditor(groupId, null);
       editorRef.current?.dispose();
       editorRef.current = null;
     };
-  }, [containerRef, editorRef, monacoRef, setStatus]);
+  }, [containerRef, editorRef, monacoRef, setStatus, groupId]);
 }
 
 interface ShowModelOptions {

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 import { useCommandStore } from '../../stores/command-store.js';
-import { useEditorStore } from '../../stores/editor-store.js';
+import { activeGroupId, selectActiveTabs, useEditorStore } from '../../stores/editor-store.js';
 import { useThemeStore } from '../../stores/theme-store.js';
 import { useWorkspaceStore } from '../../stores/workspace-store.js';
 import { fileCommands } from '../files/file-commands.js';
@@ -50,8 +50,12 @@ export function useAppCommands(): void {
       id: 'file.closeTab',
       title: 'command.fileCloseTab',
       handler: () => {
-        const { tabs, closeTab } = useEditorStore.getState();
-        if (tabs.activeTabIndex !== -1) closeTab(tabs.activeTabIndex);
+        const state = useEditorStore.getState();
+        const tabs = selectActiveTabs(state);
+
+        if (tabs.activeTabIndex !== -1) {
+          state.closeTab(activeGroupId(state), tabs.activeTabIndex);
+        }
       },
     });
 

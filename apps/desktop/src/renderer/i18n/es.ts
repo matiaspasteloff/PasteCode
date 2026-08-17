@@ -10,6 +10,10 @@
  * para que agregar una no sea una decisión.
  */
 export const es = {
+  'command.editorFocusFirstGroup': 'Ir al primer grupo de edición',
+  'command.editorFocusSecondGroup': 'Ir al segundo grupo de edición',
+  'command.editorSplitDown': 'Partir el editor hacia abajo',
+  'command.editorSplitRight': 'Partir el editor hacia la derecha',
   'command.fileCloseAll': 'Cerrar todas las pestañas',
   'command.fileCloseTab': 'Cerrar la pestaña',
   'command.fileSave': 'Guardar el archivo',

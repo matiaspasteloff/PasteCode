@@ -28,6 +28,14 @@ export const DEFAULT_KEYBINDINGS: readonly Keybinding[] = [
   { key: 'ctrl+shift+e', command: 'view.showExplorer', when: 'hasWorkspace' },
   // RF-205. Mismo criterio: sin carpeta abierta no hay archivos que listar.
   { key: 'ctrl+p', command: 'files.quickOpen', when: 'hasWorkspace' },
+  // RF-107. `Ctrl+\` es la convención de VS Code para partir a la derecha, y
+  // con Shift para partir abajo. Los de foco por grupo llevan `hasSecondGroup`
+  // porque sin pantalla partida no hay adónde ir: un atajo que no hace nada es
+  // peor que uno que no existe.
+  { key: 'ctrl+\\', command: 'editor.splitRight', when: 'hasOpenTab' },
+  { key: 'ctrl+shift+\\', command: 'editor.splitDown', when: 'hasOpenTab' },
+  { key: 'ctrl+1', command: 'editor.focusFirstGroup', when: 'hasSecondGroup' },
+  { key: 'ctrl+2', command: 'editor.focusSecondGroup', when: 'hasSecondGroup' },
   { key: 'ctrl+shift+c', command: 'terminal.copy', when: 'terminalFocus' },
   { key: 'ctrl+shift+v', command: 'terminal.paste', when: 'terminalFocus' },
 ];

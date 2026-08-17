@@ -1,11 +1,18 @@
-import type { TabsState } from '@pastecode/core';
+import type { EditorLayout, GroupsState, TabsState } from '@pastecode/core';
 import {
   activateTab as activate,
+  activeGroup,
   activeTab,
+  activeTabs,
+  closeGroup as removeGroup,
   closeTab as close,
-  NO_TABS,
+  focusGroup as focus,
   openTab,
   setTabDirty,
+  SINGLE_EMPTY_GROUPS,
+  splitGroups,
+  updateActiveGroup,
+  updateGroup,
 } from '@pastecode/core';
 import type { FileChangePayload, SerializedError } from '@pastecode/ipc-contract';
 import { create } from 'zustand';
@@ -17,7 +24,15 @@ interface LoadedFile {
 }
 
 interface EditorState {
-  tabs: TabsState;
+  /**
+   * Los grupos de edición, cuál tiene el foco y cómo se reparten la pantalla.
+   *
+   * Reemplaza al `TabsState` plano de antes. `mtimes`, `pendingFile` e
+   * `isLoading` siguen siendo globales **a propósito**: son del archivo, no del
+   * grupo. Un archivo abierto en los dos paneles tiene un solo `mtime`.
+   * Ver [ADR-0023](../../../../../docs/adr/0023-dos-grupos-sobre-modelos-compartidos.md).
+   */
+  groups: GroupsState;
   /**
    * `mtimeMs` de la última lectura de cada archivo abierto, por ruta. Es lo
    * que vuelve como `expectedMtimeMs` al guardar.
@@ -39,8 +54,11 @@ interface EditorState {
   readContent: (() => string) | null;
 
   open: (path: string) => Promise<void>;
-  closeTab: (index: number) => void;
-  activateTab: (index: number) => void;
+  closeTab: (groupId: string, index: number) => void;
+  activateTab: (groupId: string, index: number) => void;
+  /** Parte la pantalla y lleva la pestaña activa al grupo nuevo (RF-107). */
+  splitEditor: (layout: Exclude<EditorLayout, 'single'>) => void;
+  focusGroup: (groupId: string) => void;
   consumePendingFile: () => void;
   setContentReader: (read: (() => string) | null) => void;
   markDirty: () => void;
@@ -74,10 +92,10 @@ type SetEditorState = (partial: Partial<EditorState>) => void;
  * carga.
  *
  * @example
- * const tabs = useEditorStore((state) => state.tabs);
+ * const groups = useEditorStore((state) => state.groups);
  */
 export const useEditorStore = create<EditorState>((set, get) => ({
-  tabs: NO_TABS,
+  groups: SINGLE_EMPTY_GROUPS,
   mtimes: {},
   pendingFile: null,
   isLoading: false,
@@ -87,27 +105,20 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   readContent: null,
 
   open: async (path) => {
-    // Ya abierto: se activa la pestaña y no se relee. El modelo tiene las
-    // ediciones sin guardar y el historial de undo; releer los tiraría.
-    if (get().tabs.tabs.some((tab) => tab.path === path)) {
-      set({ tabs: openTab(get().tabs, path), error: null });
+    // Ya abierto en el grupo enfocado: se activa la pestaña y no se relee. El
+    // modelo tiene las ediciones sin guardar y el historial de undo.
+    if (activeTabs(get().groups).tabs.some((tab) => tab.path === path)) {
+      set({
+        groups: updateActiveGroup(get().groups, (tabs) => openTab(tabs, path)),
+        error: null,
+      });
       return;
     }
 
     await loadFile(path, set, get);
   },
 
-  closeTab: (index) => {
-    const closed = get().tabs.tabs[index];
-    if (closed === undefined) return;
-
-    const { [closed.path]: _removed, ...mtimes } = get().mtimes;
-    set({ tabs: close(get().tabs, index), mtimes });
-  },
-
-  activateTab: (index) => {
-    set({ tabs: activate(get().tabs, index) });
-  },
+  ...groupActions(set, get),
 
   consumePendingFile: () => {
     set({ pendingFile: null });
@@ -118,16 +129,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   markDirty: () => {
-    const path = activeTab(get().tabs)?.path;
+    const path = activeTab(activeTabs(get().groups))?.path;
+
     if (path === undefined) return;
 
-    set({ tabs: setTabDirty(get().tabs, path, true) });
+    set({ groups: setDirtyEverywhere(get().groups, path, true) });
   },
 
   save: (options) => saveActive(get(), set, options?.force === true),
 
   discardAndReload: async () => {
-    const path = activeTab(get().tabs)?.path;
+    const path = activeTab(activeTabs(get().groups))?.path;
+
     if (path === undefined) return;
 
     set({ conflict: null });
@@ -137,9 +150,119 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   applyExternalChanges: (changes) => applyExternalChanges(changes, set, get),
 
   closeAll: () => {
-    set({ tabs: NO_TABS, mtimes: {}, pendingFile: null, error: null, conflict: null });
+    set({
+      groups: SINGLE_EMPTY_GROUPS,
+      mtimes: {},
+      pendingFile: null,
+      error: null,
+      conflict: null,
+    });
   },
 }));
+
+/**
+ * Las acciones que sólo tocan los grupos.
+ *
+ * Salen de la fábrica del store para que quepa de un vistazo, que es lo que
+ * RNF-20 pide; no tienen otra vida propia.
+ */
+function groupActions(
+  set: SetEditorState,
+  get: () => EditorState
+): Pick<EditorState, 'closeTab' | 'activateTab' | 'splitEditor' | 'focusGroup'> {
+  return {
+    closeTab: (groupId, index) => {
+      const { groups, mtimes } = get();
+      const group = groups.groups.find((candidate) => candidate.id === groupId);
+      const closed = group?.tabs.tabs[index];
+
+      if (group === undefined || closed === undefined) return;
+
+      const next = updateGroup(groups, groupId, (tabs) => close(tabs, index));
+
+      set({
+        groups: dropEmptyGroup(next, groupId),
+        // El `mtime` se olvida sólo si el archivo no quedó abierto en el otro
+        // grupo: perderlo con una pestaña viva convertiría el próximo guardado
+        // en un `STALE_FILE` falso.
+        mtimes: forgetIfUnused(mtimes, closed.path, next),
+      });
+    },
+
+    activateTab: (groupId, index) => {
+      set({
+        groups: focus(
+          updateGroup(get().groups, groupId, (tabs) => activate(tabs, index)),
+          groupId
+        ),
+      });
+    },
+
+    splitEditor: (layout) => {
+      set({ groups: splitGroups(get().groups, layout) });
+    },
+
+    focusGroup: (groupId) => {
+      set({ groups: focus(get().groups, groupId) });
+    },
+  };
+}
+
+/**
+ * Las pestañas del grupo enfocado.
+ *
+ * Es el selector que reemplaza al viejo `state.tabs`. Se exporta acá y no se
+ * repite el `activeTabs(state.groups)` en cada componente para que el día que
+ * haya un tercer grupo, lo que cambie sea una función.
+ *
+ * @param state El estado del store.
+ * @returns Las pestañas del grupo con el foco.
+ * @example
+ * const tabs = useEditorStore(selectActiveTabs);
+ */
+export function selectActiveTabs(state: { groups: GroupsState }): TabsState {
+  return activeTabs(state.groups);
+}
+
+/**
+ * Marca un archivo en **todos** los grupos.
+ *
+ * Un archivo abierto en dos paneles comparte el modelo de Monaco, así que
+ * ensuciarlo en uno lo ensucia en el otro: marcarlo en un solo lugar dejaría
+ * una pestaña diciendo que está limpia sobre un buffer que no lo está.
+ */
+function setDirtyEverywhere(groups: GroupsState, path: string, isDirty: boolean): GroupsState {
+  return groups.groups.reduce(
+    (state, group) => updateGroup(state, group.id, (tabs) => setTabDirty(tabs, path, isDirty)),
+    groups
+  );
+}
+
+/** Cierra el grupo si se quedó sin pestañas y no es el único. */
+function dropEmptyGroup(groups: GroupsState, groupId: string): GroupsState {
+  const group = groups.groups.find((candidate) => candidate.id === groupId);
+
+  if (group === undefined || group.tabs.tabs.length > 0) return groups;
+
+  return removeGroup(groups, groupId);
+}
+
+/** Olvida el `mtime` sólo si el archivo ya no está abierto en ningún grupo. */
+function forgetIfUnused(
+  mtimes: Readonly<Record<string, number>>,
+  path: string,
+  groups: GroupsState
+): Readonly<Record<string, number>> {
+  const isOpen = groups.groups.some((group) =>
+    group.tabs.tabs.some((tab) => tab.path === path)
+  );
+
+  if (isOpen) return mtimes;
+
+  const { [path]: _removed, ...rest } = mtimes;
+
+  return rest;
+}
 
 /**
  * Reacciona a los cambios que vio el watcher.
@@ -153,10 +276,8 @@ async function applyExternalChanges(
   set: SetEditorState,
   get: () => EditorState
 ): Promise<void> {
-  const open = new Map(get().tabs.tabs.map((tab) => [tab.path, tab]));
-
   for (const change of changes) {
-    const tab = open.get(change.path);
+    const tab = openTabFor(get().groups, change.path);
 
     if (tab === undefined) continue;
 
@@ -164,7 +285,7 @@ async function applyExternalChanges(
       // Sin diálogo: no hay ninguna decisión que tomar todavía. Marcarla sucia
       // es lo que hace que `Ctrl+S` la recree, y lo que impide que cerrarla se
       // sienta como una operación inocua.
-      set({ tabs: setTabDirty(get().tabs, change.path, true) });
+      set({ groups: setDirtyEverywhere(get().groups, change.path, true) });
       continue;
     }
 
@@ -175,6 +296,20 @@ async function applyExternalChanges(
 
     await reloadFromDisk(change.path, set, get);
   }
+}
+
+/** La pestaña de un archivo en cualquier grupo, si está abierta en alguno. */
+function openTabFor(
+  groups: GroupsState,
+  path: string
+): { path: string; isDirty: boolean } | undefined {
+  for (const group of groups.groups) {
+    const found = group.tabs.tabs.find((tab) => tab.path === path);
+
+    if (found !== undefined) return found;
+  }
+
+  return undefined;
 }
 
 /**
@@ -200,7 +335,7 @@ async function reloadFromDisk(
 
   set({
     mtimes: { ...get().mtimes, [path]: result.value.mtimeMs },
-    tabs: setTabDirty(get().tabs, path, false),
+    groups: setDirtyEverywhere(get().groups, path, false),
     pendingFile: { path, content: result.value.content },
   });
 }
@@ -228,10 +363,11 @@ async function loadFile(
     return;
   }
 
-  const tabs = setTabDirty(openTab(get().tabs, path), path, false);
+  const opened = updateActiveGroup(get().groups, (tabs) => openTab(tabs, path));
+
   set({
     isLoading: false,
-    tabs,
+    groups: setDirtyEverywhere(opened, path, false),
     mtimes: { ...get().mtimes, [path]: result.value.mtimeMs },
     pendingFile: { path, content: result.value.content },
   });
@@ -243,11 +379,13 @@ async function saveActive(
   set: SetEditorState,
   isForced: boolean
 ): Promise<void> {
-  const path = activeTab(state.tabs)?.path;
+  const path = activeTab(activeTabs(state.groups))?.path;
   const { readContent, mtimes } = state;
+
   if (path === undefined || readContent === null) return;
 
   const content = readContent();
+
   set({ isSaving: true, conflict: null });
 
   const expectedMtimeMs = mtimes[path];
@@ -264,6 +402,7 @@ async function saveActive(
     // decisión es de la persona. El estado sucio se conserva; perderlo haría
     // creer que se guardó.
     const isConflict = result.error.code === 'STALE_FILE';
+
     set({
       isSaving: false,
       conflict: isConflict ? result.error : null,
@@ -274,7 +413,12 @@ async function saveActive(
 
   set({
     isSaving: false,
-    tabs: setTabDirty(state.tabs, path, false),
+    groups: setDirtyEverywhere(state.groups, path, false),
     mtimes: { ...mtimes, [path]: result.value.mtimeMs },
   });
+}
+
+/** El id del grupo enfocado. Lo usan los comandos, que no tienen un grupo a mano. */
+export function activeGroupId(state: { groups: GroupsState }): string {
+  return activeGroup(state.groups).id;
 }

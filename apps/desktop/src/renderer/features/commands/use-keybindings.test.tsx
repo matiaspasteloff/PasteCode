@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useCommandStore } from '../../stores/command-store.js';
 import { useEditorStore } from '../../stores/editor-store.js';
-import { resetEditorStore, tabsWith } from '../../test-support/editor-state.js';
+import { groupsWith, resetEditorStore } from '../../test-support/editor-state.js';
 
 import { useKeybindings } from './use-keybindings.js';
 
@@ -55,7 +55,7 @@ describe('useKeybindings', () => {
   });
 
   it('cierra la pestaña con Ctrl+W cuando hay una abierta', async () => {
-    useEditorStore.setState({ tabs: tabsWith(['C:\\p\\a.ts']) });
+    useEditorStore.setState({ groups: groupsWith(['C:\\p\\a.ts']) });
     render(<KeybindingHost />);
 
     await userEvent.keyboard('{Control>}w{/Control}');

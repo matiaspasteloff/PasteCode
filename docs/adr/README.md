@@ -31,6 +31,7 @@ Un ADR registra una decisión técnica relevante, el contexto en el que se tomó
 | [0019](./0019-git-con-spawn-crudo.md)                          | Resolver `git` a una ruta absoluta al arrancar y lanzarlo con `spawn` crudo    | ✅ Aceptado  |
 | [0020](./0020-watcher-unico-con-chokidar.md)                   | Un único watcher del workspace con chokidar, con fan-out en el main            | ✅ Aceptado  |
 | [0022](./0022-cascaron-con-barra-de-actividades.md)            | Cascarón con barra de actividades y vistas por registro                        | ✅ Aceptado  |
+| [0023](./0023-dos-grupos-sobre-modelos-compartidos.md)         | Dos grupos de editor sobre modelos compartidos, con el schema laxo de sesión   | ✅ Aceptado  |
 
 **Estados posibles:** `Propuesto` · `Aceptado` · `Reemplazado por ADR-NNNN` · `Obsoleto`
 

@@ -1,5 +1,5 @@
-import type { PersistedTabState } from '@pastecode/core';
-import { fromFileUri, toFileUri } from '@pastecode/core';
+import type { GroupsState, PersistedGroup, PersistedTabState } from '@pastecode/core';
+import { activeGroup, fromFileUri, PRIMARY_GROUP_ID, toFileUri } from '@pastecode/core';
 import { useEffect, useRef } from 'react';
 
 import { useEditorStore } from '../../stores/editor-store.js';
@@ -25,7 +25,7 @@ const ORIGIN = { line: 1, column: 1, scrollTopLine: 1 };
  */
 export function useSession(): void {
   const workspace = useWorkspaceStore((state) => state.workspace);
-  const tabs = useEditorStore((state) => state.tabs);
+  const groups = useEditorStore((state) => state.groups);
   const expandedPaths = useFileTreeStore((state) => state.expandedPaths);
 
   // Mientras se restaura no se reporta nada: las aperturas que hace la propia
@@ -48,16 +48,42 @@ export function useSession(): void {
   useEffect(() => {
     if (workspace === null || isRestoring.current) return;
 
+    const primary = groups.groups[0]?.tabs ?? { tabs: [], activeTabIndex: -1 };
+
     void window.pastecode.invoke('session:save', {
-      openTabs: tabs.tabs.map((tab, index) =>
-        snapshot(tab.path, tab.isDirty, index === tabs.activeTabIndex)
+      // **Las dos formas.** `openTabs` espeja el grupo primario para que un
+      // build anterior al split restaure algo sensato en vez de una ventana
+      // vacía; `groups` es lo que lee esta versión. Ver ADR-0023.
+      openTabs: primary.tabs.map((tab, index) =>
+        snapshot(tab.path, tab.isDirty, index === primary.activeTabIndex)
       ),
-      activeTabIndex: tabs.activeTabIndex,
+      activeTabIndex: primary.activeTabIndex,
+      groups: persistGroups(groups),
+      layout: groups.layout,
+      activeGroupId: groups.activeGroupId,
       // Se guardan **relativas** a la raíz, como pide el modelo de datos: un
       // workspace movido de carpeta sigue reabriendo las mismas carpetas.
       expandedFolders: [...expandedPaths].map((path) => relativize(path, workspace.root)),
     });
-  }, [workspace, tabs, expandedPaths]);
+  }, [workspace, groups, expandedPaths]);
+}
+
+/** Los grupos, en la forma que se persiste. */
+function persistGroups(groups: GroupsState): PersistedGroup[] {
+  const focusedPath =
+    activeGroup(groups).tabs.tabs[activeGroup(groups).tabs.activeTabIndex]?.path;
+
+  return groups.groups.map((group) => ({
+    id: group.id,
+    openTabs: group.tabs.tabs.map((tab, index) =>
+      snapshot(
+        tab.path,
+        tab.isDirty,
+        index === group.tabs.activeTabIndex && tab.path === focusedPath
+      )
+    ),
+    activeTabIndex: group.tabs.activeTabIndex,
+  }));
 }
 
 /** Trae la sesión guardada y reabre lo que sobrevivió. */
@@ -65,13 +91,39 @@ async function restore(): Promise<void> {
   clearRestorePositions();
 
   const result = await window.pastecode.invoke('session:load', {});
+
   if (!result.ok || result.value.state === null) return;
 
   const { state } = result.value;
+  // Ausencia de `groups` es una sesión escrita antes del split: un solo grupo
+  // armado desde `openTabs`. Ésa es toda la migración.
+  const persisted =
+    state.groups ??
+    ([
+      { id: PRIMARY_GROUP_ID, openTabs: state.openTabs, activeTabIndex: state.activeTabIndex },
+    ] as const);
+
+  for (const group of persisted) {
+    await restoreGroup(group);
+  }
+
+  applyLayout(state.layout, state.activeGroupId);
+}
+
+/** Reabre las pestañas de un grupo, en orden y adentro de ese grupo. */
+async function restoreGroup(group: PersistedGroup): Promise<void> {
   const editor = useEditorStore.getState();
 
-  for (const tab of state.openTabs) {
+  // El grupo secundario se crea partiendo la pantalla; el primario ya existe.
+  if (group.id !== PRIMARY_GROUP_ID && editor.groups.groups.length === 1) {
+    editor.splitEditor('horizontal');
+  }
+
+  useEditorStore.getState().focusGroup(group.id);
+
+  for (const tab of group.openTabs) {
     const path = fromFileUri(tab.uri);
+
     if (path === undefined) continue;
 
     rememberRestorePosition(path, {
@@ -82,20 +134,31 @@ async function restore(): Promise<void> {
 
     // Secuencial y no en paralelo: `openTab` de core arma el orden a partir
     // del estado anterior, así que abrir cuatro a la vez daría un orden que
-    // depende de qué lectura del disco termine primero. Los archivos que ya
-    // no existen fallan solos y no se abren, que es el descarte silencioso
-    // que pide RF-707.
-    await editor.open(path);
+    // depende de qué lectura del disco termine primero.
+    await useEditorStore.getState().open(path);
   }
 
-  // El índice llega ya recalculado por el main, pero se resuelve por ruta y no
-  // por número: entre el `session:load` y este punto puede haber fallado una
-  // apertura, y en ese caso el número apuntaría a otra pestaña.
-  const activeUri = state.openTabs[state.activeTabIndex]?.uri;
+  const activeUri = group.openTabs[group.activeTabIndex]?.uri;
   const activePath = activeUri === undefined ? undefined : fromFileUri(activeUri);
-  const index = useEditorStore.getState().tabs.tabs.findIndex((tab) => tab.path === activePath);
+  const restored = useEditorStore
+    .getState()
+    .groups.groups.find((candidate) => candidate.id === group.id);
+  const index = restored?.tabs.tabs.findIndex((tab) => tab.path === activePath) ?? -1;
 
-  if (index !== -1) useEditorStore.getState().activateTab(index);
+  // Se resuelve por ruta y no por número: entre el `session:load` y este punto
+  // puede haber fallado una apertura, y ahí el número apuntaría a otra pestaña.
+  if (index !== -1) useEditorStore.getState().activateTab(group.id, index);
+}
+
+/** Deja la orientación y el foco que tenía la sesión. */
+function applyLayout(layout: GroupsState['layout'] | undefined, activeGroupId?: string): void {
+  const editor = useEditorStore.getState();
+
+  if (layout !== undefined && layout !== 'single' && editor.groups.groups.length > 1) {
+    useEditorStore.setState({ groups: { ...editor.groups, layout } });
+  }
+
+  if (activeGroupId !== undefined) useEditorStore.getState().focusGroup(activeGroupId);
 }
 
 /** El estado a persistir de una pestaña. */

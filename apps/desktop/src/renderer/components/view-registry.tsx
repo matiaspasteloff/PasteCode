@@ -4,7 +4,7 @@ import { FileTree } from '../features/file-tree/FileTree.js';
 import { SourceControlPanel } from '../features/git/SourceControlPanel.js';
 import { SearchPanel } from '../features/search/SearchPanel.js';
 import type { TranslationKey } from '../i18n/index.js';
-import { useEditorStore } from '../stores/editor-store.js';
+import { selectActiveTabs, useEditorStore } from '../stores/editor-store.js';
 import type { SideView } from '../stores/view-store.js';
 
 import type { IconProps } from './icons/Icon.js';
@@ -31,7 +31,9 @@ export interface SideViewDescriptor {
  * usar hooks. Es un componente de verdad, así que se declara como uno.
  */
 function ExplorerView(): React.JSX.Element {
-  const activePath = useEditorStore((state) => activeTab(state.tabs)?.path ?? null);
+  const activePath = useEditorStore(
+    (state) => activeTab(selectActiveTabs(state))?.path ?? null
+  );
   const openFile = useEditorStore((state) => state.open);
 
   return (

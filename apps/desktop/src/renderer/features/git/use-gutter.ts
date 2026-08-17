@@ -1,7 +1,7 @@
 import { activeTab } from '@pastecode/core';
 import { useEffect } from 'react';
 
-import { useEditorStore } from '../../stores/editor-store.js';
+import { selectActiveTabs, useEditorStore } from '../../stores/editor-store.js';
 import { useGitStore } from '../../stores/git-store.js';
 
 import { clearGutter, refreshGutter } from './gutter.js';
@@ -25,7 +25,9 @@ import { clearGutter, refreshGutter } from './gutter.js';
  * useGutter(); // una vez, en el cascarón de la app
  */
 export function useGutter(): void {
-  const activePath = useEditorStore((state) => activeTab(state.tabs)?.path ?? null);
+  const activePath = useEditorStore(
+    (state) => activeTab(selectActiveTabs(state))?.path ?? null
+  );
   const repository = useGitStore((state) => state.repository);
 
   useEffect(() => {

@@ -1,3 +1,4 @@
+import { allOpenPaths } from '@pastecode/core';
 import { useEffect } from 'react';
 
 import { ActivityBar } from './components/ActivityBar.js';
@@ -11,7 +12,6 @@ import { useKeybindings } from './features/commands/use-keybindings.js';
 import { ConflictDialog } from './features/editor/ConflictDialog.js';
 import { EditorArea } from './features/editor/EditorArea.js';
 import { releaseModelsExcept } from './features/editor/model-registry.js';
-import { TabStrip } from './features/editor/TabStrip.js';
 import { useExternalChanges } from './features/editor/use-external-changes.js';
 import { FilePalette } from './features/files/FilePalette.js';
 import { BranchPicker } from './features/git/BranchPicker.js';
@@ -32,7 +32,7 @@ import { useWorkspaceStore } from './stores/workspace-store.js';
  */
 export function App(): React.JSX.Element {
   const restore = useWorkspaceStore((state) => state.restore);
-  const openTabs = useEditorStore((state) => state.tabs.tabs);
+  const groups = useEditorStore((state) => state.groups);
 
   useAppCommands();
   useKeybindings();
@@ -58,8 +58,11 @@ export function App(): React.JSX.Element {
     // efecto ya no correría justo cuando hay algo que liberar. Un modelo que
     // sobrevive al cierre no sólo ocupa memoria (RNF-04): al reabrir el
     // archivo se devolvería ese modelo viejo en vez de leer el disco.
-    releaseModelsExcept(openTabs.map((tab) => tab.path));
-  }, [openTabs]);
+    // `allOpenPaths` y no las pestañas de un grupo: **es el bug número uno de
+    // esta feature**. Con dos paneles, liberar por grupo desecharía el modelo
+    // que el otro está mostrando, y Monaco tira al siguiente render.
+    releaseModelsExcept(allOpenPaths(groups));
+  }, [groups]);
 
   return (
     <div className="app">
@@ -68,7 +71,6 @@ export function App(): React.JSX.Element {
       <SideView />
 
       <main className="editor-area">
-        <TabStrip />
         <EditorArea />
         <BottomPanel />
       </main>

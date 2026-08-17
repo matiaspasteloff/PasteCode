@@ -75,33 +75,70 @@ export function getLoadedMonaco(): typeof MonacoApi | null {
 }
 
 /**
- * La única instancia de editor montada, o `null` si todavía no hay ninguna.
+ * Las instancias de editor montadas, una por grupo.
  *
- * La necesita el guardado de sesión ([RF-707](../../../../../../docs/03-requerimientos-funcionales.md#comandos-atajos-y-configuración)):
- * la posición del cursor de la pestaña **activa** sólo la sabe el editor, no
- * el registro de modelos, que guarda la de cada pestaña recién cuando se la
- * abandona.
+ * Pasó de ser **una** instancia a un registro de dos **conservando la firma de
+ * `getActiveEditor()`**, y eso es lo que mantiene chico el cambio de split
+ * view: `use-session.ts`, `navigation.ts` y el gutter siguen preguntando "el
+ * editor" y siguen recibiendo el que la persona está mirando.
  */
-let activeEditor: MonacoApi.editor.IStandaloneCodeEditor | null = null;
+const editors = new Map<string, MonacoApi.editor.IStandaloneCodeEditor>();
+
+/** Qué grupo tiene el foco. Lo mantiene sincronizado el editor al montarse. */
+let focusedGroupId: string | null = null;
 
 /**
- * Registra o borra la instancia montada.
+ * Registra o borra la instancia de un grupo.
  *
+ * @param groupId El grupo al que pertenece.
  * @param editor La instancia, o `null` al desmontarla.
  * @example
- * setActiveEditor(monaco.editor.create(container, options));
+ * setGroupEditor('primary', monaco.editor.create(container, options));
  */
-export function setActiveEditor(editor: MonacoApi.editor.IStandaloneCodeEditor | null): void {
-  activeEditor = editor;
+export function setGroupEditor(
+  groupId: string,
+  editor: MonacoApi.editor.IStandaloneCodeEditor | null
+): void {
+  if (editor === null) {
+    editors.delete(groupId);
+
+    if (focusedGroupId === groupId) focusedGroupId = null;
+
+    return;
+  }
+
+  editors.set(groupId, editor);
+  focusedGroupId ??= groupId;
 }
 
 /**
- * La instancia montada.
+ * Anota qué grupo tiene el foco.
  *
- * @returns El editor, o `null` si no hay ninguno.
+ * @param groupId El grupo enfocado.
+ * @example
+ * setFocusedGroup('secondary');
+ */
+export function setFocusedGroup(groupId: string): void {
+  focusedGroupId = groupId;
+}
+
+/**
+ * La instancia del grupo enfocado.
+ *
+ * **La firma no cambió** al pasar a dos grupos, a propósito: lo que "el editor
+ * activo" significa —el que la persona está mirando— es lo mismo con uno o con
+ * dos paneles.
+ *
+ * @returns El editor, o `null` si no hay ninguno montado.
  * @example
  * const position = getActiveEditor()?.getPosition();
  */
 export function getActiveEditor(): MonacoApi.editor.IStandaloneCodeEditor | null {
-  return activeEditor;
+  if (focusedGroupId !== null) {
+    const focused = editors.get(focusedGroupId);
+
+    if (focused !== undefined) return focused;
+  }
+
+  return [...editors.values()][0] ?? null;
 }

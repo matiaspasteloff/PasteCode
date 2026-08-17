@@ -1,4 +1,4 @@
-import type { TabState, WorkspaceState } from './schema.js';
+import type { PersistedGroup, TabState, WorkspaceState } from './schema.js';
 
 /** El prefijo de un URI de archivo. Es el único esquema que se persiste. */
 const FILE_SCHEME = 'file:///';
@@ -48,6 +48,16 @@ export interface RestorablePlan {
   /** Índice de la activa **dentro de `openTabs`**. `-1` si no quedó ninguna. */
   activeTabIndex: number;
   expandedFolders: readonly string[];
+  /**
+   * Los grupos, ya filtrados, si la sesión los tenía.
+   *
+   * `undefined` —y no una lista vacía— cuando la escribió una versión que no
+   * los conocía: la diferencia es lo que le dice al renderer que arme un solo
+   * grupo desde `openTabs` en vez de restaurar cero grupos.
+   */
+  groups?: readonly PersistedGroup[];
+  layout?: WorkspaceState['layout'];
+  activeGroupId?: string;
 }
 
 /**
@@ -82,10 +92,39 @@ export function planRestore(
   // pestaña anterior a la activa, el número viejo apunta a otra cosa.
   const activeTabIndex = previousActive === undefined ? -1 : openTabs.indexOf(previousActive);
 
+  const groups = state.groups?.map((group) => restoreGroup(group, exists));
+
   return {
     openTabs,
     // Si la que estaba activa desapareció, queda la primera que sobrevivió.
     activeTabIndex: activeTabIndex === -1 && openTabs.length > 0 ? 0 : activeTabIndex,
     expandedFolders: state.expandedFolders,
+    // Se omiten las claves en vez de mandarlas en `undefined`: con
+    // `exactOptionalPropertyTypes` no son lo mismo.
+    ...(groups === undefined
+      ? {}
+      : { groups: groups.filter((group) => group.openTabs.length > 0) }),
+    ...(state.layout === undefined ? {} : { layout: state.layout }),
+    ...(state.activeGroupId === undefined ? {} : { activeGroupId: state.activeGroupId }),
+  };
+}
+
+/** Un grupo con sus pestañas filtradas y su índice activo recalculado. */
+function restoreGroup(
+  group: PersistedGroup,
+  exists: (path: string) => boolean
+): PersistedGroup {
+  const previousActive = group.openTabs[group.activeTabIndex];
+  const openTabs = group.openTabs.filter((tab) => {
+    const path = fromFileUri(tab.uri);
+
+    return path !== undefined && exists(path);
+  });
+  const index = previousActive === undefined ? -1 : openTabs.indexOf(previousActive);
+
+  return {
+    id: group.id,
+    openTabs,
+    activeTabIndex: index === -1 && openTabs.length > 0 ? 0 : index,
   };
 }

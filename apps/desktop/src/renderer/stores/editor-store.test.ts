@@ -1,10 +1,10 @@
-import { activeTab } from '@pastecode/core';
+import { activeTab, PRIMARY_GROUP_ID } from '@pastecode/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { resetEditorStore, tabsWith } from '../test-support/editor-state.js';
+import { groupsWith, resetEditorStore } from '../test-support/editor-state.js';
 import { installFakeApi } from '../test-support/fake-api.js';
 
-import { useEditorStore } from './editor-store.js';
+import { selectActiveTabs, useEditorStore } from './editor-store.js';
 
 const A = 'C:\\p\\a.ts';
 const B = 'C:\\p\\b.ts';
@@ -24,7 +24,7 @@ describe('abrir archivos', () => {
 
     await state().open(A);
 
-    expect(state().tabs.tabs.map((tab) => tab.path)).toEqual([A]);
+    expect(selectActiveTabs(state()).tabs.map((tab) => tab.path)).toEqual([A]);
     expect(state().pendingFile).toEqual({ path: A, content: 'hola' });
     expect(state().mtimes[A]).toBe(10);
   });
@@ -42,7 +42,7 @@ describe('abrir archivos', () => {
     await state().open(A);
 
     expect(invoke).not.toHaveBeenCalled();
-    expect(activeTab(state().tabs)?.path).toBe(A);
+    expect(activeTab(selectActiveTabs(state()))?.path).toBe(A);
   });
 
   it('deja el error en el estado sin cerrar lo que ya estaba abierto', async () => {
@@ -58,7 +58,7 @@ describe('abrir archivos', () => {
     await state().open('C:\\p\\logo.png');
 
     expect(state().error?.code).toBe('BINARY_FILE_UNSUPPORTED');
-    expect(state().tabs.tabs.map((tab) => tab.path)).toEqual([A]);
+    expect(selectActiveTabs(state()).tabs.map((tab) => tab.path)).toEqual([A]);
   });
 });
 
@@ -67,18 +67,18 @@ describe('cerrar pestañas', () => {
     installFakeApi({ 'fs:readFile': { ok: true, value: { content: 'hola', mtimeMs: 10 } } });
     await state().open(A);
 
-    state().closeTab(0);
+    state().closeTab(PRIMARY_GROUP_ID, 0);
 
     expect(state().mtimes[A]).toBeUndefined();
-    expect(state().tabs.activeTabIndex).toBe(-1);
+    expect(selectActiveTabs(state()).activeTabIndex).toBe(-1);
   });
 
   it('ignora un índice que no existe', () => {
-    useEditorStore.setState({ tabs: tabsWith([A]) });
+    useEditorStore.setState({ groups: groupsWith([A]) });
 
-    state().closeTab(7);
+    state().closeTab(PRIMARY_GROUP_ID, 7);
 
-    expect(state().tabs.tabs).toHaveLength(1);
+    expect(selectActiveTabs(state()).tabs).toHaveLength(1);
   });
 });
 
@@ -86,7 +86,7 @@ describe('guardar', () => {
   /** Deja una pestaña activa, sucia y con contenido para escribir. */
   function withDirtyTab(content: string): void {
     useEditorStore.setState({
-      tabs: tabsWith([A, B], 0),
+      groups: groupsWith([A, B], 0),
       mtimes: { [A]: 100 },
       readContent: () => content,
     });
@@ -112,7 +112,7 @@ describe('guardar', () => {
 
     await state().save();
 
-    expect(state().tabs.tabs[0]?.isDirty).toBe(false);
+    expect(selectActiveTabs(state()).tabs[0]?.isDirty).toBe(false);
     expect(state().mtimes[A]).toBe(200);
   });
 
@@ -139,7 +139,7 @@ describe('guardar', () => {
     expect(state().error).toBeNull();
     // Perder la marca haría creer que se guardó y el próximo Ctrl+S no
     // reintentaría.
-    expect(state().tabs.tabs[0]?.isDirty).toBe(true);
+    expect(selectActiveTabs(state()).tabs[0]?.isDirty).toBe(true);
   });
 
   it('trata cualquier otro fallo como error normal', async () => {
@@ -166,11 +166,11 @@ describe('guardar', () => {
   });
 
   it('sólo marca sucia la pestaña activa', () => {
-    useEditorStore.setState({ tabs: tabsWith([A, B], 1) });
+    useEditorStore.setState({ groups: groupsWith([A, B], 1) });
 
     state().markDirty();
 
-    expect(state().tabs.tabs.map((tab) => tab.isDirty)).toEqual([false, true]);
+    expect(selectActiveTabs(state()).tabs.map((tab) => tab.isDirty)).toEqual([false, true]);
   });
 });
 
@@ -180,7 +180,7 @@ describe('descartar cambios', () => {
       'fs:readFile': { ok: true, value: { content: 'del disco', mtimeMs: 900 } },
     });
     useEditorStore.setState({
-      tabs: tabsWith([A]),
+      groups: groupsWith([A]),
       conflict: { code: 'STALE_FILE', userMessage: 'Cambió.' },
     });
 
@@ -188,7 +188,7 @@ describe('descartar cambios', () => {
 
     expect(state().pendingFile).toEqual({ path: A, content: 'del disco' });
     expect(state().conflict).toBeNull();
-    expect(state().tabs.tabs[0]?.isDirty).toBe(false);
+    expect(selectActiveTabs(state()).tabs[0]?.isDirty).toBe(false);
   });
 
   it('no hace nada sin pestaña activa', async () => {

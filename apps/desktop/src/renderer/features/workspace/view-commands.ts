@@ -1,5 +1,7 @@
 import type { Command } from '@pastecode/core';
+import { PRIMARY_GROUP_ID, SECONDARY_GROUP_ID } from '@pastecode/core';
 
+import { useEditorStore } from '../../stores/editor-store.js';
 import { useViewStore } from '../../stores/view-store.js';
 
 /**
@@ -17,6 +19,34 @@ import { useViewStore } from '../../stores/view-store.js';
  */
 export function viewCommands(): readonly Command[] {
   return [
+    {
+      id: 'editor.splitRight',
+      title: 'command.editorSplitRight',
+      handler: () => {
+        useEditorStore.getState().splitEditor('horizontal');
+      },
+    },
+    {
+      id: 'editor.splitDown',
+      title: 'command.editorSplitDown',
+      handler: () => {
+        useEditorStore.getState().splitEditor('vertical');
+      },
+    },
+    {
+      id: 'editor.focusFirstGroup',
+      title: 'command.editorFocusFirstGroup',
+      handler: () => {
+        useEditorStore.getState().focusGroup(PRIMARY_GROUP_ID);
+      },
+    },
+    {
+      id: 'editor.focusSecondGroup',
+      title: 'command.editorFocusSecondGroup',
+      handler: () => {
+        useEditorStore.getState().focusGroup(SECONDARY_GROUP_ID);
+      },
+    },
     {
       id: 'view.showExplorer',
       title: 'command.viewShowExplorer',

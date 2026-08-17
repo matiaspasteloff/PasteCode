@@ -2,7 +2,7 @@ import { resolveKeybinding, type WhenContext } from '@pastecode/core';
 import { useEffect } from 'react';
 
 import { useCommandStore } from '../../stores/command-store.js';
-import { useEditorStore } from '../../stores/editor-store.js';
+import { selectActiveTabs, useEditorStore } from '../../stores/editor-store.js';
 import { useTerminalStore } from '../../stores/terminal-store.js';
 import { useWorkspaceStore } from '../../stores/workspace-store.js';
 
@@ -63,17 +63,22 @@ export function useKeybindings(): void {
  */
 function currentContext(): WhenContext {
   const editor = useEditorStore.getState();
+  const tabs = selectActiveTabs(editor);
   const workspace = useWorkspaceStore.getState();
 
   return {
     hasWorkspace: workspace.workspace !== null,
-    hasOpenTab: editor.tabs.activeTabIndex !== -1,
-    isDirty: editor.tabs.tabs[editor.tabs.activeTabIndex]?.isDirty ?? false,
+    hasOpenTab: tabs.activeTabIndex !== -1,
+    isDirty: tabs.tabs[tabs.activeTabIndex]?.isDirty ?? false,
+    // Clave de contexto nueva: los atajos de foco por grupo sólo existen cuando
+    // la pantalla está partida. El resolver ya soporta cláusulas, así que esto
+    // es dato y no código.
+    hasSecondGroup: editor.groups.groups.length > 1,
     isPaletteOpen: useCommandStore.getState().isPaletteOpen,
     // RF-703 usa literalmente `editorFocus && !terminalFocus` como ejemplo de
     // cláusula `when`, y hasta acá esa clave no existía. La publica la terminal
     // desde el `focus`/`blur` del textarea de xterm.
     terminalFocus: useTerminalStore.getState().hasFocus,
-    editorFocus: editor.tabs.activeTabIndex !== -1 && !useTerminalStore.getState().hasFocus,
+    editorFocus: tabs.activeTabIndex !== -1 && !useTerminalStore.getState().hasFocus,
   };
 }

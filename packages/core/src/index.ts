@@ -70,8 +70,16 @@ export { buildRipgrepArgs, parseRipgrepLine } from './search/ripgrep.js';
 export type { SearchMatch, SearchQuery } from './search/ripgrep.js';
 export { fromFileUri, planRestore, toFileUri } from './session/restore.js';
 export type { RestorablePlan } from './session/restore.js';
-export { TabStateSchema, WorkspaceStateSchema } from './session/schema.js';
-export type { TabState as PersistedTabState, WorkspaceState } from './session/schema.js';
+export {
+  PersistedGroupSchema,
+  TabStateSchema,
+  WorkspaceStateSchema,
+} from './session/schema.js';
+export type {
+  PersistedGroup,
+  TabState as PersistedTabState,
+  WorkspaceState,
+} from './session/schema.js';
 export { resolveSettings } from './settings/merge.js';
 export {
   DEFAULT_SETTINGS,
@@ -99,6 +107,23 @@ export {
   setTabDirty,
 } from './workspace/tabs.js';
 export type { TabState, TabsState } from './workspace/tabs.js';
+export {
+  activeGroup,
+  activeTabs,
+  allOpenPaths,
+  closeGroup,
+  EDITOR_LAYOUTS,
+  focusGroup,
+  groupsFromTabs,
+  MAX_GROUPS,
+  PRIMARY_GROUP_ID,
+  SECONDARY_GROUP_ID,
+  SINGLE_EMPTY_GROUPS,
+  splitGroups,
+  updateActiveGroup,
+  updateGroup,
+} from './workspace/groups.js';
+export type { EditorGroup, EditorLayout, GroupsState } from './workspace/groups.js';
 export { flattenVisibleNodes, sortEntries } from './workspace/tree.js';
 export type { DirectoryEntry, FileTreeNode, VisibleNode } from './workspace/tree.js';
 export { workspaceDisplayName } from './workspace/workspace-name.js';

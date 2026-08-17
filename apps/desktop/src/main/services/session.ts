@@ -31,6 +31,10 @@ export interface SessionSnapshot {
   openTabs: WorkspaceState['openTabs'];
   activeTabIndex: number;
   expandedFolders: string[];
+  /** Los grupos, si el renderer los reportó. Ver ADR-0023. */
+  groups?: WorkspaceState['groups'] | undefined;
+  layout?: WorkspaceState['layout'] | undefined;
+  activeGroupId?: string | undefined;
 }
 
 /** Dónde viven los archivos de sesión. */
@@ -145,8 +149,13 @@ export function disposeSession(): void {
 export async function planSessionRestore(state: WorkspaceState): Promise<RestorablePlan> {
   const existing = new Set<string>();
 
+  const everyTab = [
+    ...state.openTabs,
+    ...(state.groups ?? []).flatMap((group) => group.openTabs),
+  ];
+
   await Promise.all(
-    state.openTabs.map(async (tab) => {
+    everyTab.map(async (tab) => {
       const path = fromFileUri(tab.uri);
       if (path === undefined) return;
 
