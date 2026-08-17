@@ -1,4 +1,4 @@
-import { delimiter, isAbsolute, join } from 'node:path';
+import { join, posix, win32 } from 'node:path';
 
 import { isInsideRoot } from '@pastecode/core';
 
@@ -34,6 +34,12 @@ export type GitResolution = { path: string } | { problem: string };
  * el sistema operativo elija en el momento de la llamada, se arma una ruta
  * absoluta con cada directorio y esa ruta se verifica como cualquier otra.
  *
+ * Las rutas se arman con la gramática de `platform` y no con la del sistema que
+ * corre el proceso. En producción son la misma —`platform` sale de
+ * `process.platform`—, pero mezclarlas hace que la función mienta cuando se le
+ * pregunta por otra: en POSIX, `C:\...` no es absoluto y `;` no separa el
+ * `PATH`, así que pedirle las rutas de Windows devolvía la lista vacía.
+ *
  * @param environment Normalmente `process.env`.
  * @param platform Normalmente `process.platform`.
  * @returns Los directorios absolutos a probar, en orden.
@@ -44,20 +50,22 @@ export function gitSearchDirectories(
   environment: NodeJS.ProcessEnv,
   platform: NodeJS.Platform
 ): string[] {
+  const paths = platform === 'win32' ? win32 : posix;
+
   const known =
     platform === 'win32'
       ? [
-          join(environment.ProgramFiles ?? '', 'Git', 'cmd'),
-          join(environment['ProgramFiles(x86)'] ?? '', 'Git', 'cmd'),
-          join(environment.LOCALAPPDATA ?? '', 'Programs', 'Git', 'cmd'),
+          paths.join(environment.ProgramFiles ?? '', 'Git', 'cmd'),
+          paths.join(environment['ProgramFiles(x86)'] ?? '', 'Git', 'cmd'),
+          paths.join(environment.LOCALAPPDATA ?? '', 'Programs', 'Git', 'cmd'),
         ]
       : ['/usr/bin', '/usr/local/bin', '/opt/homebrew/bin', '/bin'];
 
-  const fromPath = (environment.PATH ?? environment.Path ?? '').split(delimiter);
+  const fromPath = (environment.PATH ?? environment.Path ?? '').split(paths.delimiter);
 
   return [...known, ...fromPath]
     .map((directory) => directory.trim())
-    .filter((directory) => directory !== '' && isAbsolute(directory));
+    .filter((directory) => directory !== '' && paths.isAbsolute(directory));
 }
 
 /**

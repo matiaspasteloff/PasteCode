@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -40,7 +40,11 @@ describe('createPtySupervisor', () => {
   let exits: TerminalExitEvent[];
 
   beforeEach(async () => {
-    workspace = await mkdtemp(join(tmpdir(), 'pastecode-pty-'));
+    // `realpath` y no `mkdtemp` a secas: en macOS `/tmp` es un enlace a
+    // `/private/tmp`, así que el proceso hijo informa un `cwd` resuelto que no
+    // es, textualmente, la ruta que le pasamos. Comparar contra la ruta sin
+    // resolver hacía fallar el test ahí y sólo ahí.
+    workspace = await realpath(await mkdtemp(join(tmpdir(), 'pastecode-pty-')));
     output = '';
     exits = [];
 
@@ -149,7 +153,10 @@ describe('createPtySupervisor', () => {
     await supervisor.disposeAll();
 
     expect(supervisor.list()).toHaveLength(0);
-    expect(exits).toHaveLength(3);
+    // Se espera el aviso en vez de darlo por llegado: lo que RF-305 promete es
+    // que ningún proceso queda vivo, no que los tres `onExit` corran antes de
+    // que `disposeAll` resuelva. Con la máquina cargada esa carrera se pierde.
+    await waitFor(() => exits.length === 3, 'las tres sesiones nunca avisaron su salida');
   });
 
   it('acepta un resize sin romper la sesión', async () => {
