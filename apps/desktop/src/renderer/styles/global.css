@@ -945,3 +945,164 @@ body {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: -2px;
 }
+
+/*
+ * El panel de control de código fuente. No usa el lienzo virtualizado de la
+ * búsqueda a propósito: son los archivos que alguien cambió sin commitear, y
+ * esa lista no llega a los 100 ítems que `codigo.md` pone como umbral.
+ */
+.git-panel {
+  display: flex;
+  overflow: hidden;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem;
+}
+
+.git-panel__message {
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font: inherit;
+  resize: vertical;
+  padding: 0.3rem 0.4rem;
+}
+
+.git-panel__commit {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+  cursor: pointer;
+  font: inherit;
+}
+
+.git-panel__commit:disabled {
+  color: var(--color-muted);
+  cursor: default;
+}
+
+.git-panel__status {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.85em;
+}
+
+.git-panel__error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 0.85em;
+}
+
+.git-panel__list {
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+.git-panel__section {
+  display: flex;
+  height: 22px;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-muted);
+  font-size: 0.8em;
+  text-transform: uppercase;
+}
+
+.git-panel__row {
+  display: flex;
+  height: 22px;
+  align-items: center;
+}
+
+.git-panel__file {
+  display: flex;
+  overflow: hidden;
+  flex: 1;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  background: none;
+  color: var(--color-foreground);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.git-panel__file:hover {
+  background: var(--color-selection);
+}
+
+.git-panel__file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+}
+
+.git-panel__action {
+  width: 22px;
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  font: inherit;
+}
+
+.git-panel__action:hover {
+  color: var(--color-foreground);
+}
+
+/* Un punto de color por estado. Los tokens ya existen en los dos temas. */
+.git-panel__status-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-git-modified);
+}
+
+.git-panel__status-dot--added {
+  background: var(--color-git-added);
+}
+
+.git-panel__status-dot--deleted {
+  background: var(--color-git-deleted);
+}
+
+.git-panel__status-dot--untracked {
+  background: var(--color-git-untracked);
+}
+
+.git-panel__status-dot--conflict {
+  background: var(--color-git-conflict);
+}
+
+/* RF-606: el nombre cambia de color, no se le agrega un badge. Un badge por
+   fila en un árbol virtualizado de 5.000 filas es ruido visual y un elemento
+   más por fila; el color dice lo mismo sin ocupar lugar. */
+.file-tree__name--modified,
+.file-tree__name--renamed {
+  color: var(--color-git-modified);
+}
+
+.file-tree__name--added {
+  color: var(--color-git-added);
+}
+
+.file-tree__name--deleted {
+  color: var(--color-git-deleted);
+  text-decoration: line-through;
+}
+
+.file-tree__name--untracked {
+  color: var(--color-git-untracked);
+}
+
+.file-tree__name--conflict {
+  color: var(--color-git-conflict);
+}

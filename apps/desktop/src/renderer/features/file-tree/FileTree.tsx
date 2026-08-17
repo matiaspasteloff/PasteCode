@@ -4,6 +4,8 @@ import { useMemo, useRef } from 'react';
 
 import { t } from '../../i18n/index.js';
 import { useFileTreeStore } from '../../stores/file-tree-store.js';
+import { useGitStore } from '../../stores/git-store.js';
+import { decorationsByPath, normalizePath } from '../git/git-rows.js';
 
 import { FileTreeRow } from './FileTreeRow.js';
 import { useTreeNavigation } from './use-tree-navigation.js';
@@ -30,12 +32,17 @@ export function FileTree({ selectedPath, onSelectFile }: FileTreeProps): React.J
   const expandedPaths = useFileTreeStore((state) => state.expandedPaths);
   const isLoading = useFileTreeStore((state) => state.isLoading);
   const toggleFolder = useFileTreeStore((state) => state.toggleFolder);
+  const repository = useGitStore((state) => state.repository);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Derivado en el render y no en un useEffect: es exactamente el caso que la
   // regla 5 de React señala.
   const rows = useMemo(() => flattenVisibleNodes(roots, expandedPaths), [roots, expandedPaths]);
+  // Se arma una vez por refresco de git y no una vez por fila: git informa
+  // rutas relativas a la raíz del repositorio y el árbol tiene absolutas del
+  // sistema operativo, así que la traducción tiene que pasar en algún lado.
+  const decorations = useMemo(() => decorationsByPath(repository), [repository]);
 
   const { focusedIndex, activate, handleKeyDown } = useTreeNavigation(
     rows,
@@ -73,6 +80,7 @@ export function FileTree({ selectedPath, onSelectFile }: FileTreeProps): React.J
               offset={item.start}
               isFocused={item.index === focusedIndex}
               isSelected={visible.node.path === selectedPath}
+              gitStatus={decorations.get(normalizePath(visible.node.path)) ?? null}
               onActivate={activate}
             />
           );

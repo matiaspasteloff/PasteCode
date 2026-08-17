@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { t } from '../i18n/index.js';
 import { useEditorStore } from '../stores/editor-store.js';
 
+import { StatusBranch } from './status/StatusBranch.js';
 import { StatusIndentation } from './status/StatusIndentation.js';
 import { StatusLanguage } from './status/StatusLanguage.js';
 import { StatusPosition } from './status/StatusPosition.js';
@@ -21,8 +22,9 @@ const PROGRESS_DELAY_MS = 500;
  * tecla, y un solo componente leyendo todo dejaría el presupuesto de 16ms de
  * RNF-02 en dibujar cosas que no cambiaron.
  *
- * El indicador de rama entra acá cuando Git exista. Es un componente más en la
- * lista de abajo, igual que el de problemas.
+ * La rama y los problemas son dos componentes más de la lista de abajo, cada
+ * uno suscripto a su propio store: eso es lo que hace que un refresco de Git no
+ * repinte el contador de la línea y la columna.
  *
  * La versión no está hardcodeada. Llega por el canal `app:getVersion`, así que
  * verla en pantalla sigue siendo la prueba visible de que la cadena contrato →
@@ -46,6 +48,7 @@ export function StatusBar(): React.JSX.Element {
       </div>
 
       <div className="status-bar__group">
+        <StatusBranch />
         <StatusProblems />
         <StatusPosition />
         <StatusIndentation />

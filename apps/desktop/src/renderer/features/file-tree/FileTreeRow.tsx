@@ -1,4 +1,4 @@
-import type { VisibleNode } from '@pastecode/core';
+import type { GitFileStatus, VisibleNode } from '@pastecode/core';
 
 import { IconChevron } from '../../components/icons/IconChevron.js';
 import { IconFile } from '../../components/icons/IconFile.js';
@@ -15,7 +15,40 @@ interface FileTreeRowProps {
   isFocused: boolean;
   /** Si es el archivo abierto en el editor. */
   isSelected: boolean;
+  /**
+   * Qué le pasó a este archivo según git, si algo (RF-606).
+   *
+   * Llega por prop y no se lee de un store porque esta fila es presentacional:
+   * es lo que la deja testeable sin repositorio y sin montar el árbol entero.
+   */
+  gitStatus: GitFileStatus | null;
   onActivate: (visible: VisibleNode) => void;
+}
+
+/**
+ * El nombre del nodo, coloreado según lo que git diga de él (RF-606).
+ *
+ * Es el nombre el que cambia de color y no un badge al costado: un elemento más
+ * por fila en un árbol virtualizado de 5.000 filas es ruido visual y trabajo de
+ * layout, y el color dice lo mismo sin ocupar lugar.
+ */
+function NodeName({
+  name,
+  gitStatus,
+}: {
+  name: string;
+  gitStatus: GitFileStatus | null;
+}): React.JSX.Element {
+  return (
+    <span
+      className={
+        gitStatus === null ? 'file-tree__name' : `file-tree__name file-tree__name--${gitStatus}`
+      }
+      data-git-status={gitStatus ?? undefined}
+    >
+      {name}
+    </span>
+  );
 }
 
 /**
@@ -41,6 +74,7 @@ export function FileTreeRow({
   offset,
   isFocused,
   isSelected,
+  gitStatus,
   onActivate,
 }: FileTreeRowProps): React.JSX.Element {
   const { node, depth, isExpanded, positionInLevel, levelSize } = visible;
@@ -85,7 +119,7 @@ export function FileTreeRow({
           <IconFile size={14} name={node.name} />
         )}
       </span>
-      <span className="file-tree__name">{node.name}</span>
+      <NodeName name={node.name} gitStatus={gitStatus} />
     </div>
   );
 }

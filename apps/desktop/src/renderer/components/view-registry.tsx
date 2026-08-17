@@ -1,6 +1,7 @@
 import { activeTab } from '@pastecode/core';
 
 import { FileTree } from '../features/file-tree/FileTree.js';
+import { SourceControlPanel } from '../features/git/SourceControlPanel.js';
 import { SearchPanel } from '../features/search/SearchPanel.js';
 import type { TranslationKey } from '../i18n/index.js';
 import { useEditorStore } from '../stores/editor-store.js';
@@ -8,6 +9,7 @@ import type { SideView } from '../stores/view-store.js';
 
 import type { IconProps } from './icons/Icon.js';
 import { IconExplorer } from './icons/IconExplorer.js';
+import { IconGit } from './icons/IconGit.js';
 import { IconSearch } from './icons/IconSearch.js';
 
 /** Todo lo que el cascarón necesita saber de una vista lateral. */
@@ -51,8 +53,8 @@ function ExplorerView(): React.JSX.Element {
  * store de la feature que le prestaba el booleano y el rail. Ahora el rail se
  * dibuja recorriendo esta lista y el contenedor busca por id.
  *
- * El panel de Git entra acá cuando exista, y esa entrada es la única prueba
- * que este diseño necesita.
+ * El panel de Git entró acá como una entrada más, y ésa es la única prueba
+ * que este diseño necesitaba.
  *
  * @example
  * for (const view of SIDE_VIEW_REGISTRY) renderButton(view);
@@ -71,5 +73,12 @@ export const SIDE_VIEW_REGISTRY: readonly SideViewDescriptor[] = [
     commandId: 'search.toggle',
     Icon: IconSearch,
     render: () => <SearchPanel />,
+  },
+  {
+    id: 'git',
+    labelKey: 'view.git',
+    commandId: 'git.toggle',
+    Icon: IconGit,
+    render: () => <SourceControlPanel />,
   },
 ];

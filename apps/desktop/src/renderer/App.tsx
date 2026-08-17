@@ -10,20 +10,19 @@ import { useAppCommands } from './features/commands/use-app-commands.js';
 import { useKeybindings } from './features/commands/use-keybindings.js';
 import { ConflictDialog } from './features/editor/ConflictDialog.js';
 import { EditorArea } from './features/editor/EditorArea.js';
-import { releaseAllModels, releaseModelsExcept } from './features/editor/model-registry.js';
+import { releaseModelsExcept } from './features/editor/model-registry.js';
 import { TabStrip } from './features/editor/TabStrip.js';
 import { useExternalChanges } from './features/editor/use-external-changes.js';
 import { FilePalette } from './features/files/FilePalette.js';
-import { forgetLspDocuments } from './features/lsp/document-sync.js';
+import { BranchPicker } from './features/git/BranchPicker.js';
+import { useGitEvents } from './features/git/use-git-events.js';
 import { useLsp } from './features/lsp/use-lsp.js';
 import { useSearchEvents } from './features/search/use-search-events.js';
 import { useSession } from './features/session/use-session.js';
 import { useSettings } from './features/settings/use-settings.js';
 import { useTheme } from './features/theme/use-theme.js';
+import { useWorkspaceReset } from './features/workspace/use-workspace-reset.js';
 import { useEditorStore } from './stores/editor-store.js';
-import { useFileIndexStore } from './stores/file-index-store.js';
-import { useFileTreeStore } from './stores/file-tree-store.js';
-import { useProblemsStore } from './stores/problems-store.js';
 import { useWorkspaceStore } from './stores/workspace-store.js';
 
 /**
@@ -31,15 +30,8 @@ import { useWorkspaceStore } from './stores/workspace-store.js';
  * edición con su panel inferior, y barra de estado.
  */
 export function App(): React.JSX.Element {
-  const workspace = useWorkspaceStore((state) => state.workspace);
   const restore = useWorkspaceStore((state) => state.restore);
-  const loadRoot = useFileTreeStore((state) => state.loadRoot);
-  const clearTree = useFileTreeStore((state) => state.clear);
-  const clearIndex = useFileIndexStore((state) => state.clear);
-  const clearProblems = useProblemsStore((state) => state.clear);
-
   const openTabs = useEditorStore((state) => state.tabs.tabs);
-  const closeAll = useEditorStore((state) => state.closeAll);
 
   useAppCommands();
   useKeybindings();
@@ -48,31 +40,15 @@ export function App(): React.JSX.Element {
   useSearchEvents();
   useExternalChanges();
   useLsp();
+  useGitEvents();
   useTheme();
+  useWorkspaceReset();
 
   useEffect(() => {
     // El main puede tener un workspace abierto de antes que la ventana se
     // recargara. Preguntar es más barato que asumir que no hay ninguno.
     void restore();
   }, [restore]);
-
-  useEffect(() => {
-    // Cambiar de workspace cierra todo. Los modelos se desechan a mano: no los
-    // recoge el recolector de basura mientras Monaco los tenga indexados.
-    closeAll();
-    releaseAllModels();
-    // El índice de quick open es de un workspace: conservarlo ofrecería
-    // archivos de la carpeta anterior.
-    clearIndex();
-    // Los diagnósticos y el mapa de servidores también: el main ya apagó los
-    // servidores del workspace anterior, así que lo que quedara acá son errores
-    // de archivos que ya no se pueden abrir.
-    clearProblems();
-    forgetLspDocuments();
-
-    if (workspace === null) clearTree();
-    else void loadRoot(workspace.root);
-  }, [workspace, loadRoot, clearTree, clearIndex, clearProblems, closeAll]);
 
   useEffect(() => {
     // El registro se acomoda a las pestañas abiertas. Va acá y no en el editor
@@ -99,6 +75,7 @@ export function App(): React.JSX.Element {
       <ConflictDialog />
       <CommandPalette />
       <FilePalette />
+      <BranchPicker />
     </div>
   );
 }
