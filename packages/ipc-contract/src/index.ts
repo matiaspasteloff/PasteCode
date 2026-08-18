@@ -12,6 +12,7 @@ export type {
   LspServerChangedEvent,
   SearchDoneEvent,
   SearchResultEvent,
+  KeybindingsChangedEvent,
   SettingsChangedEvent,
   TerminalDataEvent,
   TerminalExitEvent,
@@ -99,6 +100,12 @@ export {
   WriteClipboardRequestSchema,
   WriteClipboardResponseSchema,
 } from './schemas/clipboard.js';
+export {
+  GetKeybindingsRequestSchema,
+  GetKeybindingsResponseSchema,
+  KeybindingConflictSchema,
+  KeybindingSchema,
+} from './schemas/keybindings.js';
 export {
   DirectoryEntrySchema,
   ReadDirectoryRequestSchema,

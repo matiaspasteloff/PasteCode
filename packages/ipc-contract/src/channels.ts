@@ -31,6 +31,10 @@ import type {
   ListBranchesResponseSchema,
 } from './schemas/git.js';
 import type {
+  GetKeybindingsRequestSchema,
+  GetKeybindingsResponseSchema,
+} from './schemas/keybindings.js';
+import type {
   ChangeDocumentRequestSchema,
   ChangeDocumentResponseSchema,
   CloseDocumentRequestSchema,
@@ -140,6 +144,10 @@ export interface IpcChannels {
   'terminal:list': {
     request: z.infer<typeof ListTerminalsRequestSchema>;
     response: z.infer<typeof ListTerminalsResponseSchema>;
+  };
+  'keybindings:get': {
+    request: z.infer<typeof GetKeybindingsRequestSchema>;
+    response: z.infer<typeof GetKeybindingsResponseSchema>;
   };
   'settings:get': {
     request: z.infer<typeof GetSettingsRequestSchema>;

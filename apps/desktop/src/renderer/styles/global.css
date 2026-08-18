@@ -1187,3 +1187,12 @@ body {
 .tabs__split:hover {
   color: var(--color-foreground);
 }
+
+/* El aviso de atajos en conflicto. Aparece sólo cuando hay algo que decir, así
+   que puede permitirse un color que llame la atención sin volverse ruido. */
+.status-bar__item--warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--color-warning);
+}

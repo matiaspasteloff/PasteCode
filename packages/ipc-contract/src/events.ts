@@ -1,4 +1,4 @@
-import type { DocumentDiagnostics, SearchMatch, Settings } from '@pastecode/core';
+import type { DocumentDiagnostics, Keybinding, SearchMatch, Settings } from '@pastecode/core';
 
 import type { SerializedError } from './result.js';
 import type { GitRepository } from './schemas/git.js';
@@ -72,6 +72,31 @@ export interface FilesChangedEvent {
  */
 export interface SettingsChangedEvent {
   settings: Settings;
+  error: SerializedError | null;
+}
+
+/**
+ * Payload de `keybindings:changed`: los atajos del usuario, después del cambio.
+ *
+ * Misma forma que `settings:changed` y por las mismas razones: viaja el valor
+ * ya resuelto y el `error` va **al lado** y no en lugar de los atajos. Un
+ * `keybindings.json` con una coma de más no puede dejar la aplicación sin
+ * teclado; se sigue con los de fábrica y además se avisa.
+ *
+ * Los conflictos viajan con ellos porque se detectan sobre la lista completa
+ * —fábrica más usuario—, y esa lista la arma el main al cargar.
+ */
+export interface KeybindingsChangedEvent {
+  bindings: Keybinding[];
+  /**
+   * Los conflictos, con `commands` mutable.
+   *
+   * `KeybindingConflict` de `core` lo declara `readonly`, que es lo correcto
+   * ahí adentro, pero lo que cruza el IPC se serializa y del otro lado se
+   * reconstruye: pedir `readonly` en el contrato no protege nada y no coincide
+   * con lo que infiere el schema Zod del canal.
+   */
+  conflicts: { key: string; commands: string[] }[];
   error: SerializedError | null;
 }
 
@@ -167,6 +192,7 @@ export interface IpcEvents {
   'terminal:data': TerminalDataEvent;
   'terminal:exit': TerminalExitEvent;
   'settings:changed': SettingsChangedEvent;
+  'keybindings:changed': KeybindingsChangedEvent;
   'search:result': SearchResultEvent;
   'search:done': SearchDoneEvent;
   'files:changed': FilesChangedEvent;
@@ -195,6 +221,7 @@ export const EVENT_NAMES = [
   'terminal:data',
   'terminal:exit',
   'settings:changed',
+  'keybindings:changed',
   'search:result',
   'search:done',
   'files:changed',

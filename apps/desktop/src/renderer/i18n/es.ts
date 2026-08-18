@@ -39,6 +39,8 @@ export const es = {
   'fileTree.empty': 'La carpeta está vacía',
   'fileTree.label': 'Archivos del workspace',
   'fileTree.loading': 'Cargando archivos…',
+  'keybindings.conflicts': 'Atajos en conflicto',
+  'keybindings.fileError': 'keybindings.json con errores',
   'panel.hide': 'Ocultar el panel',
   'panel.label': 'Panel inferior',
   'panel.tabs': 'Vistas del panel inferior',

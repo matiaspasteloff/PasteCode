@@ -7,6 +7,7 @@ import { registerAppIpcHandlers } from './ipc/app.js';
 import { registerClipboardIpcHandlers } from './ipc/clipboard.js';
 import { registerFsIpcHandlers } from './ipc/fs.js';
 import { registerGitIpcHandlers } from './ipc/git.js';
+import { registerKeybindingsIpcHandlers, startKeybindings } from './ipc/keybindings.js';
 import { registerLspIpcHandlers } from './ipc/lsp.js';
 import { registerSearchIpcHandlers } from './ipc/search.js';
 import { flushSession, registerSessionIpcHandlers } from './ipc/session.js';
@@ -29,6 +30,7 @@ registerWorkspaceIpcHandlers();
 registerTerminalIpcHandlers();
 registerClipboardIpcHandlers();
 registerSettingsIpcHandlers();
+registerKeybindingsIpcHandlers();
 registerSessionIpcHandlers();
 registerSearchIpcHandlers();
 registerLspIpcHandlers();
@@ -73,6 +75,7 @@ void app.whenReady().then(async () => {
   }
 
   await startSettings(dataDirectoryOverride);
+  await startKeybindings(dataDirectoryOverride);
 
   // En desarrollo el renderer lo sirve Vite con su HMR; el esquema propio sólo
   // hace falta para el build empaquetado.

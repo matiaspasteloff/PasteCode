@@ -1,5 +1,7 @@
 export { evaluateWhen, findConflicts, resolveKeybinding } from './keybindings/resolver.js';
 export type { Keybinding, KeybindingConflict, WhenContext } from './keybindings/resolver.js';
+export { KeybindingsFileSchema, normalizeKey, userKeybindings } from './keybindings/file.js';
+export type { KeybindingsFile } from './keybindings/file.js';
 export { InvalidWhenExpressionError, parseWhen } from './keybindings/when-parser.js';
 export type { WhenExpression } from './keybindings/when-parser.js';
 export { fuzzyMatch, rankByFuzzyMatch } from './commands/fuzzy.js';
