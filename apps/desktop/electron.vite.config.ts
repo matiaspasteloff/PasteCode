@@ -31,7 +31,19 @@ export default defineConfig({
       externalizeDepsPlugin({ exclude: [...WORKSPACE_PACKAGES, ...BUNDLED_DEPENDENCIES] }),
     ],
     build: {
-      rollupOptions: { input: resolve(__dirname, 'src/main/index.ts') },
+      // Dos entries de tipo `main`: el proceso principal y el extension host.
+      // El host es un proceso Node aparte, pero se **compila con la misma
+      // configuración** que el main —mismos externals, mismo target— porque es
+      // lo mismo desde el punto de vista del bundler: código de Node que no
+      // pasa por Chromium. Poniéndolo acá queda en `out/main/extension-host.js`
+      // y entra al asar con el resto, sin tocar `files` de electron-builder.
+      // Ver ADR-0027.
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, 'src/main/index.ts'),
+          'extension-host': resolve(__dirname, 'src/extension-host/index.ts'),
+        },
+      },
     },
   },
   preload: {
