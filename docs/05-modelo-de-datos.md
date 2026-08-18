@@ -42,7 +42,34 @@ El nombre es el hash y no la ruta escapada por dos razones: una ruta larga de Wi
 
 > **Nota de alcance (`breakpoints`), Etapa 3.** El campo está listado arriba pero **el tipo `Breakpoint` no está definido en ninguna parte de esta documentación**: llega con el DAP en la Etapa 5. Hasta entonces el campo **no se escribe**. Para que eso no sea un problema, `WorkspaceStateSchema` es un objeto **laxo** —conserva las claves que no conoce— al revés que el schema de settings, que es estricto. La diferencia es deliberada: un `settings.json` lo escribe una persona y una clave desconocida es casi siempre un error de tipeo que hay que señalar; este archivo lo escribe la app, así que una clave desconocida significa que lo escribió una versión más nueva de PasteCode, y rechazarlo sería tirarle la sesión a alguien que abrió una beta una vez.
 
-> **Nota de alcance (`isDirty`), Etapa 3.** Se guarda porque el schema lo declara, pero **al restaurar se ignora y toda pestaña vuelve limpia**. No se hace backup del contenido sin guardar, así que al reabrir el archivo es el que está en disco; un punto de "sin guardar" sobre un archivo idéntico al disco sería mentirle a alguien sobre si perdió su trabajo. El backup real —el _hot exit_ de VS Code— no está en el alcance de esta versión.
+> **Nota de alcance (`isDirty`), Etapa 5.** Se guarda porque el schema lo declara, pero **al restaurar la sesión se sigue ignorando y toda pestaña vuelve limpia**. Lo que cambió en la Etapa 5 es que el contenido sin guardar ya no se pierde: [RNF-08](./04-requerimientos-no-funcionales.md#confiabilidad) lo respalda cada 30 segundos en `~/.pastecode/backups/`, y al reabrir se **ofrece** recuperarlo.
+>
+> Las dos cosas son deliberadamente independientes. La sesión dice qué pestañas había; el respaldo dice qué se estaba escribiendo. Restaurar la sesión no restaura contenido —eso lo decide una persona en el diálogo de recuperación—, porque el respaldo puede ser de hace media hora y el archivo en disco puede haberse editado con otra herramienta mientras tanto. Recuperar sin preguntar sería la pérdida de datos que RNF-07 y RNF-08 existen para evitar.
+>
+> Al recuperar, la pestaña queda **sucia**: lo que se muestra no es lo que hay en el disco, y una pestaña limpia diría que ya está guardado. El `mtimeMs` que se conserva es el del disco, así que `Ctrl+S` sobre lo recuperado detecta el conflicto de RF-004 si el archivo cambió mientras la app estuvo cerrada.
+
+### Respaldos de recuperación
+
+`~/.pastecode/backups/<sha256-de-la-ruta>.json`, uno por archivo con cambios sin guardar. El nombre es el hash por las mismas dos razones que en la sesión: el límite de 260 caracteres de Windows, y no desparramar la estructura de carpetas de alguien en nombres de archivo.
+
+```ts
+interface BackupFile {
+  /** Ruta absoluta del archivo respaldado. El hash no se puede invertir. */
+  path: string;
+  /** Lo que había en el editor sin guardar. */
+  content: string;
+  /** Cuándo se escribió el respaldo. Se compara contra el `mtime` del archivo. */
+  savedAt: number;
+}
+```
+
+Se escribe con la misma escritura atómica que un guardado de verdad (RNF-07): un respaldo a medias haría que se ofrezca restaurar un archivo truncado, que es justo el trabajo que se quería no perder. Un respaldo se descarta —y se borra— cuando el archivo en disco es más nuevo, porque entonces alguien ya guardó y el contenido bueno es el del disco. Un respaldo de un archivo que **ya no existe** sí se ofrece: lo que quedó ahí es la única copia.
+
+| Canal             | Request             | Response                     |
+| ----------------- | ------------------- | ---------------------------- |
+| `backups:write`   | `{ path, content }` | `{ savedAt }`                |
+| `backups:pending` | `{}`                | `{ backups }` — ya filtrados |
+| `backups:discard` | `{ path? }`         | `{}` — sin `path`, todos     |
 
 **Restaurar descarta en silencio** los archivos que ya no existen, y el filtrado ocurre **en el main**: el renderer no puede saber qué existe sin pedirlo, y pedir algo borrado deja un error en pantalla. Entre una sesión y la otra pasó un `git checkout`, y un diálogo por cada archivo que desapareció es un diálogo que todo el mundo aprende a cerrar sin leer.
 

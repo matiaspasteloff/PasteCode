@@ -49,6 +49,11 @@ export const es = {
   'fileTree.nameLabel': 'Nombre',
   'keybindings.conflicts': 'Atajos en conflicto',
   'keybindings.fileError': 'keybindings.json con errores',
+  'recovery.dismiss': 'Descartar',
+  'recovery.message':
+    'La aplicación se cerró con cambios sin guardar. Se pueden recuperar, o descartar y quedarte con lo que hay en el disco.',
+  'recovery.restore': 'Recuperar',
+  'recovery.title': 'Hay trabajo sin guardar de la sesión anterior',
   'panel.hide': 'Ocultar el panel',
   'panel.label': 'Panel inferior',
   'panel.tabs': 'Vistas del panel inferior',

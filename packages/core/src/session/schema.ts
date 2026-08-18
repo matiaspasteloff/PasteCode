@@ -85,3 +85,27 @@ export const WorkspaceStateSchema = z.looseObject({
 
 export type WorkspaceState = z.infer<typeof WorkspaceStateSchema>;
 export type PersistedGroup = z.infer<typeof PersistedGroupSchema>;
+
+/**
+ * Un respaldo de recuperación, tal como queda en disco.
+ *
+ * Vive acá y no en `ipc-contract` porque **no es un contrato de IPC**: es un
+ * formato de archivo, igual que `WorkspaceStateSchema`, y lo lee y lo escribe
+ * el mismo proceso. Que además viaje por el IPC al ofrecerlo es una
+ * consecuencia, no lo que define dónde va.
+ *
+ * Estricto y no laxo, al revés que `WorkspaceStateSchema`: un respaldo con
+ * claves que no conocemos no es una versión más nueva que hay que respetar, es
+ * un archivo que no sabemos interpretar, y ofrecer restaurar algo que no
+ * entendemos es peor que no ofrecerlo.
+ */
+export const BackupFileSchema = z.strictObject({
+  /** Ruta absoluta del archivo respaldado. El nombre en disco es su hash. */
+  path: z.string().min(1),
+  /** Lo que había en el editor sin guardar. */
+  content: z.string(),
+  /** Cuándo se escribió, en epoch ms. Se compara contra el `mtime` del archivo. */
+  savedAt: z.number(),
+});
+
+export type BackupFile = z.infer<typeof BackupFileSchema>;

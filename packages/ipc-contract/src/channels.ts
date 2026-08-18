@@ -2,6 +2,14 @@ import type { z } from 'zod';
 
 import type { GetVersionRequestSchema, GetVersionResponseSchema } from './schemas/app.js';
 import type {
+  DiscardBackupsRequestSchema,
+  DiscardBackupsResponseSchema,
+  PendingBackupsRequestSchema,
+  PendingBackupsResponseSchema,
+  WriteBackupRequestSchema,
+  WriteBackupResponseSchema,
+} from './schemas/backups.js';
+import type {
   ReadClipboardRequestSchema,
   ReadClipboardResponseSchema,
   WriteClipboardRequestSchema,
@@ -138,6 +146,18 @@ export interface IpcChannels {
   'fs:delete': {
     request: z.infer<typeof DeleteEntryRequestSchema>;
     response: z.infer<typeof DeleteEntryResponseSchema>;
+  };
+  'backups:write': {
+    request: z.infer<typeof WriteBackupRequestSchema>;
+    response: z.infer<typeof WriteBackupResponseSchema>;
+  };
+  'backups:pending': {
+    request: z.infer<typeof PendingBackupsRequestSchema>;
+    response: z.infer<typeof PendingBackupsResponseSchema>;
+  };
+  'backups:discard': {
+    request: z.infer<typeof DiscardBackupsRequestSchema>;
+    response: z.infer<typeof DiscardBackupsResponseSchema>;
   };
   'workspace:open': {
     request: z.infer<typeof OpenWorkspaceRequestSchema>;

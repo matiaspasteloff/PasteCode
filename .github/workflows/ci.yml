@@ -130,6 +130,13 @@ jobs:
         # Corren contra el build de producción, así que verifican la política
         # de seguridad estricta y no la relajada de desarrollo.
         run: pnpm test:e2e
+        env:
+          # Por lo mismo que en el job de tests: el `TEMP` del perfil del
+          # runner viene en formato 8.3 y un watcher de libuv sobre una ruta
+          # corta no avisa nunca. Los specs ya resuelven la ruta larga con
+          # `makeTempDirectory`; esto es la segunda capa, a propósito.
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
 
       - name: Subir el reporte si falló
         if: failure()
@@ -184,6 +191,12 @@ jobs:
     # Windows es la plataforma primaria (RNF-26), y los números que importan
     # son los de ahí. Medir en Linux daría otros y no serían los del producto.
     runs-on: windows-latest
+    # El paso que comenta los números necesita escribir en el PR, y el token
+    # por defecto de este repositorio es de sólo lectura: sin esto el job
+    # falla al final, con los presupuestos ya medidos y en verde.
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 

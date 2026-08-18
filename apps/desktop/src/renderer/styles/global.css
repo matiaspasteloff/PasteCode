@@ -1267,3 +1267,65 @@ body {
   gap: 0.25rem;
   color: var(--color-warning);
 }
+
+/* El diálogo de recuperación comparte la caja del de conflicto: son el mismo
+   objeto —un modal chico que corta el paso y ofrece dos salidas— y duplicar las
+   reglas sólo garantiza que se separen con el tiempo. */
+.confirm {
+  max-width: 26rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.4rem;
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+
+.confirm::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.confirm__title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.confirm__name {
+  overflow: hidden;
+  margin: 0 0 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.confirm__message {
+  margin: 0 0 1rem;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.confirm__actions button {
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background: var(--color-surface);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+/* La lista de archivos recuperables. Sin viñetas: son rutas, no una
+   enumeración, y el bullet compite con el separador de directorios. */
+.confirm__list {
+  max-height: 8rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
