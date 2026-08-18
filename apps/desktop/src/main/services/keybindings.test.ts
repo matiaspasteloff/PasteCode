@@ -1,9 +1,9 @@
-import { realpathSync } from 'node:fs';
-import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+import { makeTempDirectory } from '../test-support/temp-directory.js';
 
 import {
   currentKeybindings,
@@ -30,11 +30,9 @@ async function waitFor(condition: () => boolean, describeFailure: string): Promi
 }
 
 beforeEach(async () => {
-  // `realpathSync.native` y no `realpath`: el `TEMP` del CI de Windows viene en
-  // formato 8.3 y un watcher de libuv sobre una ruta corta aborta el proceso.
-  // La variante de `node:fs/promises` resuelve symlinks pero deja `RUNNER~1`
-  // tal cual, que es justo la mitad que acá importa.
-  home = realpathSync.native(await mkdtemp(join(tmpdir(), 'pastecode-keys-')));
+  // Por `makeTempDirectory` y no por `mkdtemp` a secas: este servicio monta un
+  // watcher, y un watcher de libuv sobre una ruta 8.3 aborta el proceso.
+  home = await makeTempDirectory('pastecode-keys-');
   file = join(home, 'keybindings.json');
   changes = [];
 });
