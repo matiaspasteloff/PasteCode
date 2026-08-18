@@ -12,6 +12,8 @@ import { useKeybindings } from './features/commands/use-keybindings.js';
 import { ConflictDialog } from './features/editor/ConflictDialog.js';
 import { EditorArea } from './features/editor/EditorArea.js';
 import { releaseModelsExcept } from './features/editor/model-registry.js';
+import { RecoveryDialog } from './features/editor/RecoveryDialog.js';
+import { useBackups } from './features/editor/use-backups.js';
 import { useExternalChanges } from './features/editor/use-external-changes.js';
 import { FilePalette } from './features/files/FilePalette.js';
 import { BranchPicker } from './features/git/BranchPicker.js';
@@ -40,6 +42,7 @@ export function App(): React.JSX.Element {
   useSession();
   useSearchEvents();
   useExternalChanges();
+  useBackups();
   useLsp();
   useGitEvents();
   useGutter();
@@ -77,6 +80,7 @@ export function App(): React.JSX.Element {
 
       <StatusBar />
       <ConflictDialog />
+      <RecoveryDialog />
       <CommandPalette />
       <FilePalette />
       <BranchPicker />

@@ -73,11 +73,13 @@ export type { SearchMatch, SearchQuery } from './search/ripgrep.js';
 export { fromFileUri, planRestore, toFileUri } from './session/restore.js';
 export type { RestorablePlan } from './session/restore.js';
 export {
+  BackupFileSchema,
   PersistedGroupSchema,
   TabStateSchema,
   WorkspaceStateSchema,
 } from './session/schema.js';
 export type {
+  BackupFile,
   PersistedGroup,
   TabState as PersistedTabState,
   WorkspaceState,

@@ -107,6 +107,15 @@ export {
   KeybindingSchema,
 } from './schemas/keybindings.js';
 export {
+  DiscardBackupsRequestSchema,
+  DiscardBackupsResponseSchema,
+  PendingBackupsRequestSchema,
+  PendingBackupsResponseSchema,
+  RecoverableBackupSchema,
+  WriteBackupRequestSchema,
+  WriteBackupResponseSchema,
+} from './schemas/backups.js';
+export {
   DirectoryEntrySchema,
   ReadDirectoryRequestSchema,
   ReadDirectoryResponseSchema,
