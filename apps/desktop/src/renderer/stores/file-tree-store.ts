@@ -2,6 +2,18 @@ import type { DirectoryEntry, FileTreeNode } from '@pastecode/core';
 import type { SerializedError } from '@pastecode/ipc-contract';
 import { create } from 'zustand';
 
+/**
+ * Una edición en curso en el árbol: crear algo, o renombrar lo que ya existe.
+ *
+ * Las tres variantes comparten forma —hay un campo de texto abierto y un
+ * `Enter` que lo confirma— pero se distinguen por lo que hacen al confirmar, y
+ * eso hace que `commitEdit` no necesite adivinar nada.
+ */
+export type TreeEdit =
+  | { readonly kind: 'createFile'; readonly parentPath: string }
+  | { readonly kind: 'createDirectory'; readonly parentPath: string }
+  | { readonly kind: 'rename'; readonly path: string; readonly currentName: string };
+
 /** Estado del árbol de archivos. */
 interface FileTreeState {
   /** Nodos de primer nivel. Vacío mientras no haya workspace. */
@@ -27,6 +39,31 @@ interface FileTreeState {
   refresh: () => Promise<void>;
   /** Vacía el árbol. Se usa al cerrar el workspace. */
   clear: () => void;
+
+  /** La edición abierta, o `null`. Es lo que hace que una fila sea un input. */
+  edit: TreeEdit | null;
+  /** La entrada que se está por eliminar, mientras el diálogo pide confirmación. */
+  pendingDeletion: FileTreeNode | null;
+  /** Abre un campo para crear adentro de esa carpeta. */
+  startCreate: (parentPath: string, isDirectory: boolean) => void;
+  /** Abre el campo de renombrar sobre una entrada existente. */
+  startRename: (node: FileTreeNode) => void;
+  /** Cierra la edición sin tocar el disco. */
+  cancelEdit: () => void;
+  /**
+   * Confirma la edición abierta con el nombre escrito.
+   *
+   * Un nombre vacío o igual al que ya tenía **no llama al IPC**: cancela. Es lo
+   * que hace que apretar `Enter` sin escribir nada no sea un error, que es lo
+   * que uno espera de un campo que se abrió solo.
+   */
+  commitEdit: (name: string) => Promise<void>;
+  /** Pide confirmación para eliminar. No toca el disco todavía. */
+  requestDeletion: (node: FileTreeNode) => void;
+  /** Cierra el diálogo sin eliminar. */
+  cancelDeletion: () => void;
+  /** Manda a la papelera lo que el diálogo estaba confirmando. */
+  confirmDeletion: () => Promise<void>;
 }
 
 /**
@@ -41,6 +78,8 @@ interface FileTreeState {
  * const roots = useFileTreeStore((state) => state.roots);
  */
 export const useFileTreeStore = create<FileTreeState>((set, get) => ({
+  ...editingSlice(set, get),
+
   roots: [],
   expandedPaths: new Set<string>(),
   isLoading: false,
@@ -109,9 +148,159 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
   },
 
   clear: () => {
-    set({ roots: [], expandedPaths: new Set<string>(), error: null, isLoading: false });
+    set(emptyTree());
   },
 }));
+
+/** El árbol sin nada: al cerrar el workspace no queda ni edición ni error. */
+function emptyTree(): Partial<FileTreeState> {
+  return {
+    roots: [],
+    expandedPaths: new Set<string>(),
+    error: null,
+    isLoading: false,
+    edit: null,
+    pendingDeletion: null,
+  };
+}
+
+/** Lo que `create` le pasa a cada porción del store. */
+type Set = (partial: Partial<FileTreeState>) => void;
+type Get = () => FileTreeState;
+
+/**
+ * La porción del store que maneja crear, renombrar y eliminar (RF-003).
+ *
+ * Está partida del resto porque son dos responsabilidades distintas —cargar y
+ * navegar el árbol por un lado, modificarlo por el otro— y porque juntas pasan
+ * el límite de líneas por función de RNF-20, que es el que obliga a notarlo.
+ */
+function editingSlice(
+  set: Set,
+  get: Get
+): Pick<
+  FileTreeState,
+  | 'edit'
+  | 'pendingDeletion'
+  | 'startCreate'
+  | 'startRename'
+  | 'cancelEdit'
+  | 'commitEdit'
+  | 'requestDeletion'
+  | 'cancelDeletion'
+  | 'confirmDeletion'
+> {
+  return {
+    edit: null,
+    pendingDeletion: null,
+
+    startCreate: (parentPath, isDirectory) => {
+      set({
+        edit: { kind: isDirectory ? 'createDirectory' : 'createFile', parentPath },
+        error: null,
+      });
+    },
+
+    startRename: (node) => {
+      set({ edit: { kind: 'rename', path: node.path, currentName: node.name }, error: null });
+    },
+
+    cancelEdit: () => {
+      set({ edit: null });
+    },
+
+    commitEdit: async (name) => {
+      await commitOpenEdit(set, get, name);
+    },
+
+    requestDeletion: (node) => {
+      set({ pendingDeletion: node, error: null });
+    },
+
+    cancelDeletion: () => {
+      set({ pendingDeletion: null });
+    },
+
+    confirmDeletion: async () => {
+      const { pendingDeletion } = get();
+      if (pendingDeletion === null) return;
+
+      set({ pendingDeletion: null });
+
+      const result = await window.pastecode.invoke('fs:delete', { path: pendingDeletion.path });
+
+      await applyResult(set, get, result);
+    },
+  };
+}
+
+/**
+ * Confirma la edición abierta, si queda algo por hacer.
+ *
+ * El campo se cierra **antes** de esperar al disco: dejarlo abierto mientras la
+ * operación viaja permite seguir escribiendo encima de algo ya confirmado. Si
+ * la operación falla, el error se muestra igual.
+ */
+async function commitOpenEdit(set: Set, get: Get, name: string): Promise<void> {
+  const { edit } = get();
+  if (edit === null) return;
+
+  const trimmed = name.trim();
+
+  set({ edit: null });
+
+  if (trimmed === '' || (edit.kind === 'rename' && trimmed === edit.currentName)) return;
+
+  await applyResult(set, get, await runEdit(edit, trimmed));
+}
+
+/**
+ * Muestra el error, o refresca el árbol.
+ *
+ * El watcher de ADR-0020 también va a disparar un refresco, pero llega con el
+ * debounce puesto. Refrescar acá es lo que hace que el cambio se vea apenas se
+ * confirma, en vez de un cuarto de segundo después.
+ */
+async function applyResult(
+  set: Set,
+  get: Get,
+  result: { ok: true } | { ok: false; error: SerializedError }
+): Promise<void> {
+  if (!result.ok) {
+    set({ error: result.error });
+    return;
+  }
+
+  await get().refresh();
+}
+
+/** Manda al main la edición que se acaba de confirmar. */
+async function runEdit(
+  edit: TreeEdit,
+  name: string
+): Promise<{ ok: true } | { ok: false; error: SerializedError }> {
+  if (edit.kind === 'rename') {
+    return window.pastecode.invoke('fs:rename', {
+      from: edit.path,
+      to: joinPath(parentOf(edit.path), name),
+    });
+  }
+
+  const channel = edit.kind === 'createDirectory' ? 'fs:createDirectory' : 'fs:createFile';
+
+  return window.pastecode.invoke(channel, { path: joinPath(edit.parentPath, name) });
+}
+
+/**
+ * Pega un nombre a una carpeta con el separador que ya usa esa ruta.
+ *
+ * El renderer no tiene `node:path` —está sandboxeado—, así que el separador se
+ * deduce de la ruta que vino del main en vez de asumir uno. Asumir `/` rompería
+ * en Windows, que es la plataforma primaria (RNF-26).
+ */
+function joinPath(parent: string, name: string): string {
+  return `${parent}${parent.includes('\\') ? '\\' : '/'}${name}`;
+}
 
 /** Lee un nivel, o `undefined` si falló. Un refresco que falla no borra nada. */
 async function readLevel(path: string): Promise<readonly FileTreeNode[] | undefined> {

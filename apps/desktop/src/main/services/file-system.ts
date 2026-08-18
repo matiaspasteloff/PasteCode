@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { FileHandle } from 'node:fs/promises';
-import { open, readdir, rename, rm, stat } from 'node:fs/promises';
+import { lstat, mkdir, open, readdir, rename, rm, stat } from 'node:fs/promises';
 import { basename, dirname, join, relative } from 'node:path';
 
 import type { DirectoryEntry } from '@pastecode/core';
@@ -8,6 +8,7 @@ import {
   BinaryFileUnsupportedError,
   createExclusionMatcher,
   DEFAULT_EXCLUDES,
+  EntryAlreadyExistsError,
   FileAccessError,
   FileTooLargeError,
   sortEntries,
@@ -190,6 +191,148 @@ export async function writeTextFileAtomically(
 
   const { mtimeMs } = await stat(path);
   return { mtimeMs };
+}
+
+/**
+ * Crea un archivo vacío.
+ *
+ * El modo `wx` es la creación **exclusiva** del sistema operativo: si ya hay
+ * algo con ese nombre falla, y falla atómicamente. Preguntar con un `stat` y
+ * crear después dejaría una ventana entre las dos llamadas —chica, pero real
+ * con un doble click o con otra herramienta tocando la misma carpeta— en la que
+ * pisaríamos un archivo existente. RF-003 pide justo lo contrario.
+ *
+ * No crea los directorios que falten: el árbol siempre crea adentro de una
+ * carpeta que ya está a la vista.
+ *
+ * @param path Ruta absoluta, ya resuelta por `resolveInsideWorkspace`.
+ * @returns La entrada nueva, lista para insertar en el árbol.
+ * @throws {EntryAlreadyExistsError} Si ya existe.
+ * @throws {FileAccessError} Si el sistema operativo rechaza la operación.
+ * @example
+ * await createEmptyFile('C:\\proyecto\\src\\nuevo.ts');
+ */
+export async function createEmptyFile(path: string): Promise<DirectoryEntry> {
+  const handle = await open(path, 'wx').catch((cause: unknown) => {
+    throw toCreationError(path, cause);
+  });
+
+  await handle.close();
+
+  return { name: basename(path), path, isDirectory: false };
+}
+
+/**
+ * Crea un directorio.
+ *
+ * **Sin `recursive`**, y no es un descuido: con esa opción `mkdir` es
+ * idempotente y crear una carpeta que ya existe devolvería éxito en silencio.
+ * Acá el `EEXIST` es justamente la respuesta que se quiere.
+ *
+ * @param path Ruta absoluta, ya resuelta por `resolveInsideWorkspace`.
+ * @returns La entrada nueva, lista para insertar en el árbol.
+ * @throws {EntryAlreadyExistsError} Si ya existe.
+ * @throws {FileAccessError} Si el sistema operativo rechaza la operación.
+ * @example
+ * await createDirectoryAt('C:\\proyecto\\src\\componentes');
+ */
+export async function createDirectoryAt(path: string): Promise<DirectoryEntry> {
+  await mkdir(path).catch((cause: unknown) => {
+    throw toCreationError(path, cause);
+  });
+
+  return { name: basename(path), path, isDirectory: true };
+}
+
+/**
+ * Renombra o mueve una entrada, sin pisar nada.
+ *
+ * `fs.rename` **sobrescribe el destino en silencio** en las tres plataformas
+ * —en Windows es `MoveFileEx` con `MOVEFILE_REPLACE_EXISTING`—, y Node no
+ * expone una variante que no lo haga. Así que el chequeo previo no es
+ * paranoia: sin él, renombrar `a.ts` a `b.ts` destruye el `b.ts` que había,
+ * que es exactamente lo que RF-003 prohíbe.
+ *
+ * Queda una ventana entre el chequeo y el `rename` en la que otro proceso puede
+ * crear el destino. Es la única forma con la API que hay, y el riesgo real es
+ * despreciable frente al que evita: acá el que renombra es una persona mirando
+ * el árbol, no un lote concurrente.
+ *
+ * El caso de cambiar sólo mayúsculas se deja pasar a propósito. En Windows y en
+ * macOS el filesystem no distingue `Foo.ts` de `foo.ts`, así que el destino
+ * "ya existe" siempre que sea el mismo archivo, y sin esta excepción arreglar
+ * la capitalización de un nombre sería imposible.
+ *
+ * @param from Ruta actual, ya resuelta por `resolveInsideWorkspace`.
+ * @param to Ruta nueva, ya resuelta por `resolveInsideWorkspace`.
+ * @returns La entrada con su nombre y su ruta nuevos.
+ * @throws {EntryAlreadyExistsError} Si el destino ya está ocupado por otra entrada.
+ * @throws {FileAccessError} Si el sistema operativo rechaza la operación.
+ * @example
+ * await renameEntry('C:\\p\\viejo.ts', 'C:\\p\\nuevo.ts');
+ */
+export async function renameEntry(from: string, to: string): Promise<DirectoryEntry> {
+  if (!isSameEntry(from, to) && (await entryExists(to))) {
+    throw new EntryAlreadyExistsError(to);
+  }
+
+  await rename(from, to).catch((cause: unknown) => {
+    throw toCreationError(to, cause);
+  });
+
+  const info = await stat(to).catch((cause: unknown) => {
+    throw new FileAccessError(to, cause);
+  });
+
+  return { name: basename(to), path: to, isDirectory: info.isDirectory() };
+}
+
+/**
+ * Si dos rutas nombran la misma entrada del disco.
+ *
+ * En Windows y en macOS el filesystem por defecto no distingue mayúsculas, así
+ * que la comparación tiene que ser insensible o un cambio de capitalización se
+ * leería como "el destino ya existe". En Linux sí distingue, y ahí `Foo.ts` y
+ * `foo.ts` son dos archivos distintos de verdad.
+ */
+function isSameEntry(from: string, to: string): boolean {
+  if (process.platform === 'linux') return from === to;
+
+  return from.toLowerCase() === to.toLowerCase();
+}
+
+/**
+ * Si hay algo en esa ruta.
+ *
+ * `lstat` y no `stat`: un symlink colgado **ocupa el nombre** igual, y
+ * renombrar encima de él lo destruiría.
+ */
+async function entryExists(path: string): Promise<boolean> {
+  return lstat(path).then(
+    () => true,
+    () => false
+  );
+}
+
+/**
+ * Traduce el `errno` de una creación al error del proyecto que corresponde.
+ *
+ * `EEXIST` es el único que la persona puede resolver sola, eligiendo otro
+ * nombre, así que es el único que se distingue.
+ */
+function toCreationError(path: string, cause: unknown): Error {
+  return errorCode(cause) === 'EEXIST'
+    ? new EntryAlreadyExistsError(path, cause)
+    : new FileAccessError(path, cause);
+}
+
+/** El `code` de un error de Node, si lo que se lanzó tenía uno. */
+function errorCode(cause: unknown): string | undefined {
+  if (typeof cause !== 'object' || cause === null || !('code' in cause)) return undefined;
+
+  const { code } = cause;
+
+  return typeof code === 'string' ? code : undefined;
 }
 
 /**

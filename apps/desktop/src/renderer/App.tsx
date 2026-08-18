@@ -13,6 +13,7 @@ import { ConflictDialog } from './features/editor/ConflictDialog.js';
 import { EditorArea } from './features/editor/EditorArea.js';
 import { releaseModelsExcept } from './features/editor/model-registry.js';
 import { useExternalChanges } from './features/editor/use-external-changes.js';
+import { DeleteDialog } from './features/file-tree/DeleteDialog.js';
 import { FilePalette } from './features/files/FilePalette.js';
 import { BranchPicker } from './features/git/BranchPicker.js';
 import { useGitEvents } from './features/git/use-git-events.js';
@@ -77,6 +78,7 @@ export function App(): React.JSX.Element {
 
       <StatusBar />
       <ConflictDialog />
+      <DeleteDialog />
       <CommandPalette />
       <FilePalette />
       <BranchPicker />

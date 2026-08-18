@@ -81,3 +81,71 @@ export const ReadDirectoryRequestSchema = z.strictObject({
 export const ReadDirectoryResponseSchema = z.strictObject({
   entries: z.array(DirectoryEntrySchema),
 });
+
+/**
+ * Payload de `fs:createFile` y de `fs:createDirectory`.
+ *
+ * Llega la ruta **completa** de lo que se va a crear, no un par
+ * `{ parent, name }`. Es la misma forma que el resto del dominio `fs`, y sobre
+ * todo hace que la validación sea la de siempre: `resolveInsideWorkspace` sobre
+ * una ruta y listo. Con `{ parent, name }` habría que validar el padre y
+ * después vigilar que el nombre no traiga `..` ni separadores, que es una
+ * segunda regla de contención escrita en otro lado — justo la clase de
+ * duplicación que termina en agujero.
+ */
+export const CreateEntryRequestSchema = z.strictObject({
+  path: z.string().min(1),
+});
+
+/**
+ * Respuesta de crear: la entrada tal como quedó.
+ *
+ * Se devuelve la entrada y no un `{ ok }` para que el árbol pueda insertarla
+ * sin volver a leer el directorio. La ruta que vuelve es la **resuelta** por el
+ * main, que puede no ser la pedida —un symlink en el camino—, y es ésa la que
+ * el renderer tiene que usar como clave.
+ */
+export const CreateEntryResponseSchema = z.strictObject({
+  entry: DirectoryEntrySchema,
+});
+
+/**
+ * Payload de `fs:rename`.
+ *
+ * `to` es una ruta completa y no sólo el nombre nuevo: así el mismo canal sirve
+ * para renombrar y para mover, que es lo que RF-006 va a necesitar cuando
+ * llegue el drag & drop. Las **dos** rutas se validan contra el workspace; con
+ * validar sólo el origen, `to` sería un camino para escribir fuera.
+ */
+export const RenameEntryRequestSchema = z.strictObject({
+  from: z.string().min(1),
+  to: z.string().min(1),
+});
+
+/** Respuesta de `fs:rename`: la entrada ya con su nombre y su ruta nuevos. */
+export const RenameEntryResponseSchema = z.strictObject({
+  entry: DirectoryEntrySchema,
+});
+
+/**
+ * Payload de `fs:delete`.
+ *
+ * No lleva un flag de "permanente". [RF-003](../../../../docs/03-requerimientos-funcionales.md)
+ * pide papelera del sistema operativo, y un booleano opcional en el contrato es
+ * una invitación a que alguna llamada lo mande en `true` y convierta el
+ * eliminar del árbol en un borrado sin vuelta atrás.
+ */
+export const DeleteEntryRequestSchema = z.strictObject({
+  path: z.string().min(1),
+});
+
+/**
+ * Respuesta de `fs:delete`: la ruta que efectivamente se mandó a la papelera.
+ *
+ * Vuelve la ruta resuelta y no un objeto vacío porque es la clave con la que el
+ * renderer tiene que sacar la entrada del árbol y cerrar la pestaña si estaba
+ * abierta, y esa clave la fija el main al resolver.
+ */
+export const DeleteEntryResponseSchema = z.strictObject({
+  path: z.string().min(1),
+});

@@ -1,5 +1,7 @@
-import type { VisibleNode } from '@pastecode/core';
+import type { FileTreeNode, VisibleNode } from '@pastecode/core';
 import { useState } from 'react';
+
+import { useFileTreeStore } from '../../stores/file-tree-store.js';
 
 import { resolveTreeKey } from './tree-keyboard.js';
 
@@ -36,6 +38,8 @@ export function useTreeNavigation(
   toggleFolder: (path: string) => Promise<void>
 ): TreeNavigation {
   const [focusedIndex, setFocusedIndex] = useState(0);
+  const startRename = useFileTreeStore((state) => state.startRename);
+  const requestDeletion = useFileTreeStore((state) => state.requestDeletion);
 
   const activate = (visible: VisibleNode): void => {
     setFocusedIndex(rows.indexOf(visible));
@@ -54,7 +58,20 @@ export function useTreeNavigation(
 
     if (outcome.focusIndex !== undefined) setFocusedIndex(outcome.focusIndex);
     if (outcome.activate !== undefined) activate(outcome.activate);
+    if (outcome.rename !== undefined) startRename(nodeOf(outcome.rename));
+    if (outcome.remove !== undefined) requestDeletion(nodeOf(outcome.remove));
   };
 
   return { focusedIndex, activate, handleKeyDown };
+}
+
+/**
+ * El nodo de una fila visible.
+ *
+ * `VisibleNode` es el nodo más lo que hace falta para pintarlo —profundidad,
+ * posición en el nivel—, y nada de eso le interesa al store, que trabaja sobre
+ * el árbol y no sobre lo que se ve.
+ */
+function nodeOf(visible: VisibleNode): FileTreeNode {
+  return visible.node;
 }

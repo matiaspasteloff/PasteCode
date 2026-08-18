@@ -107,11 +107,17 @@ export {
   KeybindingSchema,
 } from './schemas/keybindings.js';
 export {
+  CreateEntryRequestSchema,
+  CreateEntryResponseSchema,
+  DeleteEntryRequestSchema,
+  DeleteEntryResponseSchema,
   DirectoryEntrySchema,
   ReadDirectoryRequestSchema,
   ReadDirectoryResponseSchema,
   ReadFileRequestSchema,
   ReadFileResponseSchema,
+  RenameEntryRequestSchema,
+  RenameEntryResponseSchema,
   WriteFileRequestSchema,
   WriteFileResponseSchema,
 } from './schemas/fs.js';

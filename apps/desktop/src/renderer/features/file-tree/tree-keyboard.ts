@@ -1,11 +1,15 @@
 import type { VisibleNode } from '@pastecode/core';
 
-/** Qué hacer ante una tecla. Ambos campos son opcionales y combinables. */
+/** Qué hacer ante una tecla. Los campos son opcionales y combinables. */
 export interface TreeKeyOutcome {
   /** Índice que pasa a tener el foco. */
   focusIndex?: number;
   /** Nodo a activar: abrir el archivo, o desplegar/replegar la carpeta. */
   activate?: VisibleNode;
+  /** Nodo sobre el que abrir el campo de renombrar (RF-003). */
+  rename?: VisibleNode;
+  /** Nodo que se pide eliminar. Todavía sin confirmar (RF-003). */
+  remove?: VisibleNode;
 }
 
 /**
@@ -57,8 +61,28 @@ export function resolveTreeKey(
     case ' ':
       return { activate: current };
     default:
-      return undefined;
+      return resolveEditKey(key, current);
   }
+}
+
+/**
+ * Las teclas que operan sobre la entrada enfocada en vez de navegar (RF-003).
+ *
+ * Están afuera del `switch` de navegación porque son otra cosa: ahí se decide
+ * adónde va el foco, acá qué se le hace a lo que ya lo tiene. Y de paso deja la
+ * complejidad de `resolveTreeKey` dentro del límite de RNF-20, que es el que
+ * empuja a partir esto en lugar de seguir agregando casos.
+ *
+ * `F2` para renombrar y `Delete` para eliminar son las convenciones que
+ * comparten el explorador de Windows y VS Code, así que no hay nada que
+ * aprender. Eliminar sólo **pide** eliminar: la confirmación la da el diálogo,
+ * porque `Delete` está pegada a las flechas con las que se navega.
+ */
+function resolveEditKey(key: string, current: VisibleNode): TreeKeyOutcome | undefined {
+  if (key === 'F2') return { rename: current };
+  if (key === 'Delete') return { remove: current };
+
+  return undefined;
 }
 
 /**

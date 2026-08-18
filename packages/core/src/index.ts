@@ -14,9 +14,11 @@ export {
 export type { Command } from './commands/registry.js';
 export {
   BinaryFileUnsupportedError,
+  EntryAlreadyExistsError,
   FileAccessError,
   FileTooLargeError,
   StaleFileError,
+  TrashFailedError,
 } from './errors/filesystem-errors.js';
 export { GitCommandError, GitUnavailableError } from './errors/git-errors.js';
 export { PasteCodeError } from './errors/pastecode-error.js';

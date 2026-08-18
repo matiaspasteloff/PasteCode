@@ -108,6 +108,29 @@ describe('resolveTreeKey', () => {
     });
   });
 
+  describe('edición (RF-003)', () => {
+    it('abre el renombrar de la fila enfocada con F2', () => {
+      expect(resolveTreeKey('F2', rows, 1)).toEqual({ rename: rows[1] });
+    });
+
+    it('pide eliminar la fila enfocada con Delete', () => {
+      // Sólo **pide**: la confirmación es del diálogo, porque Delete está
+      // pegada a las flechas con las que se navega el árbol.
+      expect(resolveTreeKey('Delete', rows, 1)).toEqual({ remove: rows[1] });
+    });
+
+    it('no mueve el foco ni activa nada al renombrar', () => {
+      const outcome = resolveTreeKey('F2', rows, 1);
+
+      expect(outcome?.focusIndex).toBeUndefined();
+      expect(outcome?.activate).toBeUndefined();
+    });
+
+    it.each(['F2', 'Delete'])('ignora %s sobre un árbol vacío', (key) => {
+      expect(resolveTreeKey(key, [], 0)).toBeUndefined();
+    });
+  });
+
   describe('teclas ajenas', () => {
     it('ignora Tab, para no crear una trampa de foco', () => {
       // RNF-21: sin trampas de foco. Si el árbol se quedara con Tab, no habría
