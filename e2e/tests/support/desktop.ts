@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -11,6 +11,23 @@ export const DESKTOP_ROOT = join(
   'apps',
   'desktop'
 );
+
+/**
+ * El `.exe` empaquetado, o `undefined` si todavía no se corrió `pnpm package`.
+ *
+ * Existe para los tests que **tienen que** correr contra el build de verdad y
+ * no contra `out/`: dentro del `.asar` las rutas se resuelven distinto, y ése
+ * es justamente el riesgo que el spike S1 mide. Devolver `undefined` en vez de
+ * lanzar deja que esos tests se salteen solos: `pnpm test:e2e` corre sobre
+ * `out/` y no tiene por qué exigir dos minutos de empaquetado antes.
+ */
+export const PACKAGED_APP: string | undefined = packagedApp();
+
+function packagedApp(): string | undefined {
+  const candidate = join(DESKTOP_ROOT, 'release', 'win-unpacked', 'PasteCode.exe');
+
+  return existsSync(candidate) ? candidate : undefined;
+}
 
 /**
  * Lee la versión del `package.json` de la app sin aserciones de tipo: el

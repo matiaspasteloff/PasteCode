@@ -1,8 +1,10 @@
-import { join } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 
 import { app, BrowserWindow } from 'electron';
 
 import { dataDirectoryOverride, isDevelopment } from './environment.js';
+import { forkExtensionHost } from './extensions/host-process.js';
 import { registerAppIpcHandlers } from './ipc/app.js';
 import { registerClipboardIpcHandlers } from './ipc/clipboard.js';
 import { registerFsIpcHandlers } from './ipc/fs.js';
@@ -64,6 +66,35 @@ app.on('before-quit', (event) => {
     });
 });
 
+/**
+ * Deja constancia de si el extension host arrancó (spike S1).
+ *
+ * Instrumentación del spike: escribe el `pong` —o el error— donde el E2E lo
+ * pueda leer. Se va cuando el host tenga su propio canal de estado.
+ */
+async function reportHostHandshake(): Promise<void> {
+  // Variable propia y no `dataDirectoryOverride`: ése vale `undefined` en un
+  // build empaquetado **a propósito** —es lo que impide que alguien con acceso
+  // al entorno le fuerce el directorio de datos al `.exe` distribuido—, y este
+  // spike necesita justamente medir el build empaquetado. Debilitar el guard
+  // para poder observarlo sería medir otra cosa.
+  const report = process.env.PASTECODE_SPIKE_REPORT;
+
+  if (report === undefined || report === '') return;
+
+  const outcome = await forkExtensionHost().then(
+    (host) => ({
+      event: 'ready',
+      pid: host.handshake.pid,
+      nodeVersion: host.handshake.nodeVersion,
+    }),
+    (cause: unknown) => ({ event: 'failed', reason: String(cause) })
+  );
+
+  await mkdir(dirname(report), { recursive: true }).catch(() => undefined);
+  await writeFile(report, JSON.stringify({ ...outcome, mainPid: process.pid }), 'utf8');
+}
+
 void app.whenReady().then(async () => {
   // Antes de la ventana: el renderer pide `settings:get` apenas monta, y
   // servirle los defaults para corregirlos un tick después es un parpadeo de
@@ -77,6 +108,14 @@ void app.whenReady().then(async () => {
   // En desarrollo el renderer lo sirve Vite con su HMR; el esquema propio sólo
   // hace falta para el build empaquetado.
   if (!isDevelopment) serveRendererFrom(join(__dirname, '../renderer'));
+
+  // S1: verificar que el host se puede forkear desde adentro del asar.
+  //
+  // El resultado se escribe a un archivo y no se loguea: un Electron empaquetado
+  // en Windows es un binario del subsistema GUI y no tiene stdout al que
+  // escribir, así que un `console.warn` acá es indistinguible de que el fork
+  // haya fallado. El arranque de la app no depende de esto.
+  void reportHostHandshake();
 
   createMainWindow();
 
