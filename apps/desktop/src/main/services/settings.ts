@@ -292,13 +292,38 @@ function armWatcher(path: string): void {
  */
 function tryWatch(directory: string, name: string, onHit: () => void): boolean {
   try {
-    watchers.push(
-      watch(directory, (_event, filename) => {
-        if (filename !== null && filename !== name) return;
+    const watcher = watch(directory, (_event, filename) => {
+      if (filename !== null && filename !== name) return;
 
-        onHit();
-      })
-    );
+      onHit();
+    });
+
+    // **Sin este listener, un error del watcher mata el proceso.** `FSWatcher`
+    // es un `EventEmitter`, y un evento `'error'` sin nadie escuchando lo
+    // relanza como excepción sin atrapar: en el main eso es la ventana, la
+    // sesión y las pestañas sin guardar, igual que el abort de libuv que
+    // describe `realpath.native` en `workspace.ts`. Y el error llega solo, sin
+    // que nadie haga nada: en Windows, borrar, renombrar o desmontar el
+    // directorio observado —un `git clean`, cambiar de rama, sacar el pendrive
+    // donde vive el proyecto— le entrega `EPERM` a este handle. El de la capa
+    // de workspace observa `<raíz>/.pastecode` o, mientras ese directorio no
+    // exista, la raíz misma, así que es la carpeta del proyecto la que dispara.
+    watcher.on('error', (cause) => {
+      console.error(
+        JSON.stringify({ scope: 'settings-watcher', event: 'failed', directory }),
+        cause
+      );
+      // El handle ya está muerto: se saca de la lista para que `disposeSettings`
+      // no lo cierre dos veces y para no dejarlo contado como vivo. No se
+      // rearma acá a propósito —quien borró el directorio observado suele estar
+      // por cerrar el workspace, y reintentar sobre algo que no existe sería un
+      // ciclo—; el próximo `setSettingsWorkspace` o `updateSettings` remonta
+      // todo con `watchFiles`.
+      watchers = watchers.filter((candidate) => candidate !== watcher);
+      watcher.close();
+    });
+
+    watchers.push(watcher);
 
     return true;
   } catch {

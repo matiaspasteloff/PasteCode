@@ -1,3 +1,4 @@
+import type { FSWatcher } from 'node:fs';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -14,6 +15,30 @@ import {
   settingsError,
   updateSettings,
 } from './settings.js';
+
+/**
+ * Los `FSWatcher` que el servicio montó, para poder hacerlos fallar.
+ *
+ * `watch` sigue siendo el de verdad —todo el resto del archivo depende de que
+ * los watchers anden—; lo único que agrega el mock es quedarse con la
+ * referencia, que de otro modo no sale del módulo.
+ */
+const armed = vi.hoisted((): { watchers: FSWatcher[] } => ({ watchers: [] }));
+
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+
+  return {
+    ...actual,
+    watch: (...args: Parameters<typeof actual.watch>): FSWatcher => {
+      const watcher = actual.watch(...args);
+
+      armed.watchers.push(watcher);
+
+      return watcher;
+    },
+  };
+});
 
 /** Techo de espera del watcher. Holgado: el CI de Windows es lento. */
 const TIMEOUT_MS = 10_000;
@@ -45,6 +70,7 @@ beforeEach(async () => {
   workspace = await makeTempDirectory('pastecode-settings-ws-');
   userFile = join(home, '.pastecode', 'settings.json');
   changes = [];
+  armed.watchers = [];
 
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
@@ -231,5 +257,34 @@ describe('updateSettings', () => {
     await expect(
       updateSettings('workspace', { editor: { fontSize: 19 } })
     ).rejects.toMatchObject({ code: 'WORKSPACE_NOT_OPEN' });
+  });
+});
+
+describe('un error del watcher', () => {
+  it('no tumba el proceso cuando el directorio observado se vuelve inaccesible', async () => {
+    await start({ withWorkspace: true });
+
+    expect(armed.watchers.length).toBeGreaterThan(0);
+
+    // Lo que entrega Windows cuando el directorio observado se borra, se
+    // renombra o se desmonta: un `git clean`, cambiar de rama o sacar el disco
+    // donde vive el proyecto alcanzan. `FSWatcher` es un `EventEmitter`, así
+    // que sin un listener de `'error'` esto relanza como excepción sin atrapar
+    // y se lleva el main entero —la ventana, la sesión y las pestañas sin
+    // guardar—. Es la misma falla que, adentro de vitest, aparece como un test
+    // sin relación fallando una vez cada tantas corridas.
+    for (const watcher of armed.watchers) {
+      expect(() => {
+        watcher.emit('error', new Error('EPERM: operation not permitted, watch'));
+      }).not.toThrow();
+    }
+
+    // Y el servicio sigue en pie: las settings resueltas siguen ahí y se puede
+    // seguir escribiendo, que es lo que remonta los watchers.
+    expect(currentSettings().editor.fontSize).toBe(14);
+
+    const resolved = await updateSettings('user', { editor: { fontSize: 19 } });
+
+    expect(resolved.editor.fontSize).toBe(19);
   });
 });
