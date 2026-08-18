@@ -84,6 +84,51 @@ export class StaleFileError extends PasteCodeError {
   }
 }
 
+/**
+ * Ya hay algo con ese nombre en esa carpeta.
+ *
+ * Es el criterio de [RF-003](../../../../docs/03-requerimientos-funcionales.md):
+ * renombrar a un nombre existente falla **sin perder datos**. Tiene código
+ * propio y no `FILE_ACCESS_DENIED` porque es el único caso de esta familia que
+ * la persona puede resolver sola —eligiendo otro nombre—, y la UI necesita
+ * distinguirlo para volver a abrir el campo en vez de tirar un cartel de error.
+ *
+ * @example
+ * throw new EntryAlreadyExistsError('src/index.ts');
+ */
+export class EntryAlreadyExistsError extends PasteCodeError {
+  constructor(path: string, cause?: unknown) {
+    super(
+      `Entry already exists: ${path}`,
+      'ENTRY_ALREADY_EXISTS',
+      `Ya existe "${path}". Elegí otro nombre.`,
+      { cause }
+    );
+  }
+}
+
+/**
+ * No se pudo mover a la papelera del sistema operativo.
+ *
+ * RF-003 pide papelera y no borrado permanente, así que cuando `shell.trashItem`
+ * falla la respuesta correcta es avisar, **no** caer a `unlink`: un fallback
+ * silencioso convertiría "eliminar" en "destruir" justo en el caso donde el
+ * sistema ya dijo que algo anda mal.
+ *
+ * @example
+ * throw new TrashFailedError('C:\\proyecto\\src\\viejo.ts', cause);
+ */
+export class TrashFailedError extends PasteCodeError {
+  constructor(path: string, cause?: unknown) {
+    super(
+      `Could not move to trash: ${path}`,
+      'TRASH_FAILED',
+      `No se pudo mover "${path}" a la papelera. Puede estar abierto en otro programa, o el volumen puede no tener papelera.`,
+      { cause }
+    );
+  }
+}
+
 /** Un decimal alcanza: el mensaje es para orientar, no para auditar bytes. */
 function formatMegabytes(bytes: number): string {
   return `${(bytes / 1_048_576).toFixed(1)} MB`;

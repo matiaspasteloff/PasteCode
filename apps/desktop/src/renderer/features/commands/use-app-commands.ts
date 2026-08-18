@@ -5,6 +5,7 @@ import { useCommandStore } from '../../stores/command-store.js';
 import { activeGroupId, selectActiveTabs, useEditorStore } from '../../stores/editor-store.js';
 import { useThemeStore } from '../../stores/theme-store.js';
 import { useWorkspaceStore } from '../../stores/workspace-store.js';
+import { treeCommands } from '../file-tree/tree-commands.js';
 import { fileCommands } from '../files/file-commands.js';
 import { gitCommands } from '../git/git-commands.js';
 import { searchCommands } from '../search/search-commands.js';
@@ -103,6 +104,7 @@ function appCommands(): readonly Command[] {
     ...searchCommands(),
     ...gitCommands(),
     ...fileCommands(),
+    ...treeCommands(),
     ...viewCommands(),
   ];
 }

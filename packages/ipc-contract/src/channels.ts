@@ -17,10 +17,16 @@ import type {
 } from './schemas/clipboard.js';
 import type { IndexFilesRequestSchema, IndexFilesResponseSchema } from './schemas/files.js';
 import type {
+  CreateEntryRequestSchema,
+  CreateEntryResponseSchema,
+  DeleteEntryRequestSchema,
+  DeleteEntryResponseSchema,
   ReadDirectoryRequestSchema,
   ReadDirectoryResponseSchema,
   ReadFileRequestSchema,
   ReadFileResponseSchema,
+  RenameEntryRequestSchema,
+  RenameEntryResponseSchema,
   WriteFileRequestSchema,
   WriteFileResponseSchema,
 } from './schemas/fs.js';
@@ -124,6 +130,22 @@ export interface IpcChannels {
   'fs:writeFile': {
     request: z.infer<typeof WriteFileRequestSchema>;
     response: z.infer<typeof WriteFileResponseSchema>;
+  };
+  'fs:createFile': {
+    request: z.infer<typeof CreateEntryRequestSchema>;
+    response: z.infer<typeof CreateEntryResponseSchema>;
+  };
+  'fs:createDirectory': {
+    request: z.infer<typeof CreateEntryRequestSchema>;
+    response: z.infer<typeof CreateEntryResponseSchema>;
+  };
+  'fs:rename': {
+    request: z.infer<typeof RenameEntryRequestSchema>;
+    response: z.infer<typeof RenameEntryResponseSchema>;
+  };
+  'fs:delete': {
+    request: z.infer<typeof DeleteEntryRequestSchema>;
+    response: z.infer<typeof DeleteEntryResponseSchema>;
   };
   'backups:write': {
     request: z.infer<typeof WriteBackupRequestSchema>;
