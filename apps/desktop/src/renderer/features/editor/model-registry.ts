@@ -151,6 +151,25 @@ export function rememberedPosition(path: string): RestorablePosition | undefined
  * @example
  * releaseModelsExcept(tabs.map((tab) => tab.path));
  */
+/**
+ * El contenido actual del modelo de un archivo, si tiene uno.
+ *
+ * Existe para el backup de recuperación de
+ * [RNF-08](../../../../../../docs/04-requerimientos-no-funcionales.md#confiabilidad):
+ * hay que respaldar **todas** las pestañas sucias, y `readContent` del store
+ * sólo alcanza a la que está en el editor. El resto vive acá y en ningún otro
+ * lado, porque el store no guarda el texto a propósito —tener dos copias del
+ * archivo es tener dos formas de que se desincronicen—.
+ *
+ * @param path Ruta absoluta del archivo.
+ * @returns El contenido, o `undefined` si no hay modelo para esa ruta.
+ * @example
+ * const text = contentOf('C:\p\a.ts');
+ */
+export function contentOf(path: string): string | undefined {
+  return models.get(path)?.model.getValue();
+}
+
 export function releaseModelsExcept(openPaths: readonly string[]): void {
   const open = new Set(openPaths);
 

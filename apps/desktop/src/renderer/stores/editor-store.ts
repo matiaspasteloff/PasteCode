@@ -54,6 +54,16 @@ interface EditorState {
   readContent: (() => string) | null;
 
   open: (path: string) => Promise<void>;
+  /**
+   * Abre un archivo con el contenido de un respaldo, no con el del disco.
+   *
+   * Es la mitad del renderer de [RNF-08](../../../../../docs/04-requerimientos-no-funcionales.md#confiabilidad).
+   * La pestaña queda **sucia**, y tiene que quedar así: lo que se muestra no es
+   * lo que hay en el disco, y una pestaña limpia diría que ya está guardado.
+   * El `mtimeMs` sigue siendo el del disco, así que `Ctrl+S` detecta el
+   * conflicto si el archivo cambió mientras la app estuvo cerrada.
+   */
+  restoreFromBackup: (path: string, content: string) => Promise<void>;
   closeTab: (groupId: string, index: number) => void;
   activateTab: (groupId: string, index: number) => void;
   /** Parte la pantalla y lleva la pestaña activa al grupo nuevo (RF-107). */
@@ -105,17 +115,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   readContent: null,
 
   open: async (path) => {
-    // Ya abierto en el grupo enfocado: se activa la pestaña y no se relee. El
-    // modelo tiene las ediciones sin guardar y el historial de undo.
-    if (activeTabs(get().groups).tabs.some((tab) => tab.path === path)) {
-      set({
-        groups: updateActiveGroup(get().groups, (tabs) => openTab(tabs, path)),
-        error: null,
-      });
-      return;
-    }
+    await openPath(path, set, get);
+  },
 
-    await loadFile(path, set, get);
+  restoreFromBackup: async (path, content) => {
+    await restoreBackup(path, content, set, get);
   },
 
   ...groupActions(set, get),
@@ -370,6 +374,53 @@ async function loadFile(
     groups: setDirtyEverywhere(opened, path, false),
     mtimes: { ...get().mtimes, [path]: result.value.mtimeMs },
     pendingFile: { path, content: result.value.content },
+  });
+}
+
+/**
+ * Abre un archivo, releyéndolo del disco sólo si hace falta.
+ *
+ * Si ya está abierto en el grupo enfocado se activa la pestaña y **no** se
+ * relee: el modelo de Monaco tiene las ediciones sin guardar y el historial de
+ * deshacer, y releer los tiraría.
+ */
+async function openPath(
+  path: string,
+  set: SetEditorState,
+  get: () => EditorState
+): Promise<void> {
+  if (activeTabs(get().groups).tabs.some((tab) => tab.path === path)) {
+    set({
+      groups: updateActiveGroup(get().groups, (tabs) => openTab(tabs, path)),
+      error: null,
+    });
+    return;
+  }
+
+  await loadFile(path, set, get);
+}
+
+/**
+ * Abre un archivo con el contenido de un respaldo (RNF-08).
+ *
+ * El `mtime` del disco se lee igual, aunque su contenido se descarte: es lo que
+ * `Ctrl+S` manda después como `expectedMtimeMs`, y sin él guardar lo recuperado
+ * pisaría en silencio un archivo que cambió mientras la app no estaba.
+ */
+async function restoreBackup(
+  path: string,
+  content: string,
+  set: SetEditorState,
+  get: () => EditorState
+): Promise<void> {
+  const result = await window.pastecode.invoke('fs:readFile', { path });
+  const opened = updateActiveGroup(get().groups, (tabs) => openTab(tabs, path));
+
+  set({
+    isLoading: false,
+    groups: setDirtyEverywhere(opened, path, true),
+    mtimes: result.ok ? { ...get().mtimes, [path]: result.value.mtimeMs } : get().mtimes,
+    pendingFile: { path, content },
   });
 }
 

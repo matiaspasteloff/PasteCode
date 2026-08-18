@@ -6,6 +6,7 @@ import { app, BrowserWindow } from 'electron';
 import { dataDirectoryOverride, isDevelopment } from './environment.js';
 import { forkExtensionHost } from './extensions/host-process.js';
 import { registerAppIpcHandlers } from './ipc/app.js';
+import { registerBackupsIpcHandlers } from './ipc/backups.js';
 import { registerClipboardIpcHandlers } from './ipc/clipboard.js';
 import { registerFsIpcHandlers } from './ipc/fs.js';
 import { registerGitIpcHandlers } from './ipc/git.js';
@@ -17,6 +18,7 @@ import { registerSettingsIpcHandlers, startSettings } from './ipc/settings.js';
 import { registerTerminalIpcHandlers } from './ipc/terminal.js';
 import { registerWatcherDisposer } from './ipc/watcher.js';
 import { registerWorkspaceIpcHandlers } from './ipc/workspace.js';
+import { useBackupDirectory } from './services/backups.js';
 import { useSessionDirectory } from './services/session.js';
 import { disposeAll } from './services/shutdown.js';
 import { registerAppScheme, serveRendererFrom } from './windows/app-protocol.js';
@@ -28,6 +30,7 @@ registerAppScheme();
 
 registerAppIpcHandlers();
 registerFsIpcHandlers();
+registerBackupsIpcHandlers();
 registerWorkspaceIpcHandlers();
 registerTerminalIpcHandlers();
 registerClipboardIpcHandlers();
@@ -103,6 +106,7 @@ void app.whenReady().then(async () => {
   // tema y de tamaño de fuente en cada arranque.
   if (dataDirectoryOverride !== undefined) {
     useSessionDirectory(join(dataDirectoryOverride, 'workspaces'));
+    useBackupDirectory(join(dataDirectoryOverride, 'backups'));
   }
 
   await startSettings(dataDirectoryOverride);
