@@ -1,5 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import {
@@ -9,7 +8,7 @@ import {
   type ElectronApplication,
 } from '@playwright/test';
 
-import { DESKTOP_ROOT } from './support/desktop.js';
+import { DESKTOP_ROOT, makeTempDirectory } from './support/desktop.js';
 
 let app: ElectronApplication;
 let workspace: string;
@@ -17,8 +16,12 @@ let home: string;
 let keybindingsFile: string;
 
 test.beforeEach(async () => {
-  workspace = await mkdtemp(join(tmpdir(), 'pastecode-keys-ws-'));
-  home = await mkdtemp(join(tmpdir(), 'pastecode-keys-home-'));
+  workspace = await makeTempDirectory('pastecode-keys-ws-');
+  // Por `makeTempDirectory` y no por `mkdtemp`: la recarga en caliente de
+  // RF-702 cuelga de un `fs.watch` sobre este directorio, y sobre una ruta
+  // 8.3 ese watcher no avisa nunca. Es lo que hacía fallar este spec en el
+  // CI de Windows y no localmente.
+  home = await makeTempDirectory('pastecode-keys-home-');
   keybindingsFile = join(home, 'keybindings.json');
 
   await writeFile(join(workspace, 'uno.ts'), 'const uno = 1;\n', 'utf8');

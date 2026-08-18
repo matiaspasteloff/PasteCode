@@ -1,4 +1,6 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -27,6 +29,36 @@ function packagedApp(): string | undefined {
   const candidate = join(DESKTOP_ROOT, 'release', 'win-unpacked', 'PasteCode.exe');
 
   return existsSync(candidate) ? candidate : undefined;
+}
+
+/**
+ * Crea un directorio temporal y devuelve su ruta **larga**.
+ *
+ * Es el mismo helper que `apps/desktop/src/main/test-support/temp-directory.ts`
+ * y está duplicado a propósito: `e2e` es otro paquete y no depende de
+ * `apps/desktop`, así que importarlo de allá sería inventar una dependencia
+ * entre paquetes para compartir cuatro líneas.
+ *
+ * El `realpathSync.native` no es cosmético. `os.tmpdir()` sale de `TEMP`, y en
+ * el CI de Windows esa variable viene en formato 8.3 —el usuario del runner es
+ * `runneradmin`, más de ocho caracteres, así que el perfil queda como
+ * `RUNNER~1`—. Cuando a un watcher se le pasa una ruta corta, libuv resuelve la
+ * larga por su cuenta para comparar contra lo que reporta el sistema, la
+ * comparación no da, y el watcher **no avisa nunca**. La app usa `fs.watch`
+ * sobre `~/.pastecode` para la recarga en caliente de settings y de
+ * keybindings, así que cualquier test que apunte `PASTECODE_E2E_HOME` a un
+ * temporal y espere un cambio en caliente necesita la ruta larga.
+ *
+ * Tiene que ser `realpathSync.native`: la implementación en JS de
+ * `node:fs/promises` resuelve symlinks pero deja el nombre corto tal cual.
+ *
+ * @param prefix Prefijo del nombre, para reconocer de quién es el directorio.
+ * @returns Ruta absoluta y larga del directorio recién creado.
+ * @example
+ * const home = await makeTempDirectory('pastecode-keys-home-');
+ */
+export async function makeTempDirectory(prefix: string): Promise<string> {
+  return realpathSync.native(await mkdtemp(join(tmpdir(), prefix)));
 }
 
 /**
