@@ -5,6 +5,7 @@ import { useEditorStore } from '../stores/editor-store.js';
 
 import { StatusBranch } from './status/StatusBranch.js';
 import { StatusIndentation } from './status/StatusIndentation.js';
+import { StatusKeybindings } from './status/StatusKeybindings.js';
 import { StatusLanguage } from './status/StatusLanguage.js';
 import { StatusPosition } from './status/StatusPosition.js';
 import { StatusProblems } from './status/StatusProblems.js';
@@ -48,6 +49,7 @@ export function StatusBar(): React.JSX.Element {
       </div>
 
       <div className="status-bar__group">
+        <StatusKeybindings />
         <StatusBranch />
         <StatusProblems />
         <StatusPosition />

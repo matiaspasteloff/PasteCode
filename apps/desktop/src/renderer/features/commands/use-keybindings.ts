@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 
 import { useCommandStore } from '../../stores/command-store.js';
 import { selectActiveTabs, useEditorStore } from '../../stores/editor-store.js';
+import { useKeybindingsStore } from '../../stores/keybindings-store.js';
 import { useTerminalStore } from '../../stores/terminal-store.js';
 import { useWorkspaceStore } from '../../stores/workspace-store.js';
 
@@ -27,13 +28,35 @@ import { toKeyCombination } from './key-combination.js';
 export function useKeybindings(): void {
   const run = useCommandStore((state) => state.run);
   const openPalette = useCommandStore((state) => state.openPalette);
+  const load = useKeybindingsStore((state) => state.load);
+  const apply = useKeybindingsStore((state) => state.apply);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  // RF-702: editar `~/.pastecode/keybindings.json` con la app abierta cambia el
+  // atajo sin reiniciar. El main observa el archivo y emite; esto escucha.
+  useEffect(
+    () =>
+      window.pastecode.subscribe('keybindings:changed', (event) => {
+        apply(event.bindings, event.conflicts, event.error);
+      }),
+    [apply]
+  );
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
       const combination = toKeyCombination(event);
       if (combination === undefined) return;
 
-      const resolved = resolveKeybinding(DEFAULT_KEYBINDINGS, combination, currentContext());
+      // Los del usuario van **después** de los de fábrica: ante la misma
+      // especificidad el resolver se queda con el último, y eso es lo que hace
+      // que el archivo del usuario pise sin ninguna lógica extra (RF-702).
+      // Se leen con `getState()` y no por suscripción por la misma razón que el
+      // contexto: el listener no se tiene que volver a montar con cada cambio.
+      const bindings = [...DEFAULT_KEYBINDINGS, ...useKeybindingsStore.getState().bindings];
+      const resolved = resolveKeybinding(bindings, combination, currentContext());
       if (resolved === null) return;
 
       // Sólo se cancela el default cuando el atajo es nuestro: si no, `Ctrl+C`
