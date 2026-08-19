@@ -3,7 +3,9 @@ import type { z } from 'zod';
 
 import type { SerializedError } from './result.js';
 import type {
+  ExtensionContributionsSchema,
   ExtensionHostStatusSchema,
+  ExtensionTextEditSchema,
   ListExtensionsResponseSchema,
 } from './schemas/extensions.js';
 import type { GitRepository } from './schemas/git.js';
@@ -211,6 +213,31 @@ export type ExtensionHostChangedEvent = z.infer<typeof ExtensionHostStatusSchema
  */
 export type ExtensionsChangedEvent = z.infer<typeof ListExtensionsResponseSchema>;
 
+/** Payload de `extensions:contributionsChanged`: comandos e ítems aportados. */
+export type ExtensionContributionsEvent = z.infer<typeof ExtensionContributionsSchema>;
+
+/**
+ * Payload de `extensions:documentRequest`: la mitad del pull que va main → renderer.
+ *
+ * El main **no puede preguntarle nada al renderer**: la regla 6 de IPC de
+ * `docs/02-arquitectura.md` dice que los eventos van del main al renderer y
+ * nunca al revés. Así que la pregunta viaja como evento con un `requestId`, y
+ * la respuesta vuelve por el canal `extensions:documentResponse`, que es un
+ * `invoke` con su schema como cualquier otro. Ver ADR-0026.
+ */
+export interface ExtensionDocumentRequestEvent {
+  /** Correlaciona con la respuesta. Lo elige el main. */
+  requestId: string;
+  /** Sobre qué archivo. */
+  path: string;
+  /** `read` pide el texto; `edit` pide aplicar cambios. */
+  kind: 'read' | 'edit';
+  /** La versión contra la que la extensión leyó. Sólo en `edit`. */
+  version?: number;
+  /** Los cambios a aplicar. Sólo en `edit`. */
+  edits?: z.infer<typeof ExtensionTextEditSchema>[];
+}
+
 export interface IpcEvents {
   'terminal:data': TerminalDataEvent;
   'terminal:exit': TerminalExitEvent;
@@ -224,6 +251,8 @@ export interface IpcEvents {
   'git:changed': GitChangedEvent;
   'extensions:hostChanged': ExtensionHostChangedEvent;
   'extensions:changed': ExtensionsChangedEvent;
+  'extensions:contributionsChanged': ExtensionContributionsEvent;
+  'extensions:documentRequest': ExtensionDocumentRequestEvent;
 }
 
 export type EventName = keyof IpcEvents;
@@ -255,6 +284,8 @@ export const EVENT_NAMES = [
   'git:changed',
   'extensions:hostChanged',
   'extensions:changed',
+  'extensions:contributionsChanged',
+  'extensions:documentRequest',
 ] as const satisfies readonly EventName[];
 
 /**

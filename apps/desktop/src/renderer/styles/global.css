@@ -634,6 +634,24 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Un ítem de extensión que tiene comando se dibuja como botón, así que hay que
+   sacarle todo lo que el navegador le pone y devolverle la tipografía de la
+   barra: sin esto un ítem accionable se ve de otro tamaño y otra familia que el
+   de al lado. Lo que **no** se saca es el foco visible, que es lo que lo hace
+   alcanzable con el teclado (RNF-23). */
+.status-bar__item--action {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.status-bar__item--action:hover {
+  color: var(--color-foreground);
+}
+
 .app__name {
   font-weight: 600;
 }

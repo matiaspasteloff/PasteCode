@@ -5,6 +5,8 @@ export type {
   EventName,
   EventPayload,
   ExtensionHostChangedEvent,
+  ExtensionContributionsEvent,
+  ExtensionDocumentRequestEvent,
   ExtensionsChangedEvent,
   FileChangePayload,
   FilesChangedEvent,
@@ -20,6 +22,13 @@ export type {
   TerminalExitEvent,
 } from './events.js';
 export {
+  ActiveEditorChangedRequestSchema,
+  DocumentResponseRequestSchema,
+  ExecuteExtensionCommandRequestSchema,
+  ExtensionCommandSchema,
+  ExtensionContributionsSchema,
+  ExtensionStatusItemSchema,
+  ExtensionTextEditSchema,
   ExtensionHostStatusSchema,
   ExtensionInfoSchema,
   ExtensionStateSchema,

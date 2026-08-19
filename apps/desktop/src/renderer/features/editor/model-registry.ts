@@ -192,3 +192,73 @@ export function releaseAllModels(): void {
 
   models.clear();
 }
+
+/**
+ * La versión del modelo de un archivo.
+ *
+ * La lleva Monaco y sube con cada cambio, así que sirve de token de
+ * concurrencia sin que haya que contar nada a mano. Es lo que viaja hasta una
+ * extensión con el metadato del documento activo, y contra lo que se verifica
+ * una edición que llega tarde. Ver ADR-0026.
+ *
+ * @param path Ruta absoluta del archivo.
+ * @returns La versión, o `undefined` si no hay modelo para esa ruta.
+ * @example
+ * const version = versionOf('C:\p\a.ts');
+ */
+export function versionOf(path: string): number | undefined {
+  return models.get(path)?.model.getVersionId();
+}
+
+/**
+ * Aplica los cambios que pidió una extensión, si el documento no se movió.
+ *
+ * **Verifica la versión antes de tocar nada.** Entre que una extensión lee el
+ * texto y pide el cambio hay dos saltos de proceso, y con alguien tipeando eso
+ * no es un caso raro. Aplicar a ciegas sería pisar lo que se acaba de escribir.
+ *
+ * Va como **una** operación —`pushEditOperations` con la lista entera— y no una
+ * por cambio: así los rangos se refieren todos al documento previo, el orden
+ * entre ellos no importa, y queda un solo paso de deshacer.
+ *
+ * @param path Ruta absoluta del archivo.
+ * @param version La versión contra la que la extensión leyó.
+ * @param edits Los cambios, en coordenadas base 1.
+ * @returns `true` si se aplicaron; `false` si el documento ya había cambiado.
+ * @example
+ * applyExtensionEdits('C:\p\a.md', 7, [{ range, newText: 'hola' }]);
+ */
+export function applyExtensionEdits(
+  path: string,
+  version: number,
+  edits: readonly ExtensionEdit[]
+): boolean {
+  const model = models.get(path)?.model;
+
+  if (model?.getVersionId() !== version) return false;
+
+  model.pushEditOperations(
+    null,
+    edits.map((edit) => ({
+      range: {
+        startLineNumber: edit.range.start.line,
+        startColumn: edit.range.start.column,
+        endLineNumber: edit.range.end.line,
+        endColumn: edit.range.end.column,
+      },
+      text: edit.newText,
+    })),
+    () => null
+  );
+
+  return true;
+}
+
+/** Un cambio pedido por una extensión, en las coordenadas base 1 del contrato. */
+interface ExtensionEdit {
+  range: {
+    start: { line: number; column: number };
+    end: { line: number; column: number };
+  };
+  newText: string;
+}

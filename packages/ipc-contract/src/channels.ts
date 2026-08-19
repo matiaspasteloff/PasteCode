@@ -16,6 +16,12 @@ import type {
   WriteClipboardResponseSchema,
 } from './schemas/clipboard.js';
 import type {
+  ActiveEditorChangedRequestSchema,
+  ActiveEditorChangedResponseSchema,
+  DocumentResponseRequestSchema,
+  DocumentResponseResponseSchema,
+  ExecuteExtensionCommandRequestSchema,
+  ExecuteExtensionCommandResponseSchema,
   ExtensionHostStatusSchema,
   GetExtensionHostStatusRequestSchema,
   ListExtensionsRequestSchema,
@@ -172,6 +178,18 @@ export interface IpcChannels {
   'extensions:list': {
     request: z.infer<typeof ListExtensionsRequestSchema>;
     response: z.infer<typeof ListExtensionsResponseSchema>;
+  };
+  'extensions:executeCommand': {
+    request: z.infer<typeof ExecuteExtensionCommandRequestSchema>;
+    response: z.infer<typeof ExecuteExtensionCommandResponseSchema>;
+  };
+  'extensions:documentResponse': {
+    request: z.infer<typeof DocumentResponseRequestSchema>;
+    response: z.infer<typeof DocumentResponseResponseSchema>;
+  };
+  'extensions:activeEditorChanged': {
+    request: z.infer<typeof ActiveEditorChangedRequestSchema>;
+    response: z.infer<typeof ActiveEditorChangedResponseSchema>;
   };
   'workspace:open': {
     request: z.infer<typeof OpenWorkspaceRequestSchema>;
