@@ -15,8 +15,18 @@ import {
   updateSettings,
 } from './settings.js';
 
-/** Techo de espera del watcher. Holgado: el CI de Windows es lento. */
+/**
+ * Techo de tiempo de este archivo, **aplicado de verdad**.
+ *
+ * `vi.setConfig` y no un tercer argumento en cada `it()`: la constante estaba
+ * declarada desde el principio y no se le pasaba a ninguno, así que vitest
+ * mataba los tests a los 5 s por omisión y el techo era decorativo. Configurarlo
+ * una vez por archivo cierra la clase entera de error — un test que se agregue
+ * mañana lo hereda sin que nadie se acuerde.
+ */
 const TIMEOUT_MS = 10_000;
+
+vi.setConfig({ testTimeout: TIMEOUT_MS, hookTimeout: TIMEOUT_MS });
 
 let home: string;
 let workspace: string;

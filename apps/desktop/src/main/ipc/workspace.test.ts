@@ -1,8 +1,9 @@
-import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { makeTempDirectory, removeTempDirectory } from '../test-support/temp-directory.js';
 
 import { registerWorkspaceIpcHandlers } from './workspace.js';
 
@@ -58,7 +59,7 @@ function invoke(channel: string): Promise<unknown> {
 }
 
 beforeEach(async () => {
-  sandbox = await realpath(await mkdtemp(join(tmpdir(), 'pastecode-wsipc-')));
+  sandbox = await makeTempDirectory('pastecode-wsipc-');
   project = join(sandbox, 'PasteCode');
   await mkdir(project);
 
@@ -73,7 +74,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   delete process.env.PASTECODE_E2E_WORKSPACE;
-  await rm(sandbox, { recursive: true, force: true });
+  await removeTempDirectory(sandbox);
 });
 
 describe('registerWorkspaceIpcHandlers', () => {
