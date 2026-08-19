@@ -1,0 +1,24 @@
+{
+  "name": "theme-nord",
+  "displayName": "Nord",
+  "version": "1.0.0",
+  "publisher": "pastecode",
+  "private": true,
+  "description": "El tema Nord para PasteCode. Extensión de ejemplo: sólo contribuciones, cero código.",
+  "license": "MIT",
+  "engines": {
+    "pastecode": "^1.0.0"
+  },
+  "activationEvents": [],
+  "capabilities": [],
+  "contributes": {
+    "themes": [
+      {
+        "id": "nord",
+        "label": "Nord",
+        "uiTheme": "dark",
+        "path": "./themes/nord.json"
+      }
+    ]
+  }
+}

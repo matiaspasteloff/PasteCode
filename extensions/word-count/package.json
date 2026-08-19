@@ -1,0 +1,37 @@
+{
+  "name": "word-count",
+  "displayName": "Word Count",
+  "version": "1.0.0",
+  "publisher": "pastecode",
+  "private": true,
+  "description": "Cuenta las palabras del documento activo. Extensión de ejemplo de la status bar y del documento activo.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "pastecode": "^1.0.0"
+  },
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:markdown",
+    "onCommand:wordCount.toggle"
+  ],
+  "capabilities": [
+    "statusBar",
+    "documentRead"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "wordCount.toggle",
+        "title": "Word Count: mostrar u ocultar",
+        "category": "Word Count"
+      }
+    ]
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pastecode/extension-api": "workspace:*"
+  }
+}
