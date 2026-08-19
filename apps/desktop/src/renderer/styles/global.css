@@ -656,6 +656,27 @@ body {
   font-weight: 600;
 }
 
+/* --- Breakpoints (RF-502) ----------------------------------------------
+   El punto se dibuja con un ::before y no con un background del glifo: el
+   margen de glifos es tan alto como la línea, y pintarlo entero daría una
+   barra y no un punto. */
+.breakpoint-glyph::before {
+  content: '';
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin: 6px 0 0 4px;
+  border-radius: 50%;
+  background: var(--color-danger);
+}
+
+/* Desactivado se dibuja hueco y no gris: un punto gris se confunde con uno
+   apagado por el adaptador, y son cosas distintas. */
+.breakpoint-glyph--disabled::before {
+  background: none;
+  border: 2px solid var(--color-danger);
+}
+
 .status-bar__version {
   color: var(--color-muted);
   font-variant-numeric: tabular-nums;

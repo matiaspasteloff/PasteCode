@@ -2,6 +2,7 @@ import type { DiffHunk } from '@pastecode/core';
 import type * as MonacoApi from 'monaco-editor/editor/editor.api';
 
 import { getActiveEditor, getLoadedMonaco } from '../editor/monaco-instance.js';
+import { isSamePath } from '../editor/same-path.js';
 
 /**
  * Las decoraciones puestas, para poder reemplazarlas.
@@ -58,7 +59,7 @@ function applyHunks(path: string, hunks: readonly DiffHunk[]): void {
 
   // Entre que se pidió el diff y que llegó, la persona pudo cambiar de pestaña.
   // Pintarlo igual dejaría las marcas de un archivo sobre otro.
-  if (editor.getModel()?.uri.fsPath !== path) return;
+  if (!isSamePath(editor.getModel()?.uri.fsPath, path)) return;
 
   collection ??= editor.createDecorationsCollection();
   collection.set(hunks.map((hunk) => toDecoration(monaco, hunk)));

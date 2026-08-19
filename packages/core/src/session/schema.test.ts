@@ -19,11 +19,37 @@ describe('WorkspaceStateSchema', () => {
   it('conserva las claves que no conoce', () => {
     // Es la diferencia con el schema de settings, y es deliberada: este
     // archivo lo escribe la app, así que una clave desconocida significa "lo
-    // escribió una versión más nueva", no "hay un error de tipeo". El caso
-    // concreto es `breakpoints`, que llega con el DAP en la Etapa 5.
-    const parsed = WorkspaceStateSchema.parse({ ...VALID, breakpoints: [{ line: 4 }] });
+    // escribió una versión más nueva", no "hay un error de tipeo".
+    //
+    // El ejemplo **era** `breakpoints`, que este schema anunciaba por nombre
+    // sin que el tipo existiera. Ya llegó con el DAP, así que ahora se valida y
+    // el caso de laxitud lo cubre otra clave — que es exactamente cómo tenía
+    // que envejecer este test.
+    const parsed = WorkspaceStateSchema.parse({ ...VALID, watchExpressions: ['i > 3'] });
 
-    expect(parsed).toMatchObject({ breakpoints: [{ line: 4 }] });
+    expect(parsed).toMatchObject({ watchExpressions: ['i > 3'] });
+  });
+
+  it('valida los breakpoints, que ya dejaron de ser una clave desconocida', () => {
+    const breakpoint = { path: 'C:\\p\\a.ts', line: 12, enabled: true };
+
+    expect(WorkspaceStateSchema.parse({ ...VALID, breakpoints: [breakpoint] })).toMatchObject({
+      breakpoints: [breakpoint],
+    });
+  });
+
+  it('rechaza un breakpoint sin ruta', () => {
+    // La laxitud es para las claves que este schema no conoce, no para las que
+    // sí: un breakpoint sin archivo no se puede restaurar ni mandarle a DAP.
+    expect(() =>
+      WorkspaceStateSchema.parse({ ...VALID, breakpoints: [{ line: 4 }] })
+    ).toThrow();
+  });
+
+  it('acepta una sesión sin breakpoints', () => {
+    // Es el archivo de todo el mundo hasta hoy: el campo es opcional para que
+    // aparezca sin migración ni bump de versión.
+    expect(() => WorkspaceStateSchema.parse(VALID)).not.toThrow();
   });
 
   it('rechaza una sesión sin raíz', () => {

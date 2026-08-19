@@ -24,6 +24,24 @@ export {
   ExtensionCallTimeoutError,
   ExtensionHostUnavailableError,
 } from './errors/extension-errors.js';
+export {
+  breakpointsIn,
+  BreakpointSchema,
+  pathsWithBreakpoints,
+  shiftBreakpoints,
+  toggleBreakpoint,
+} from './debug/breakpoints.js';
+export type { Breakpoint } from './debug/breakpoints.js';
+export {
+  LaunchConfigurationSchema,
+  LaunchFileSchema,
+  readLaunchFile,
+} from './debug/launch-config.js';
+export type {
+  LaunchConfiguration,
+  LaunchFile,
+  LaunchFileResult,
+} from './debug/launch-config.js';
 export { CapabilityDeniedError } from './errors/capability-errors.js';
 export { GitCommandError, GitUnavailableError } from './errors/git-errors.js';
 export { PasteCodeError } from './errors/pastecode-error.js';

@@ -1,3 +1,5 @@
+import type { Breakpoint } from '../debug/breakpoints.js';
+
 import type { PersistedGroup, TabState, WorkspaceState } from './schema.js';
 
 /** El prefijo de un URI de archivo. Es el único esquema que se persiste. */
@@ -58,6 +60,14 @@ export interface RestorablePlan {
   groups?: readonly PersistedGroup[];
   layout?: WorkspaceState['layout'];
   activeGroupId?: string;
+  /**
+   * Los breakpoints cuyo archivo sigue existiendo (RF-502).
+   *
+   * Se filtran con el mismo `exists` que las pestañas y por la misma razón:
+   * restaurar un breakpoint en un archivo borrado lo dejaría en una lista que
+   * nadie puede ver ni sacar, y mandándoselo a DAP en cada sesión.
+   */
+  breakpoints?: readonly Breakpoint[];
 }
 
 /**
@@ -106,6 +116,11 @@ export function planRestore(
       : { groups: groups.filter((group) => group.openTabs.length > 0) }),
     ...(state.layout === undefined ? {} : { layout: state.layout }),
     ...(state.activeGroupId === undefined ? {} : { activeGroupId: state.activeGroupId }),
+    ...(state.breakpoints === undefined
+      ? {}
+      : {
+          breakpoints: state.breakpoints.filter((breakpoint) => exists(breakpoint.path)),
+        }),
   };
 }
 

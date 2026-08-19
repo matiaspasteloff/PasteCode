@@ -109,6 +109,41 @@ export function setGroupEditor(
 
   editors.set(groupId, editor);
   focusedGroupId ??= groupId;
+
+  for (const listener of [...editorListeners]) listener(editor);
+}
+
+/**
+ * Los que quieren enterarse cuando nace una instancia de editor.
+ *
+ * Existe porque `getActiveEditor()` no es reactivo y el editor se crea de forma
+ * asincrónica —Monaco se importa perezosamente—, así que un hook que se
+ * enganche al abrir la primera pestaña llega antes que la instancia y no
+ * encuentra nada. Con esto, quien necesita el editor **en sí** —y no su
+ * contenido— se entera cuando existe en vez de adivinar cuándo mirar.
+ */
+const editorListeners = new Set<(editor: MonacoApi.editor.IStandaloneCodeEditor) => void>();
+
+/**
+ * Avisa cuando se crea una instancia de editor, y con las que ya existen.
+ *
+ * Se llama de inmediato con lo que ya haya: un suscriptor que llega tarde tiene
+ * que ver lo mismo que uno que llegó a tiempo, o el orden de montaje decidiría
+ * si su feature anda.
+ *
+ * @param listener Se llama con cada instancia, ahora y a futuro.
+ * @returns La función que corta la suscripción.
+ * @example
+ * useEffect(() => onEditorCreated((editor) => editor.onMouseDown(handle)), []);
+ */
+export function onEditorCreated(
+  listener: (editor: MonacoApi.editor.IStandaloneCodeEditor) => void
+): () => void {
+  editorListeners.add(listener);
+
+  for (const editor of editors.values()) listener(editor);
+
+  return () => editorListeners.delete(listener);
 }
 
 /**

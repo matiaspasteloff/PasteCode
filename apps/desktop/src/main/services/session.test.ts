@@ -99,15 +99,26 @@ describe('loadSession', () => {
       JSON.stringify({
         ...snapshot(),
         lastSavedAt: Date.now(),
-        breakpoints: [{ line: 3 }],
+        watchExpressions: ['i > 3'],
       }),
       'utf8'
     );
 
-    // `breakpoints` llega con el DAP en la Etapa 5. Rechazar el archivo sería
-    // tirar la sesión de alguien que abrió una beta una vez.
+    // El ejemplo **era** `breakpoints`, que ya llegó con el DAP y ahora se
+    // valida. La laxitud sigue haciendo falta para lo que venga después:
+    // rechazar el archivo sería tirar la sesión de alguien que abrió una beta.
     await expect(loadSession(workspace)).resolves.toMatchObject({
-      breakpoints: [{ line: 3 }],
+      watchExpressions: ['i > 3'],
+    });
+  });
+
+  it('lee los breakpoints, que ya son una clave conocida', async () => {
+    const breakpoint = { path: 'C:\\p\\a.ts', line: 12, enabled: true };
+
+    await flushSessionSave({ ...snapshot(), breakpoints: [breakpoint] });
+
+    await expect(loadSession(workspace)).resolves.toMatchObject({
+      breakpoints: [breakpoint],
     });
   });
 });

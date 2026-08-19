@@ -16,6 +16,12 @@ import type {
   WriteClipboardResponseSchema,
 } from './schemas/clipboard.js';
 import type {
+  DebugStatusSchema,
+  GetDebugStatusRequestSchema,
+  GetLaunchConfigurationsRequestSchema,
+  GetLaunchConfigurationsResponseSchema,
+} from './schemas/debug.js';
+import type {
   ActiveEditorChangedRequestSchema,
   ActiveEditorChangedResponseSchema,
   DocumentResponseRequestSchema,
@@ -178,6 +184,14 @@ export interface IpcChannels {
   'extensions:list': {
     request: z.infer<typeof ListExtensionsRequestSchema>;
     response: z.infer<typeof ListExtensionsResponseSchema>;
+  };
+  'debug:getConfigurations': {
+    request: z.infer<typeof GetLaunchConfigurationsRequestSchema>;
+    response: z.infer<typeof GetLaunchConfigurationsResponseSchema>;
+  };
+  'debug:getStatus': {
+    request: z.infer<typeof GetDebugStatusRequestSchema>;
+    response: z.infer<typeof DebugStatusSchema>;
   };
   'extensions:executeCommand': {
     request: z.infer<typeof ExecuteExtensionCommandRequestSchema>;
