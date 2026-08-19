@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // El host corre en Node: los timers son los de Node, no los del DOM.
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"]
+}

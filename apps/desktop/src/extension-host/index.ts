@@ -1,3 +1,5 @@
+import { createRpcEndpoint } from '@pastecode/extension-host';
+
 /**
  * Punto de entrada del extension host.
  *
@@ -22,49 +24,49 @@
  * así que queda en `out/main/extension-host.js` y viaja adentro del asar como
  * cualquier otro módulo del main. Ver
  * [ADR-0027](../../../../docs/adr/0027-empaquetado-y-fork-del-extension-host.md).
+ *
+ * Este archivo es **sólo el cableado**: el protocolo vive en
+ * `@pastecode/extension-host`, que no importa Electron y por eso se puede
+ * testear sin lanzar un proceso.
  */
 
-/** Lo mínimo que el host entiende hasta que llegue el protocolo del paso 32b. */
-interface HandshakeMessage {
-  kind: 'ping';
-}
-
-/** Lo que contesta. */
-interface HandshakeReply {
-  kind: 'pong';
-  /** La versión de Node del host. Confirma que del otro lado hay un Node vivo. */
-  nodeVersion: string;
-  /** El pid, para poder afirmar en un test que **no** es el del main. */
-  pid: number;
-}
+const endpoint = createRpcEndpoint({
+  send: (message) => {
+    process.parentPort.postMessage(message);
+  },
+});
 
 /**
- * Si un mensaje cualquiera es el ping del handshake.
+ * El saludo del arranque.
  *
- * Se valida aunque venga del main: el día que este proceso reciba mensajes de
- * más de un origen la validación ya está donde tiene que estar, y un `unknown`
- * sin narrowing es lo que la regla 3 de `CLAUDE.md` prohíbe.
+ * Devuelve la versión de Node y el pid porque son las dos cosas que prueban lo
+ * que hay que probar: que del otro lado hay un Node vivo, y que **no** es el
+ * proceso del main.
  */
-function isHandshake(message: unknown): message is HandshakeMessage {
-  return (
-    typeof message === 'object' &&
-    message !== null &&
-    'kind' in message &&
-    message.kind === 'ping'
-  );
-}
+endpoint.handle('host/ready', () => ({
+  nodeVersion: process.versions.node,
+  pid: process.pid,
+}));
+
+/**
+ * El apagado por las buenas.
+ *
+ * Contesta **antes** de salir: si el proceso se fuera adentro del handler,
+ * quien lo pidió se quedaría esperando hasta el timeout una respuesta que ya
+ * no puede llegar. El `setImmediate` deja que la respuesta salga por el canal
+ * y recién después termina.
+ */
+endpoint.handle('host/shutdown', () => {
+  setImmediate(() => {
+    process.exit(0);
+  });
+
+  return null;
+});
 
 process.parentPort.on('message', (event) => {
   // El payload viene adentro de `.data`: `parentPort` entrega un
   // `MessageEvent`, no el mensaje pelado. Es la otra mitad de la misma
   // confusión con `worker_threads`, donde el listener recibe el valor directo.
-  if (!isHandshake(event.data)) return;
-
-  const reply: HandshakeReply = {
-    kind: 'pong',
-    nodeVersion: process.versions.node,
-    pid: process.pid,
-  };
-
-  process.parentPort.postMessage(reply);
+  endpoint.receive(event.data);
 });

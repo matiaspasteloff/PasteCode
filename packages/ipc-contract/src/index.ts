@@ -4,6 +4,7 @@ export { EVENT_NAMES, isEventName } from './events.js';
 export type {
   EventName,
   EventPayload,
+  ExtensionHostChangedEvent,
   FileChangePayload,
   FilesChangedEvent,
   GitChangedEvent,
@@ -17,6 +18,11 @@ export type {
   TerminalDataEvent,
   TerminalExitEvent,
 } from './events.js';
+export {
+  ExtensionHostStatusSchema,
+  GetExtensionHostStatusRequestSchema,
+  HostStateSchema,
+} from './schemas/extensions.js';
 export {
   DIFF_HUNK_KINDS,
   DiffHunkSchema,

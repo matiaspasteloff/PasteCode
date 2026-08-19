@@ -1,6 +1,8 @@
 import type { DocumentDiagnostics, Keybinding, SearchMatch, Settings } from '@pastecode/core';
+import type { z } from 'zod';
 
 import type { SerializedError } from './result.js';
+import type { ExtensionHostStatusSchema } from './schemas/extensions.js';
 import type { GitRepository } from './schemas/git.js';
 import type { LspServerStatus } from './schemas/lsp.js';
 
@@ -188,6 +190,15 @@ export interface GitChangedEvent {
  * @example
  * type Chunk = EventPayload<'terminal:data'>; // { sessionId: string; chunk: string }
  */
+/**
+ * Payload de `extensions:hostChanged`: el estado **resuelto** del host.
+ *
+ * Va el estado entero y no un delta, igual que `git:changed` y por la misma
+ * razón: quien lo recibe no tiene que reconstruir nada juntando eventos, y un
+ * evento perdido no deja la UI desincronizada para siempre.
+ */
+export type ExtensionHostChangedEvent = z.infer<typeof ExtensionHostStatusSchema>;
+
 export interface IpcEvents {
   'terminal:data': TerminalDataEvent;
   'terminal:exit': TerminalExitEvent;
@@ -199,6 +210,7 @@ export interface IpcEvents {
   'lsp:diagnostics': LspDiagnosticsEvent;
   'lsp:serverChanged': LspServerChangedEvent;
   'git:changed': GitChangedEvent;
+  'extensions:hostChanged': ExtensionHostChangedEvent;
 }
 
 export type EventName = keyof IpcEvents;
@@ -228,6 +240,7 @@ export const EVENT_NAMES = [
   'lsp:diagnostics',
   'lsp:serverChanged',
   'git:changed',
+  'extensions:hostChanged',
 ] as const satisfies readonly EventName[];
 
 /**
