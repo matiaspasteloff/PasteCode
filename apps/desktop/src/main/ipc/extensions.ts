@@ -91,7 +91,7 @@ export function registerExtensionsIpcHandlers(): void {
   registerHandler(
     'extensions:list',
     ListExtensionsRequestSchema,
-    (): Response<'extensions:list'> => service?.extensions() ?? { extensions: [] }
+    (): Response<'extensions:list'> => service?.extensions() ?? { extensions: [], themes: [] }
   );
 
   registerHandler(
@@ -120,12 +120,7 @@ export function registerExtensionsIpcHandlers(): void {
     'extensions:activeEditorChanged',
     ActiveEditorChangedRequestSchema,
     async (payload): Promise<Response<'extensions:activeEditorChanged'>> => {
-      // Un fallo acá no es del renderer: es el host que no está. Se traga,
-      // porque el editor va a seguir cambiando y el próximo aviso lo alcanza.
-      await service
-        ?.rpc()
-        .request('host/activeEditorChanged', payload)
-        .catch(() => undefined);
+      await service?.notifyActiveEditor(payload);
 
       return {};
     }

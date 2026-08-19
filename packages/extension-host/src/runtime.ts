@@ -10,6 +10,8 @@ import { createExtensionApi, forgetExtensionCommands } from './api.js';
 import type { RpcEndpoint } from './rpc.js';
 import type { DiscoveredExtension, ExtensionFailure } from './scan.js';
 import { scanExtensions } from './scan.js';
+import type { LoadedTheme } from './themes.js';
+import { readThemes } from './themes.js';
 
 /** En qué estado quedó una extensión después de mirarla. */
 export type ExtensionState = 'inactive' | 'active' | 'failed';
@@ -32,10 +34,16 @@ export interface ExtensionReport {
   reason?: string;
 }
 
+/** Lo que sale de una carga: qué hay, y qué temas aporta. */
+export interface LoadResult {
+  extensions: ExtensionReport[];
+  themes: LoadedTheme[];
+}
+
 /** El runtime del host: qué hay cargado y cómo se activa. */
 export interface ExtensionRuntime {
   /** Escanea los directorios y activa lo que responda a `onStartupFinished`. */
-  load(directories: readonly string[]): Promise<ExtensionReport[]>;
+  load(directories: readonly string[]): Promise<LoadResult>;
   /** Activa lo que responda a un trigger. Una ya activa no se vuelve a activar. */
   activate(trigger: ActivationTrigger): Promise<void>;
   /** Anota el editor activo nuevo y avisa a quien esté escuchando. */
@@ -55,6 +63,7 @@ interface Tracked {
 interface RuntimeState {
   readonly rpc: RpcEndpoint;
   readonly tracked: Map<string, Tracked>;
+  themes: LoadedTheme[];
   readonly editorListeners: Set<() => void>;
   activeEditor: EditorSnapshot | null;
   failures: readonly ExtensionFailure[];
@@ -81,6 +90,7 @@ export function createExtensionRuntime(rpc: RpcEndpoint): ExtensionRuntime {
   const state: RuntimeState = {
     rpc,
     tracked: new Map(),
+    themes: [],
     editorListeners: new Set(),
     activeEditor: null,
     failures: [],
@@ -103,10 +113,7 @@ export function createExtensionRuntime(rpc: RpcEndpoint): ExtensionRuntime {
 }
 
 /** Escanea, anota lo encontrado y activa lo que arranca con el IDE. */
-async function load(
-  state: RuntimeState,
-  directories: readonly string[]
-): Promise<ExtensionReport[]> {
+async function load(state: RuntimeState, directories: readonly string[]): Promise<LoadResult> {
   const scanned = await scanExtensions(directories);
 
   state.failures = scanned.failures;
@@ -116,9 +123,13 @@ async function load(
     state.tracked.set(found.manifest.name, { found, state: 'inactive' });
   }
 
+  // Los temas se leen antes de activar nada: son datos, y su extensión puede
+  // no tener código que activar.
+  state.themes = await readThemes(scanned.extensions);
+
   await activate(state, { kind: 'startupFinished' });
 
-  return report(state);
+  return { extensions: report(state), themes: state.themes };
 }
 
 /** Activa todo lo que responda al trigger y todavía no esté activo. */

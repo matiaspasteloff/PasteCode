@@ -127,13 +127,34 @@ describe('status bar', () => {
     return created;
   }
 
-  it('nace oculto y aparece al mostrarlo con texto', () => {
+  it('nace oculto: ni crearlo ni ponerle texto lo dibuja', () => {
+    const itemId = createItem();
+
+    expect(broker.contributions().statusItems).toEqual([]);
+
+    call(MAIN_METHODS.updateStatusBarItem, {
+      extension: 'completa',
+      itemId,
+      patch: { tooltip: 'todavía no' },
+    });
+
+    // Sin esto, cualquier `setTooltip` alcanzaba para dibujar un ítem vacío, y
+    // la barra parpadeaba con un hueco antes del primer texto.
+    expect(broker.contributions().statusItems).toEqual([]);
+  });
+
+  it('aparece al mostrarlo, con el texto que se le puso', () => {
     const itemId = createItem();
 
     call(MAIN_METHODS.updateStatusBarItem, {
       extension: 'completa',
       itemId,
       patch: { text: '42 palabras' },
+    });
+    call(MAIN_METHODS.updateStatusBarItem, {
+      extension: 'completa',
+      itemId,
+      patch: { visible: true },
     });
 
     expect(broker.contributions().statusItems[0]).toMatchObject({
@@ -143,21 +164,23 @@ describe('status bar', () => {
     });
   });
 
-  it('esconderlo lo saca de la barra', () => {
+  it('esconderlo lo saca de la barra sin perder su texto', () => {
     const itemId = createItem();
 
-    call(MAIN_METHODS.updateStatusBarItem, {
-      extension: 'completa',
-      itemId,
-      patch: { text: 'x' },
-    });
-    call(MAIN_METHODS.updateStatusBarItem, {
-      extension: 'completa',
-      itemId,
-      patch: { visible: false },
-    });
+    for (const patch of [{ text: 'x' }, { visible: true }, { visible: false }]) {
+      call(MAIN_METHODS.updateStatusBarItem, { extension: 'completa', itemId, patch });
+    }
 
     expect(broker.contributions().statusItems).toEqual([]);
+
+    // Volver a mostrarlo no obliga a repetir el texto: esconder no es destruir.
+    call(MAIN_METHODS.updateStatusBarItem, {
+      extension: 'completa',
+      itemId,
+      patch: { visible: true },
+    });
+
+    expect(broker.contributions().statusItems[0]?.text).toBe('x');
   });
 
   it('una extensión no puede tocar el ítem de otra', () => {
@@ -189,7 +212,7 @@ describe('status bar', () => {
       call(MAIN_METHODS.updateStatusBarItem, {
         extension: 'completa',
         itemId,
-        patch: { text: 'x' },
+        patch: { text: 'x', visible: true },
       });
     }
 

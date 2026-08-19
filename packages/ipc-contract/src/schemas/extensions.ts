@@ -64,9 +64,10 @@ export const ExtensionInfoSchema = z.strictObject({
 /** Payload de `extensions:list`. Sin parámetros: se piden todas. */
 export const ListExtensionsRequestSchema = z.strictObject({});
 
-/** Respuesta de `extensions:list`. */
+/** Respuesta de `extensions:list`: lo cargado y lo que aporta. */
 export const ListExtensionsResponseSchema = z.strictObject({
   extensions: z.array(ExtensionInfoSchema),
+  themes: z.array(z.lazy(() => ExtensionThemeSchema)),
 });
 
 /** Un comando que aporta una extensión, ya resuelto. */
@@ -160,3 +161,27 @@ export const ActiveEditorChangedRequestSchema = z.strictObject({
 
 /** Respuesta de `extensions:activeEditorChanged`. */
 export const ActiveEditorChangedResponseSchema = z.strictObject({});
+
+/** Una regla de tokenización de Monaco aportada por un tema. */
+const TokenColorRuleSchema = z.strictObject({
+  token: z.string(),
+  foreground: z.string().optional(),
+  fontStyle: z.string().optional(),
+});
+
+/**
+ * Un tema aportado por una extensión ([RF-906](../../../../docs/03-requerimientos-funcionales.md),
+ * [RF-803](../../../../docs/03-requerimientos-funcionales.md)).
+ *
+ * Viaja con sus colores ya leídos y no con la ruta a su archivo: el renderer no
+ * puede leer del disco, y darle una ruta sería pedirle que pida.
+ */
+export const ExtensionThemeSchema = z.strictObject({
+  id: z.string(),
+  label: z.string(),
+  uiTheme: z.enum(['light', 'dark']),
+  extension: z.string(),
+  /** Sólo lo que el tema pisa; el resto se hereda del `uiTheme`. */
+  colors: z.record(z.string(), z.string()),
+  tokenColors: z.array(TokenColorRuleSchema),
+});
