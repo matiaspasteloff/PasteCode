@@ -74,3 +74,39 @@ export function isRpcResponse(message: unknown): message is RpcResponse {
 
   return 'id' in message && typeof message.id === 'number';
 }
+
+/**
+ * Los métodos que **el main** atiende. Los llama el host.
+ *
+ * Están acá y no repartidos en cada archivo porque son la mitad del contrato
+ * que las dos puntas tienen que hablar igual: un nombre escrito a mano en los
+ * dos lados es un typo esperando a que alguien lo encuentre en runtime.
+ *
+ * Todos llevan el `extension` que origina la llamada. No es redundante: es lo
+ * que le permite al main verificar la capability y atribuir el registro, que
+ * son las dos cosas que el host no puede hacer por sí mismo porque el host es
+ * justamente quien corre el código de terceros
+ * ([RNF-14](../../../docs/04-requerimientos-no-funcionales.md)).
+ */
+export const MAIN_METHODS = {
+  registerCommand: 'main/registerCommand',
+  unregisterCommand: 'main/unregisterCommand',
+  executeCommand: 'main/executeCommand',
+  createStatusBarItem: 'main/createStatusBarItem',
+  updateStatusBarItem: 'main/updateStatusBarItem',
+  disposeStatusBarItem: 'main/disposeStatusBarItem',
+  getDocumentText: 'main/getDocumentText',
+  applyEdits: 'main/applyEdits',
+} as const;
+
+/** Los métodos que **el host** atiende. Los llama el main. */
+export const HOST_METHODS = {
+  ready: 'host/ready',
+  shutdown: 'host/shutdown',
+  /** Escanea, carga y activa lo que corresponda. */
+  loadExtensions: 'host/loadExtensions',
+  /** Corre el handler de un comando que registró una extensión. */
+  runCommand: 'host/runCommand',
+  /** Avisa que cambió el editor activo, o que se activó un lenguaje. */
+  activeEditorChanged: 'host/activeEditorChanged',
+} as const;

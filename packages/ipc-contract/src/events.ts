@@ -2,7 +2,10 @@ import type { DocumentDiagnostics, Keybinding, SearchMatch, Settings } from '@pa
 import type { z } from 'zod';
 
 import type { SerializedError } from './result.js';
-import type { ExtensionHostStatusSchema } from './schemas/extensions.js';
+import type {
+  ExtensionHostStatusSchema,
+  ListExtensionsResponseSchema,
+} from './schemas/extensions.js';
 import type { GitRepository } from './schemas/git.js';
 import type { LspServerStatus } from './schemas/lsp.js';
 
@@ -199,6 +202,15 @@ export interface GitChangedEvent {
  */
 export type ExtensionHostChangedEvent = z.infer<typeof ExtensionHostStatusSchema>;
 
+/**
+ * Payload de `extensions:changed`: el estado **resuelto** de lo que hay cargado.
+ *
+ * Va la lista entera y no un delta, igual que `git:changed`: quien lo recibe no
+ * tiene que reconstruir nada juntando eventos, y un evento perdido no deja la
+ * UI desincronizada para siempre.
+ */
+export type ExtensionsChangedEvent = z.infer<typeof ListExtensionsResponseSchema>;
+
 export interface IpcEvents {
   'terminal:data': TerminalDataEvent;
   'terminal:exit': TerminalExitEvent;
@@ -211,6 +223,7 @@ export interface IpcEvents {
   'lsp:serverChanged': LspServerChangedEvent;
   'git:changed': GitChangedEvent;
   'extensions:hostChanged': ExtensionHostChangedEvent;
+  'extensions:changed': ExtensionsChangedEvent;
 }
 
 export type EventName = keyof IpcEvents;
@@ -241,6 +254,7 @@ export const EVENT_NAMES = [
   'lsp:serverChanged',
   'git:changed',
   'extensions:hostChanged',
+  'extensions:changed',
 ] as const satisfies readonly EventName[];
 
 /**

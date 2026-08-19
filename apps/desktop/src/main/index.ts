@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { app, BrowserWindow } from 'electron';
 
 import { dataDirectoryOverride, isDevelopment } from './environment.js';
+import { useExtensionsDirectory } from './extensions/directories.js';
 import { registerAppIpcHandlers } from './ipc/app.js';
 import { registerBackupsIpcHandlers } from './ipc/backups.js';
 import { registerClipboardIpcHandlers } from './ipc/clipboard.js';
@@ -78,6 +79,7 @@ void app.whenReady().then(async () => {
   if (dataDirectoryOverride !== undefined) {
     useSessionDirectory(join(dataDirectoryOverride, 'workspaces'));
     useBackupDirectory(join(dataDirectoryOverride, 'backups'));
+    useExtensionsDirectory(join(dataDirectoryOverride, 'extensions'));
   }
 
   await startSettings(dataDirectoryOverride);
