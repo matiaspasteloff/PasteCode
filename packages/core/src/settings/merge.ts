@@ -19,7 +19,8 @@ import { DEFAULT_SETTINGS } from './schema.js';
  *   —agregar es repetir la lista con un ítem más—; concatenar deja una sola.
  *
  * **Las claves que eligen un ejecutable son la excepción:** el workspace no
- * puede setearlas. Son `terminal.shell`, `lsp.serverPaths` y `git.path`. Un
+ * puede setearlas. Son `terminal.shell`, `lsp.serverPaths`, `git.path` y
+ * `debug.adapterPath`. Un
  * `.pastecode/settings.json` viaja adentro de cualquier repositorio que se
  * clone, y clonar no puede ser lo mismo que aceptar ejecutar lo que el
  * repositorio diga. Con el LSP la apuesta sube: elegir el ejecutable de un
@@ -34,6 +35,27 @@ import { DEFAULT_SETTINGS } from './schema.js';
  * resolveSettings({ editor: { fontSize: 16 } }, { editor: { tabSize: 4 } });
  * // editor.fontSize 16, editor.tabSize 4, el resto por defecto
  */
+/**
+ * Las claves de `debug` que **sólo** el usuario puede escribir.
+ *
+ * Están juntas en su propia función y no esparcidas en `resolveSettings` para
+ * que la regla de seguridad se lea de una vez: elegir el adaptador es elegir
+ * *qué se ejecuta al apretar F5*, y elegir sus argumentos es casi lo mismo —un
+ * `--eval` sobre un adaptador legítimo alcanza para ejecutar código—.
+ *
+ * `requestTimeoutMs` **no** está acá a propósito: no elige ningún ejecutable, y
+ * un repositorio con un adaptador lento tiene un motivo legítimo para pedir más
+ * tiempo.
+ */
+function userOnlyDebug(
+  user: SettingsFile
+): Pick<Settings['debug'], 'adapterPath' | 'adapterArgs'> {
+  return {
+    adapterPath: user.debug?.adapterPath ?? DEFAULT_SETTINGS.debug.adapterPath,
+    adapterArgs: user.debug?.adapterArgs ?? DEFAULT_SETTINGS.debug.adapterArgs,
+  };
+}
+
 export function resolveSettings(user: SettingsFile, workspace: SettingsFile): Settings {
   // `Object.assign` y no el spread por una razón de tipos, no de estilo: con
   // `exactOptionalPropertyTypes`, esparcir un `Partial<T>` sobre un `T` deja
@@ -48,10 +70,12 @@ export function resolveSettings(user: SettingsFile, workspace: SettingsFile): Se
     workspace.terminal
   );
 
+  const debug = Object.assign({}, DEFAULT_SETTINGS.debug, user.debug, workspace.debug);
   const git = Object.assign({}, DEFAULT_SETTINGS.git, user.git, workspace.git);
   const lsp = Object.assign({}, DEFAULT_SETTINGS.lsp, user.lsp, workspace.lsp);
 
   return {
+    debug: { ...debug, ...userOnlyDebug(user) },
     editor: Object.assign({}, DEFAULT_SETTINGS.editor, user.editor, workspace.editor),
     files: Object.assign({}, DEFAULT_SETTINGS.files, user.files, workspace.files),
     git: {

@@ -35,6 +35,7 @@ Un ADR registra una decisión técnica relevante, el contexto en el que se tomó
 | [0025](./0025-forma-de-la-api-de-extensiones.md)               | Entregar la API por parámetro de `activate` y mantenerla sólo tipos             | ✅ Aceptado  |
 | [0026](./0026-broker-unico-y-pull-del-documento-activo.md)     | Brokear todo por el main y traer el documento activo con un pull correlacionado | ✅ Aceptado  |
 | [0027](./0027-empaquetado-y-fork-del-extension-host.md)        | Empaquetar el extension host como un segundo entry del main                     | ✅ Aceptado  |
+| [0028](./0028-adaptador-dap-externo-y-cliente-propio.md)       | Adaptador DAP externo, configurado por ruta, con cliente propio                 | ✅ Aceptado  |
 
 **Estados posibles:** `Propuesto` · `Aceptado` · `Reemplazado por ADR-NNNN` · `Obsoleto`
 
