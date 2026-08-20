@@ -4,6 +4,7 @@ import { app, BrowserWindow } from 'electron';
 
 import { dataDirectoryOverride, isDevelopment } from './environment.js';
 import { useExtensionsDirectory } from './extensions/directories.js';
+import { registerAiIpcHandlers } from './ipc/ai.js';
 import { registerAppIpcHandlers } from './ipc/app.js';
 import { registerBackupsIpcHandlers } from './ipc/backups.js';
 import { registerClipboardIpcHandlers } from './ipc/clipboard.js';
@@ -30,6 +31,7 @@ import { createMainWindow } from './windows/create-window.js';
 registerAppScheme();
 
 registerAppIpcHandlers();
+registerAiIpcHandlers();
 registerFsIpcHandlers();
 registerBackupsIpcHandlers();
 registerExtensionsIpcHandlers();

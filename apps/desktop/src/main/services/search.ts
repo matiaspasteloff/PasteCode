@@ -78,15 +78,52 @@ export function startSearch(
 ): void {
   cancelSearch();
 
+  running = spawnSearch(search, root, callbacks).child;
+}
+
+/**
+ * Lanza una búsqueda **sin tocar la que la UI tenga en curso**.
+ *
+ * Existe para el asistente de IA, que tiene su propia herramienta de búsqueda
+ * ([RF-1005](../../../../../docs/03-requerimientos-funcionales.md#asistente-de-ia-etapa-experimental)).
+ * Sin esto, pedirle al asistente que busque algo cancelaría la búsqueda que la
+ * persona tiene abierta en el panel, porque `startSearch` es de una sola vía a
+ * propósito: en el panel, pedir otra consulta **significa** descartar la
+ * anterior.
+ *
+ * Son dos políticas distintas sobre el mismo mecanismo, así que lo que se
+ * comparte es el mecanismo: el binario, los argumentos, el troceado de líneas
+ * y el techo de resultados salen todos de acá. Duplicar el servicio para el
+ * asistente habría sido tener dos lugares donde arreglar el próximo bug de
+ * ripgrep.
+ *
+ * @param search Qué buscar y con qué filtros.
+ * @param root Raíz del workspace.
+ * @param callbacks Adónde van los resultados.
+ * @returns Un handle para matar este proceso y nada más.
+ * @example
+ * const handle = spawnSearch(query, root, { onResult, onDone });
+ */
+export function spawnSearch(
+  search: SearchQuery,
+  root: string,
+  callbacks: SearchCallbacks
+): { child: ChildProcessWithoutNullStreams; kill: () => void } {
   const child = spawn(ripgrepPath(), buildRipgrepArgs(search, root), {
     cwd: root,
-    // Nunca por shell: el patrón lo escribe una persona y puede tener
-    // cualquier cosa adentro. Ver seguridad.md.
+    // Nunca por shell: el patrón lo escribe una persona —o un modelo— y puede
+    // tener cualquier cosa adentro. Ver seguridad.md.
     shell: false,
   });
 
-  running = child;
   drain(child, callbacks);
+
+  return {
+    child,
+    kill: () => {
+      child.kill();
+    },
+  };
 }
 
 /**
@@ -151,7 +188,12 @@ function drain(child: ChildProcessWithoutNullStreams, callbacks: SearchCallbacks
 
   child.on('error', (cause) => {
     clearInterval(timer);
-    running = undefined;
+
+    // Sólo si es **este** proceso el que la UI tenía en curso: desde que
+    // `spawnSearch` existe, acá puede morir la búsqueda del asistente, y
+    // limpiar el slot compartido dejaría a `cancelSearch` sin a quién matar.
+    if (running === child) running = undefined;
+
     callbacks.onDone({ truncated, error: spawnFailure(cause) });
   });
 

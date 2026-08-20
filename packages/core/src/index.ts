@@ -38,7 +38,12 @@ export {
   parseToolArguments,
   READ_ONLY_TOOLS,
 } from './ai/tools.js';
-export type { AiToolArguments, AiToolDefinition, AiToolName } from './ai/tools.js';
+export type {
+  AiToolArguments,
+  AiToolDefinition,
+  AiToolName,
+  ReadOnlyToolName,
+} from './ai/tools.js';
 export { fuzzyMatch, rankByFuzzyMatch } from './commands/fuzzy.js';
 export type { FuzzyMatch } from './commands/fuzzy.js';
 export {

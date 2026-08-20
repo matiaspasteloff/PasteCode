@@ -28,8 +28,22 @@ export type AiToolName = (typeof AI_TOOL_NAMES)[number];
  */
 export const READ_ONLY_TOOLS = ['list_files', 'read_file', 'search_workspace'] as const;
 
-/** Si una herramienta se puede resolver sin confirmación de una persona. */
-export function isReadOnlyTool(name: AiToolName): boolean {
+export type ReadOnlyToolName = (typeof READ_ONLY_TOOLS)[number];
+
+/**
+ * Si una herramienta se puede resolver sin confirmación de una persona.
+ *
+ * Es un predicado de tipo y no un booleano a propósito: quien las ejecuta
+ * acepta sólo las de lectura, y con un booleano habría que convencer a
+ * TypeScript de eso con una aserción o con un `if` redundante. Acá la partición
+ * de seguridad y la del sistema de tipos son la misma.
+ *
+ * @param name La herramienta.
+ * @returns `true` si está en `READ_ONLY_TOOLS`, y lo estrecha al tipo.
+ * @example
+ * if (isReadOnlyTool(name)) await runReadOnlyTool(name, args);
+ */
+export function isReadOnlyTool(name: AiToolName): name is ReadOnlyToolName {
   const readOnly: readonly string[] = READ_ONLY_TOOLS;
 
   return readOnly.includes(name);
