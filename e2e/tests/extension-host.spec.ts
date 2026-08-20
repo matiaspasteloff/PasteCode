@@ -1,3 +1,6 @@
+import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
 import {
   _electron as electron,
   expect,
@@ -6,7 +9,7 @@ import {
   type Page,
 } from '@playwright/test';
 
-import { DESKTOP_ROOT, PACKAGED_APP } from './support/desktop.js';
+import { DESKTOP_ROOT, makeTempDirectory, PACKAGED_APP } from './support/desktop.js';
 
 /** El techo de RF-907: el host tiene que volver en menos de dos segundos. */
 const RESTART_BUDGET_MS = 2000;
@@ -58,6 +61,34 @@ async function waitForReadyPid(window: Page, timeout: number): Promise<number> {
   if (pid === null) throw new Error('El host dice estar listo y no tiene pid');
 
   return pid;
+}
+
+/** Una extensión, tal como la reporta `extensions:list`. */
+interface ListedExtension {
+  name: string;
+  state: string;
+  reason?: string;
+}
+
+/** Lo que hay cargado, por el mismo canal que usaría la UI. */
+async function listExtensions(window: Page): Promise<ListedExtension[]> {
+  const reported: unknown = await window.evaluate(
+    `window.pastecode.invoke('extensions:list', {}).then((r) => (r.ok ? r.value.extensions : []))`
+  );
+
+  if (!Array.isArray(reported)) return [];
+
+  return reported.flatMap((entry: unknown) => {
+    if (typeof entry !== 'object' || entry === null) return [];
+
+    const name: unknown = Reflect.get(entry, 'name');
+    const state: unknown = Reflect.get(entry, 'state');
+    const reason: unknown = Reflect.get(entry, 'reason');
+
+    if (typeof name !== 'string' || typeof state !== 'string') return [];
+
+    return [{ name, state, ...(typeof reason === 'string' ? { reason } : {}) }];
+  });
 }
 
 /**
@@ -124,4 +155,69 @@ test('el extension host arranca desde adentro del asar', async () => {
   // Que llegue a `ready` prueba las dos mitades: que el módulo se resolvió
   // desde adentro del asar, y que del otro lado hay un Node capaz de contestar.
   expect(await waitForReadyPid(window, 30_000)).toBeGreaterThan(0);
+});
+
+/**
+ * RF-901 y RF-902: se cargan las del usuario, y una rota no tumba a las demás.
+ *
+ * El directorio de extensiones del usuario se apunta a un temporal con
+ * `PASTECODE_E2E_HOME`, por lo mismo que en los tests de settings y de sesión:
+ * una suite que le instala extensiones en el `~/.pastecode/` de quien la corre
+ * es peor que no tener suite.
+ */
+test('carga las extensiones del usuario y reporta las rotas sin caerse', async () => {
+  await app.close();
+
+  const home = await makeTempDirectory('pastecode-ext-home-');
+  const extensions = join(home, 'extensions');
+
+  // Una sana sin `main`: es la forma de un tema, que contribuye sin ejecutar
+  // código, así que queda `inactive` y eso es lo correcto.
+  await mkdir(join(extensions, 'sana'), { recursive: true });
+  await writeFile(
+    join(extensions, 'sana', 'package.json'),
+    JSON.stringify({
+      name: 'sana',
+      displayName: 'La Sana',
+      version: '1.0.0',
+      publisher: 'test',
+      engines: { pastecode: '^1.0.0' },
+      activationEvents: [],
+      capabilities: [],
+    }),
+    'utf8'
+  );
+
+  // Una con el manifest incompleto: no carga, y tiene que verse.
+  await mkdir(join(extensions, 'rota'), { recursive: true });
+  await writeFile(
+    join(extensions, 'rota', 'package.json'),
+    JSON.stringify({ name: 'rota' }),
+    'utf8'
+  );
+
+  app = await electron.launch({
+    args: [DESKTOP_ROOT],
+    env: { ...process.env, PASTECODE_E2E_HOME: home },
+  });
+
+  const window = await app.firstWindow();
+
+  await waitForReadyPid(window, 30_000);
+
+  await expect
+    .poll(async () => (await listExtensions(window)).length, { timeout: 10_000 })
+    .toBeGreaterThanOrEqual(2);
+
+  const listed = await listExtensions(window);
+  const sana = listed.find((entry) => entry.name === 'sana');
+  const rota = listed.find((entry) => entry.reason !== undefined);
+
+  expect(sana?.state).toBe('inactive');
+  expect(rota?.state).toBe('failed');
+
+  // La mitad que importa de RF-902: el IDE sigue andando.
+  await expect(window.locator('.app__name')).toHaveText('PasteCode');
+
+  await rm(home, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 });

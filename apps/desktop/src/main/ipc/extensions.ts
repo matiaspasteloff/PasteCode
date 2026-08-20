@@ -1,5 +1,12 @@
-import type { ExtensionHostChangedEvent, Response } from '@pastecode/ipc-contract';
-import { GetExtensionHostStatusRequestSchema } from '@pastecode/ipc-contract';
+import type {
+  ExtensionHostChangedEvent,
+  ExtensionsChangedEvent,
+  Response,
+} from '@pastecode/ipc-contract';
+import {
+  GetExtensionHostStatusRequestSchema,
+  ListExtensionsRequestSchema,
+} from '@pastecode/ipc-contract';
 import { BrowserWindow } from 'electron';
 
 import type { ExtensionHostService } from '../extensions/host-process.js';
@@ -19,9 +26,16 @@ import { registerHandler } from './handler.js';
 let service: ExtensionHostService | null = null;
 
 /** Manda el estado del host a todas las ventanas. */
-function broadcast(status: ExtensionHostChangedEvent): void {
+function broadcastStatus(status: ExtensionHostChangedEvent): void {
   for (const window of BrowserWindow.getAllWindows()) {
     emit(window, 'extensions:hostChanged', status);
+  }
+}
+
+/** Ídem para la lista de extensiones cargadas. */
+function broadcastExtensions(extensions: ExtensionsChangedEvent): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    emit(window, 'extensions:changed', extensions);
   }
 }
 
@@ -42,6 +56,12 @@ export function registerExtensionsIpcHandlers(): void {
     GetExtensionHostStatusRequestSchema,
     (): Response<'extensions:getStatus'> => currentStatus()
   );
+
+  registerHandler(
+    'extensions:list',
+    ListExtensionsRequestSchema,
+    (): Response<'extensions:list'> => service?.extensions() ?? { extensions: [] }
+  );
 }
 
 /**
@@ -56,7 +76,10 @@ export function registerExtensionsIpcHandlers(): void {
  * startExtensionHost(); // dentro de app.whenReady()
  */
 export function startExtensionHost(): void {
-  service = createExtensionHostService({ onStatusChanged: broadcast });
+  service = createExtensionHostService({
+    onStatusChanged: broadcastStatus,
+    onExtensionsChanged: broadcastExtensions,
+  });
 
   registerDisposer('extension-host', () => service?.stop() ?? Promise.resolve());
   service.start();

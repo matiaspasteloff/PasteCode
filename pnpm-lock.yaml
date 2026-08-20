@@ -179,6 +179,12 @@ importers:
       '@pastecode/core':
         specifier: workspace:*
         version: link:../core
+      '@pastecode/extension-api':
+        specifier: workspace:*
+        version: link:../extension-api
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
     devDependencies:
       '@vitest/coverage-v8':
         specifier: 4.1.10

@@ -5,6 +5,7 @@ export type {
   EventName,
   EventPayload,
   ExtensionHostChangedEvent,
+  ExtensionsChangedEvent,
   FileChangePayload,
   FilesChangedEvent,
   GitChangedEvent,
@@ -20,8 +21,12 @@ export type {
 } from './events.js';
 export {
   ExtensionHostStatusSchema,
+  ExtensionInfoSchema,
+  ExtensionStateSchema,
   GetExtensionHostStatusRequestSchema,
   HostStateSchema,
+  ListExtensionsRequestSchema,
+  ListExtensionsResponseSchema,
 } from './schemas/extensions.js';
 export {
   DIFF_HUNK_KINDS,

@@ -14,7 +14,9 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@pastecode/core": "workspace:*"
+    "@pastecode/core": "workspace:*",
+    "@pastecode/extension-api": "workspace:*",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "4.1.10",

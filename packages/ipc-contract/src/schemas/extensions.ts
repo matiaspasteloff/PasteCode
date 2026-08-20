@@ -32,3 +32,29 @@ export const ExtensionHostStatusSchema = z.strictObject({
 
 /** Payload de `extensions:getStatus`. Sin parámetros: el host es uno solo. */
 export const GetExtensionHostStatusRequestSchema = z.strictObject({});
+
+/** En qué estado quedó una extensión. */
+export const ExtensionStateSchema = z.enum(['inactive', 'active', 'failed']);
+
+/**
+ * Una extensión, tal como la ve el renderer.
+ *
+ * Las que fallaron viajan igual, con su `reason`: [RF-902](../../../../docs/03-requerimientos-funcionales.md)
+ * pide error **visible**, y una extensión que desaparece de la lista sin decir
+ * nada no es visible.
+ */
+export const ExtensionInfoSchema = z.strictObject({
+  name: z.string(),
+  displayName: z.string(),
+  version: z.string(),
+  state: ExtensionStateSchema,
+  reason: z.string().optional(),
+});
+
+/** Payload de `extensions:list`. Sin parámetros: se piden todas. */
+export const ListExtensionsRequestSchema = z.strictObject({});
+
+/** Respuesta de `extensions:list`. */
+export const ListExtensionsResponseSchema = z.strictObject({
+  extensions: z.array(ExtensionInfoSchema),
+});

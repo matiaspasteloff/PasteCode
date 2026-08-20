@@ -1,22 +1,23 @@
 import { join } from 'node:path';
 
 import type { RpcEndpoint } from '@pastecode/extension-host';
-import { createRpcEndpoint } from '@pastecode/extension-host';
-import type { ExtensionHostChangedEvent } from '@pastecode/ipc-contract';
+import { createRpcEndpoint, HOST_METHODS } from '@pastecode/extension-host';
+import type {
+  ExtensionHostChangedEvent,
+  ExtensionsChangedEvent,
+} from '@pastecode/ipc-contract';
+import { ExtensionInfoSchema } from '@pastecode/ipc-contract';
 import { utilityProcess } from 'electron';
 
+import { logProcess } from '../services/logger.js';
 import type { UtilityProcessHandle } from '../supervisors/adapters/utility-handle.js';
 import { adaptUtilityProcess } from '../supervisors/adapters/utility-handle.js';
 import { createSupervisedProcess } from '../supervisors/supervised-process.js';
 
+import { extensionDirectories } from './directories.js';
+
 /** Cuánto se le da al host para irse por las buenas antes de matarlo. */
 const SHUTDOWN_GRACE_MS = 2000;
-
-/** El método con el que el host confirma que está vivo y listo. */
-const READY_METHOD = 'host/ready';
-
-/** El método con el que se le pide al host que se apague por las buenas. */
-const SHUTDOWN_METHOD = 'host/shutdown';
 
 /** El host supervisado, visto por el resto del main. */
 export interface ExtensionHostService {
@@ -24,6 +25,8 @@ export interface ExtensionHostService {
   start(): void;
   /** El estado resuelto, para `extensions:getStatus`. */
   status(): ExtensionHostChangedEvent;
+  /** Lo que hay cargado, para `extensions:list`. */
+  extensions(): ExtensionsChangedEvent;
   /** La punta del protocolo contra el host vivo. */
   rpc(): RpcEndpoint;
   /** Lo apaga a propósito. Un apagado deliberado no reinicia nada. */
@@ -34,6 +37,8 @@ export interface ExtensionHostService {
 export interface ExtensionHostServiceConfig {
   /** Se llama cada vez que cambia el estado, para emitir `extensions:hostChanged`. */
   readonly onStatusChanged?: (status: ExtensionHostChangedEvent) => void;
+  /** Se llama con la lista resuelta después de cada carga. */
+  readonly onExtensionsChanged?: (extensions: ExtensionsChangedEvent) => void;
 }
 
 /**
@@ -81,6 +86,8 @@ interface HostState {
   readonly config: ExtensionHostServiceConfig;
   state: ExtensionHostChangedEvent['state'];
   restarts: number;
+  /** Lo último que el host reportó. Se vacía cuando el host muere. */
+  extensions: ExtensionsChangedEvent;
   endpoint: RpcEndpoint;
   /** El proceso vivo, o `null`. Lo llena `attach` y lo vacía la salida. */
   handle: UtilityProcessHandle | null;
@@ -109,6 +116,7 @@ export function createExtensionHostService(
     config,
     state: 'starting',
     restarts: 0,
+    extensions: { extensions: [] },
     endpoint: createRpcEndpoint({ send: () => undefined }),
     handle: null,
   };
@@ -123,6 +131,9 @@ export function createExtensionHostService(
       // esté esperando merece enterarse ahora y no dentro de un segundo.
       host.endpoint.dispose('el extension host murió');
       host.handle = null;
+      // La lista se vacía: lo que estaba activo murió con el proceso, y
+      // mostrarlo como activo mientras el host reinicia sería mentir.
+      publishExtensions(host, { extensions: [] });
       publish(host, 'restarting');
     },
     onRestart: (handle) => {
@@ -145,6 +156,7 @@ export function createExtensionHostService(
     },
 
     status: () => statusOf(host),
+    extensions: () => host.extensions,
     rpc: () => host.endpoint,
 
     async stop() {
@@ -179,9 +191,10 @@ function attach(host: HostState, handle: UtilityProcessHandle): void {
   // se pudo resolver, el proceso arranca y muere sin decir nada, y sin
   // preguntar eso se vería mucho más tarde, como un RPC que no contesta.
   host.endpoint
-    .request(READY_METHOD)
-    .then(() => {
+    .request(HOST_METHODS.ready)
+    .then(async () => {
       publish(host, 'ready');
+      await loadExtensions(host);
     })
     .catch(() => {
       // No se publica nada: el `exit` que viene detrás es quien manda, y
@@ -189,6 +202,49 @@ function attach(host: HostState, handle: UtilityProcessHandle): void {
       // decidió.
       handle.forceKill();
     });
+}
+
+/**
+ * Le pide al host que escanee y active, y publica lo que reporte.
+ *
+ * Un error acá **no** mata al host: que el escaneo falle deja al IDE sin
+ * extensiones, que es un estado peor pero perfectamente usable, y es
+ * exactamente la promesa de [RF-902](../../../../../docs/03-requerimientos-funcionales.md).
+ */
+async function loadExtensions(host: HostState): Promise<void> {
+  try {
+    const reported = await host.endpoint.request(HOST_METHODS.loadExtensions, {
+      directories: extensionDirectories(),
+    });
+
+    publishExtensions(host, { extensions: readExtensions(reported) });
+  } catch (cause) {
+    logProcess('unhealthy', 'extension-host', { reason: `carga fallida: ${String(cause)}` });
+  }
+}
+
+/**
+ * Valida lo que reportó el host antes de publicarlo.
+ *
+ * Del otro lado del canal corre código de terceros, así que lo que llega es
+ * `unknown` hasta que un schema diga otra cosa — el mismo criterio que ya aplica
+ * cualquier canal del IPC. Una entrada malformada se descarta en vez de tumbar
+ * la lista entera.
+ */
+function readExtensions(reported: unknown): ExtensionsChangedEvent['extensions'] {
+  if (!Array.isArray(reported)) return [];
+
+  return reported.flatMap((entry) => {
+    const parsed = ExtensionInfoSchema.safeParse(entry);
+
+    return parsed.success ? [parsed.data] : [];
+  });
+}
+
+/** Anota la lista y avisa. */
+function publishExtensions(host: HostState, next: ExtensionsChangedEvent): void {
+  host.extensions = next;
+  host.config.onExtensionsChanged?.(next);
 }
 
 /**
@@ -200,7 +256,7 @@ function attach(host: HostState, handle: UtilityProcessHandle): void {
  * `deactivate`.
  */
 async function requestShutdown(host: HostState, handle: UtilityProcessHandle): Promise<void> {
-  await host.endpoint.request(SHUTDOWN_METHOD).catch(() => undefined);
+  await host.endpoint.request(HOST_METHODS.shutdown).catch(() => undefined);
   handle.terminate();
 }
 

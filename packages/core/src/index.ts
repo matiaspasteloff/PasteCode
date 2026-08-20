@@ -24,6 +24,7 @@ export {
   ExtensionCallTimeoutError,
   ExtensionHostUnavailableError,
 } from './errors/extension-errors.js';
+export { CapabilityDeniedError } from './errors/capability-errors.js';
 export { GitCommandError, GitUnavailableError } from './errors/git-errors.js';
 export { PasteCodeError } from './errors/pastecode-error.js';
 export {

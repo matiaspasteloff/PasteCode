@@ -18,6 +18,8 @@ import type {
 import type {
   ExtensionHostStatusSchema,
   GetExtensionHostStatusRequestSchema,
+  ListExtensionsRequestSchema,
+  ListExtensionsResponseSchema,
 } from './schemas/extensions.js';
 import type { IndexFilesRequestSchema, IndexFilesResponseSchema } from './schemas/files.js';
 import type {
@@ -166,6 +168,10 @@ export interface IpcChannels {
   'extensions:getStatus': {
     request: z.infer<typeof GetExtensionHostStatusRequestSchema>;
     response: z.infer<typeof ExtensionHostStatusSchema>;
+  };
+  'extensions:list': {
+    request: z.infer<typeof ListExtensionsRequestSchema>;
+    response: z.infer<typeof ListExtensionsResponseSchema>;
   };
   'workspace:open': {
     request: z.infer<typeof OpenWorkspaceRequestSchema>;
