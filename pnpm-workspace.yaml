@@ -1,6 +1,7 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+  - 'extensions/*'
   - 'e2e'
 
 # electron-builder no resuelve bien el node_modules con symlinks de pnpm al

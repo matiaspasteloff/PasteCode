@@ -1,0 +1,52 @@
+{
+  "colors": {
+    "background": "#2e3440",
+    "surface": "#3b4252",
+    "surface-raised": "#434c5e",
+    "surface-sunken": "#272c36",
+    "border": "#4c566a",
+
+    "foreground": "#eceff4",
+    "muted": "#abb4c5",
+
+    "accent": "#88c0d0",
+    "accent-contrast": "#2e3440",
+    "selection": "#434c5e",
+    "focus-ring": "#88c0d0",
+
+    "danger": "#e08890",
+    "danger-subtle": "#4a353a",
+    "warning": "#ebcb8b",
+    "warning-subtle": "#4a422f",
+    "success": "#a3be8c",
+    "success-subtle": "#37432f",
+    "info": "#81a1c1",
+    "info-subtle": "#33404a",
+
+    "git-added": "#a3be8c",
+    "git-modified": "#ebcb8b",
+    "git-deleted": "#e08890",
+    "git-untracked": "#8fbcbb",
+    "git-conflict": "#de9b84",
+
+    "icon-code": "#88c0d0",
+    "icon-markup": "#de9b84",
+    "icon-style": "#c4a0bd",
+    "icon-data": "#a3be8c",
+    "icon-doc": "#abb4c5",
+    "icon-config": "#ebcb8b",
+    "icon-image": "#c9a0c0",
+    "icon-default": "#abb4c5"
+  },
+  "tokenColors": [
+    { "token": "comment", "foreground": "#8b97ab", "fontStyle": "italic" },
+    { "token": "string", "foreground": "#a3be8c" },
+    { "token": "number", "foreground": "#c4a0bd" },
+    { "token": "keyword", "foreground": "#81a1c1" },
+    { "token": "type", "foreground": "#8fbcbb" },
+    { "token": "identifier", "foreground": "#eceff4" },
+    { "token": "delimiter", "foreground": "#abb4c5" },
+    { "token": "tag", "foreground": "#81a1c1" },
+    { "token": "attribute.name", "foreground": "#8fbcbb" }
+  ]
+}

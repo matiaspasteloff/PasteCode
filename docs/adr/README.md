@@ -32,6 +32,7 @@ Un ADR registra una decisión técnica relevante, el contexto en el que se tomó
 | [0020](./0020-watcher-unico-con-chokidar.md)                   | Un único watcher del workspace con chokidar, con fan-out en el main            | ✅ Aceptado  |
 | [0022](./0022-cascaron-con-barra-de-actividades.md)            | Cascarón con barra de actividades y vistas por registro                        | ✅ Aceptado  |
 | [0023](./0023-dos-grupos-sobre-modelos-compartidos.md)         | Dos grupos de editor sobre modelos compartidos, con el schema laxo de sesión   | ✅ Aceptado  |
+| [0025](./0025-forma-de-la-api-de-extensiones.md)               | Entregar la API por parámetro de `activate` y mantenerla sólo tipos            | ✅ Aceptado  |
 | [0027](./0027-empaquetado-y-fork-del-extension-host.md)        | Empaquetar el extension host como un segundo entry del main                    | ✅ Aceptado  |
 
 **Estados posibles:** `Propuesto` · `Aceptado` · `Reemplazado por ADR-NNNN` · `Obsoleto`

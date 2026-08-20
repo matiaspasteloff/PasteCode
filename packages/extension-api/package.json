@@ -1,0 +1,14 @@
+{
+  "name": "@pastecode/extension-api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "La API pública de las extensiones. Sólo tipos: cero runtime, cero dependencias.",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

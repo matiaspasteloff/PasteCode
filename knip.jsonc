@@ -18,6 +18,14 @@
       // la diferencia.
       "ignoreDependencies": ["typescript-language-server"],
     },
+    "extensions/word-count": {
+      // Una extensión no la importa nadie: el host la carga con un `import()`
+      // dinámico armado desde el `main` de su manifest, que es justamente lo
+      // que la hace una extensión y no un módulo del IDE. Knip no puede ver esa
+      // arista y reportaría el punto de entrada como muerto, y de arrastre
+      // reportaría `@pastecode/extension-api` como dependencia sin usar.
+      "entry": ["src/extension.ts"],
+    },
     "e2e": {
       "entry": ["tests/**/*.spec.ts"],
       // El E2E no importa nada de @pastecode/desktop: lanza la app por ruta.

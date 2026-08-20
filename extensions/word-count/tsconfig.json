@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // El host corre en Node, así que `setTimeout` es el de Node y no el del
+    // DOM. Mismo criterio que `apps/desktop/tsconfig.node.json`.
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"]
+}
