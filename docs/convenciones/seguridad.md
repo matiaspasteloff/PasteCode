@@ -116,7 +116,7 @@ ipcMain.handle('fs:readFile', async (_event, raw: unknown) => {
 
 ## Procesos hijo y binarios externos
 
-PasteCode lanza procesos que no escribió: el shell de la terminal, `ripgrep`, y en las etapas siguientes los servidores de LSP y los adaptadores de DAP. Cada uno es una decisión de "ejecutar esto" y ninguna es inocente, porque **el nombre del ejecutable puede venir de un archivo del proyecto** y un `.pastecode/settings.json` viaja adentro de cualquier repositorio que se clone.
+PasteCode lanza procesos que no escribió: el shell de la terminal, `ripgrep`, los servidores de LSP, el extension host y el adaptador de DAP. Cada uno es una decisión de "ejecutar esto" y ninguna es inocente, porque **el nombre del ejecutable puede venir de un archivo del proyecto** y un `.pastecode/settings.json` viaja adentro de cualquier repositorio que se clone.
 
 ### El ejecutable nunca se resuelve por `PATH`
 
@@ -141,6 +141,14 @@ La regla completa, entonces:
 1. **`git.path` de las settings**, si está. Como `terminal.shell`: ruta absoluta a un ejecutable que exista, y **el workspace no puede escribirla**.
 2. **Los directorios de instalación conocidos** de la plataforma: `%ProgramFiles%\Git\cmd` y sus variantes en Windows; `/usr/bin`, `/usr/local/bin`, `/opt/homebrew/bin` en POSIX. Son rutas que no escribe nadie.
 3. **El `PATH`, y sólo como fuente de directorios.** Con cada uno se **construye** una ruta absoluta que después pasa por `assertExecutable`. Nunca se lanza `git` por nombre dejando que el sistema operativo elija en el momento de la llamada, que es lo que la regla de arriba prohíbe y lo que después no se puede auditar.
+
+### `debug.adapterPath`: elegir el adaptador es elegir qué se ejecuta al apretar F5
+
+El adaptador de debug es un ejecutable de terceros y **no viene empaquetado**, por las mismas razones que `git` y los servidores de lenguaje ([ADR-0028](../adr/0028-adaptador-dap-externo-y-cliente-propio.md)). La ruta sale de `debug.adapterPath`, que está en la **misma allow-list del usuario** que `terminal.shell`, `lsp.serverPaths` y `git.path`: el workspace no la puede escribir.
+
+`debug.adapterArgs` está en la misma lista, y no es exceso de celo. Sin eso el repositorio no elegiría el ejecutable pero sí con qué flags corre, y un `--eval` sobre un adaptador legítimo alcanza para ejecutar código. Lo que el workspace **sí** puede tocar es `debug.requestTimeoutMs`, que no elige nada: un proyecto con un adaptador lento tiene un motivo legítimo para pedir más tiempo. La distinción está fijada con tests en `packages/core/src/settings/merge.test.ts`.
+
+El `launch.json` del workspace, en cambio, sí lo escribe el repositorio, y eso es seguro por la misma distinción: dice **qué** depurar, no **con qué**.
 
 Además: se **rechaza cualquier candidato adentro de la raíz del workspace** —un repositorio clonado puede traer su propio `git.exe`—, lo que llega a `spawn` es siempre absoluto y siempre verificado, y **se resuelve una sola vez al arrancar y nunca se re-resuelve**. Ver [ADR-0019](../adr/0019-git-con-spawn-crudo.md).
 
@@ -202,9 +210,15 @@ Las extensiones son código de terceros con acceso a la API. El modelo de seguri
 | Extensión que exfiltra código                  | Capability `network` requerida y declarada en el manifest; el usuario la ve al instalar |
 | Extensión que congela el IDE                   | Proceso separado + timeout de 5s en toda llamada de API                                 |
 | Extensión que tumba la app                     | Proceso separado; el crash se contiene y el host se reinicia                            |
-| Extensión maliciosa en el manifest             | Validación de schema; capabilities no declaradas = acceso denegado                      |
+| Extensión maliciosa en el manifest             | Validación de schema con Zod; capabilities no declaradas = acceso denegado              |
 
 Ver [ADR-0003](../adr/0003-extension-host-aislado.md) y el [manifest de extensión](../05-modelo-de-datos.md#manifest-de-extensión).
+
+> **Estado, Etapa 5.** El modelo dejó de ser una promesa. Las capabilities las hace cumplir **el main**, que es el único proceso que no ejecuta código de terceros y por lo tanto el único cuyo chequeo significa algo: un chequeo del lado del host lo escribiría el mismo que se lo quiere saltear ([ADR-0026](../adr/0026-broker-unico-y-pull-del-documento-activo.md)). Hay tests que verifican que una extensión sin `statusBar` no puede poner un ítem, que una sin `documentWrite` no puede editar, y que **una no puede tocar el ítem de otra** aunque mande su identificador.
+>
+> Se agregó `documentWrite` al conjunto que el modelo de datos listaba. `documentRead` sola habría obligado a `word-count` a pedir permiso de escritura para no usarlo nunca, que es exactamente cómo los permisos dejan de significar algo.
+>
+> Lo que **no** está: `network` está declarada y no habilita nada todavía, porque no hay ninguna superficie de red en la API.
 
 ---
 

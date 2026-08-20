@@ -209,6 +209,33 @@ queda intacto en vez de tener una excepción tallada.
 
 El campo `capabilities` es la base del modelo de seguridad de extensiones. Sin declaración, sin acceso. Ver [Seguridad · Modelo de amenazas](./convenciones/seguridad.md#modelo-de-amenazas--extensiones).
 
+> **Verificado contra la implementación, Etapa 5.** El schema real vive en `packages/extension-host/src/manifest.ts`, atado al tipo público con un `satisfies`. Tres correcciones sobre el ejemplo de arriba:
+>
+> - **`main` es opcional.** Una extensión que sólo aporta un tema no tiene código, y exigirle un `activate` vacío obligaría a ejecutar un módulo de terceros para pintar colores. `theme-nord` no lo declara.
+> - **Las capabilities son cuatro**, no dos: se agregó `documentWrite` al lado de `documentRead`. [RF-905](./03-requerimientos-funcionales.md) pide leer _y_ modificar, y juntarlas obligaría a pedir escritura para no usarla.
+> - **`contributes.themes` existe** y es lo que hace posible [RF-906](./03-requerimientos-funcionales.md); el ejemplo sólo mostraba `commands` y `configuration`. Ojo con `configuration`: se puede declarar y **la API de esta etapa no tiene con qué leerlo**, así que `word-count` no lo usa.
+>
+> El manifest **no** se valida de forma estricta en su raíz, a propósito: es el `package.json` de la extensión y trae `scripts` y `devDependencies`. Las contribuciones sí, porque ahí una clave de más es un typo.
+
+## Breakpoint
+
+```typescript
+interface Breakpoint {
+  /** Ruta absoluta del archivo. */
+  path: string;
+  /** Línea **base 1**, igual que todo el resto del proyecto. */
+  line: number;
+  /** Apagarlo es distinto de borrarlo: uno desactivado se guarda igual. */
+  enabled: boolean;
+  /** Expresión que tiene que dar verdadero para frenar. Opcional. */
+  condition?: string;
+}
+```
+
+Es el tipo que [`WorkspaceState`](#estado-de-sesión) venía declarando **desde la Etapa 3 sin que existiera en ninguna parte**; el schema laxo de la sesión existe justamente para que pudiera aparecer sin migración ni bump de versión. Vive en `packages/core/src/debug/breakpoints.ts` con el `BreakpointSchema` que lo valida.
+
+DAP habla base 1 en `setBreakpoints`, así que acá no hay traducción — a diferencia de LSP, que habla base 0 y tiene sus dos funciones de ±1 en un solo lugar.
+
 ## Contrato de comandos
 
 ```typescript
@@ -324,6 +351,29 @@ Va por IPC y no por `navigator.clipboard` porque la API del navegador necesita u
 ## Contrato de IPC
 
 Definido en `packages/ipc-contract`. Ver [Arquitectura · Patrón de IPC](./02-arquitectura.md#patrón-de-ipc) y, para los eventos, [ADR-0013](./adr/0013-eventos-tipados-en-el-ipc.md).
+
+### Lo que agregó la Etapa 5
+
+| Canal (renderer → main)                                              | Para qué                                        |
+| -------------------------------------------------------------------- | ----------------------------------------------- |
+| `extensions:getStatus` · `extensions:list`                           | Estado del host y qué hay cargado               |
+| `extensions:executeCommand`                                          | Correr un comando de una extensión              |
+| `extensions:documentResponse`                                        | La vuelta del pull del documento activo         |
+| `extensions:activeEditorChanged`                                     | Qué documento está a la vista, **sin su texto** |
+| `debug:getConfigurations` · `debug:getStatus`                        | El `launch.json` y si se puede depurar          |
+| `debug:start` · `debug:stop` · `debug:step` · `debug:setBreakpoints` | RF-503                                          |
+| `debug:getStackTrace` · `debug:getVariables`                         | RF-504                                          |
+| `debug:evaluate`                                                     | RF-505                                          |
+
+| Evento (main → renderer)                              | Payload                                                 |
+| ----------------------------------------------------- | ------------------------------------------------------- |
+| `extensions:hostChanged`                              | Estado del host supervisado, con su pid y sus reinicios |
+| `extensions:changed`                                  | Lo cargado y los temas aportados, resuelto              |
+| `extensions:contributionsChanged`                     | Comandos e ítems de la barra, resuelto                  |
+| `extensions:documentRequest`                          | La ida del pull, con su `requestId`                     |
+| `debug:stopped` · `debug:output` · `debug:terminated` | RF-503, RF-504, RF-505                                  |
+
+**El protocolo main ↔ host no está acá.** `packages/ipc-contract` está documentado como el contrato main ↔ renderer, y el del host es otro límite: otro transporte —un `MessagePort` de `utilityProcess`—, otro modelo de confianza y otro ciclo de vida. Vive en `packages/extension-host/src/protocol.ts`, que es quien lo define; el main importa los tipos. Lo mismo con DAP, que además ni siquiera es nuestro: es un protocolo de terceros y sus tipos salen de `@vscode/debugprotocol`.
 
 ---
 

@@ -158,7 +158,7 @@ _~6 semanas estimadas_ · **Cerrada**
 
 ---
 
-## Etapa 5 — Extensiones y debugging
+## Etapa 5 — Extensiones y debugging ✅
 
 _~8 semanas_
 
@@ -179,6 +179,20 @@ Esta es la etapa que justifica el proyecto. Todo lo anterior lo tiene cualquier 
 **37. Debugging de Node.js.** `vscode-js-debug` vía DAP. Breakpoints, controles, variables, call stack, consola. Reutiliza el supervisor de procesos del paso 26.
 
 > **Checkpoint:** una extensión de terceros corre aislada y no puede romperte la app. Escribí un post técnico sobre esto — es lo más interesante que hiciste.
+
+### Lo que salió distinto de lo previsto
+
+**Lo que costó no fue lo que se esperaba.** El riesgo anotado era "la complejidad del extension host consume la etapa entera", y no pasó: la API creció de comandos a status bar, documento activo y temas sin desbordar. Lo que sí mordió fue **la memoria** —el host ocupa 64,5MB y dejó a RNF-04 con 3,2MB de margen— y **el orden de arranque**, que produjo tres bugs seguidos del mismo tipo.
+
+**Los tres bugs de "mirar algo antes de que exista".** El host se forkeaba antes de crear la ventana, así que su evento de extensiones cargadas se emitía sin nadie escuchando. Las decoraciones de breakpoints se pintaban antes de que Monaco terminara de importarse, así que un breakpoint restaurado se guardaba bien y no se veía nunca. Y el listener del gutter se enganchaba a un editor que todavía era `null`. Ninguno lo vio el compilador; los tres los encontró el E2E.
+
+**El peor no se pareció en nada a su síntoma.** `syncCommands` volvía a registrar comandos ya registrados, el registro lanza ante un id repetido, y la excepción se comía el resto del listener. Lo que se veía era **la status bar congelada en su primer valor**. Encontrarlo llevó seis diagnósticos.
+
+**Monaco devuelve las rutas con la unidad en minúscula.** Comparar con `===` contra una ruta del proyecto da falso entre dos rutas que son el mismo archivo, sin error a la vista. Destapó que **el gutter de Git tenía la misma comparación** desde la Etapa 4.
+
+**El paso 31 se pagó solo.** Escribir las extensiones contra una API que no existía es lo que hizo evidente que `documentRead` sola no alcanzaba, que un tema no necesita `main`, y que los setters de la status bar no podían ser propiedades. Las tres correcciones costaron minutos ahí y habrían costado un refactor después.
+
+**S3 no se pudo cerrar midiendo, y se dice.** `vscode-js-debug` no está instalado en la máquina de desarrollo, así que en vez de escribir código contra una invocación no verificada se diseñó para que la pregunta deje de importar. RF-508 queda parcial a propósito.
 
 ---
 
