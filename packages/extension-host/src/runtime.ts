@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import type { ExtensionModule } from '@pastecode/extension-api';
+import type { Capability, ExtensionModule } from '@pastecode/extension-api';
 
 import type { ActivationTrigger } from './activation.js';
 import { matchesActivation } from './activation.js';
@@ -20,6 +20,14 @@ export interface ExtensionReport {
   displayName: string;
   version: string;
   state: ExtensionState;
+  /**
+   * Lo que declaró en su manifest.
+   *
+   * Sale de acá y no de una segunda lectura de los manifests en el main porque
+   * el host ya los tiene validados. El main las necesita para hacerlas cumplir
+   * (RNF-14) y el renderer para mostrarlas.
+   */
+  capabilities: readonly Capability[];
   /** Por qué falló, si falló. */
   reason?: string;
 }
@@ -167,6 +175,7 @@ function report(state: RuntimeState): ExtensionReport[] {
     displayName: entry.found.manifest.displayName,
     version: entry.found.manifest.version,
     state: entry.state,
+    capabilities: entry.found.manifest.capabilities,
     ...(entry.reason === undefined ? {} : { reason: entry.reason }),
   }));
 
@@ -178,6 +187,7 @@ function report(state: RuntimeState): ExtensionReport[] {
     displayName: failure.root,
     version: '',
     state: 'failed',
+    capabilities: [],
     reason: failure.reason,
   }));
 

@@ -70,7 +70,13 @@ describe('createExtensionRuntime', () => {
     const reported = await runtime.load([sandbox]);
 
     expect(reported).toEqual([
-      { name: 'saluda', displayName: 'saluda', version: '1.0.0', state: 'active' },
+      {
+        name: 'saluda',
+        displayName: 'saluda',
+        version: '1.0.0',
+        state: 'active',
+        capabilities: [],
+      },
     ]);
   });
 

@@ -15,6 +15,7 @@ import { releaseModelsExcept } from './features/editor/model-registry.js';
 import { RecoveryDialog } from './features/editor/RecoveryDialog.js';
 import { useBackups } from './features/editor/use-backups.js';
 import { useExternalChanges } from './features/editor/use-external-changes.js';
+import { useExtensions } from './features/extensions/use-extensions.js';
 import { DeleteDialog } from './features/file-tree/DeleteDialog.js';
 import { FilePalette } from './features/files/FilePalette.js';
 import { BranchPicker } from './features/git/BranchPicker.js';
@@ -45,6 +46,7 @@ export function App(): React.JSX.Element {
   useExternalChanges();
   useBackups();
   useLsp();
+  useExtensions();
   useGitEvents();
   useGutter();
   useTheme();

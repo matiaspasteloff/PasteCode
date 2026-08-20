@@ -84,6 +84,9 @@ importers:
       '@pastecode/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@pastecode/extension-api':
+        specifier: workspace:*
+        version: link:../../packages/extension-api
       '@pastecode/extension-host':
         specifier: workspace:*
         version: link:../../packages/extension-host

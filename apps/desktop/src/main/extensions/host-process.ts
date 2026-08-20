@@ -14,6 +14,7 @@ import type { UtilityProcessHandle } from '../supervisors/adapters/utility-handl
 import { adaptUtilityProcess } from '../supervisors/adapters/utility-handle.js';
 import { createSupervisedProcess } from '../supervisors/supervised-process.js';
 
+import type { ExtensionBroker } from './broker.js';
 import { extensionDirectories } from './directories.js';
 
 /** Cuánto se le da al host para irse por las buenas antes de matarlo. */
@@ -39,6 +40,14 @@ export interface ExtensionHostServiceConfig {
   readonly onStatusChanged?: (status: ExtensionHostChangedEvent) => void;
   /** Se llama con la lista resuelta después de cada carga. */
   readonly onExtensionsChanged?: (extensions: ExtensionsChangedEvent) => void;
+  /**
+   * El broker, que es quien atiende lo que el host pide.
+   *
+   * Llega por parámetro y no se crea acá porque su ciclo de vida es más largo
+   * que el de un host: sobrevive a los reinicios, y lo que cambia en cada uno
+   * es contra qué endpoint está enganchado.
+   */
+  readonly broker?: ExtensionBroker;
 }
 
 /**
@@ -131,6 +140,8 @@ export function createExtensionHostService(
       // esté esperando merece enterarse ahora y no dentro de un segundo.
       host.endpoint.dispose('el extension host murió');
       host.handle = null;
+      // Lo que las extensiones habían aportado murió con el proceso.
+      host.config.broker?.reset();
       // La lista se vacía: lo que estaba activo murió con el proceso, y
       // mostrarlo como activo mientras el host reinicia sería mentir.
       publishExtensions(host, { extensions: [] });
@@ -186,6 +197,11 @@ function attach(host: HostState, handle: UtilityProcessHandle): void {
     host.endpoint.receive(message);
   });
 
+  // El broker se engancha antes del saludo: el host puede empezar a registrar
+  // comandos apenas active su primera extensión, y un método sin handler le
+  // contestaría UNKNOWN_METHOD.
+  host.config.broker?.attach(host.endpoint);
+
   // El saludo no es ceremonia: un `fork` que devuelve un objeto no significa
   // que del otro lado haya un proceso capaz de ejecutar algo. Si el bundle no
   // se pudo resolver, el proceso arranca y muere sin decir nada, y sin
@@ -217,7 +233,14 @@ async function loadExtensions(host: HostState): Promise<void> {
       directories: extensionDirectories(),
     });
 
-    publishExtensions(host, { extensions: readExtensions(reported) });
+    const extensions = readExtensions(reported);
+
+    // Las capabilities primero: el broker las necesita para dejar actuar a
+    // cualquiera de las que acaban de activarse.
+    host.config.broker?.grant(
+      extensions.map((entry) => ({ name: entry.name, capabilities: entry.capabilities }))
+    );
+    publishExtensions(host, { extensions });
   } catch (cause) {
     logProcess('unhealthy', 'extension-host', { reason: `carga fallida: ${String(cause)}` });
   }

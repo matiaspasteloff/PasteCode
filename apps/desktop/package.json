@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@pastecode/core": "workspace:*",
+    "@pastecode/extension-api": "workspace:*",
     "@pastecode/extension-host": "workspace:*",
     "@pastecode/ipc-contract": "workspace:*",
     "@testing-library/dom": "10.4.1",

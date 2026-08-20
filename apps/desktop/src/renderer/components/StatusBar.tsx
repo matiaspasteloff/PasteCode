@@ -4,6 +4,7 @@ import { t } from '../i18n/index.js';
 import { useEditorStore } from '../stores/editor-store.js';
 
 import { StatusBranch } from './status/StatusBranch.js';
+import { StatusExtensions } from './status/StatusExtensions.js';
 import { StatusIndentation } from './status/StatusIndentation.js';
 import { StatusKeybindings } from './status/StatusKeybindings.js';
 import { StatusLanguage } from './status/StatusLanguage.js';
@@ -49,6 +50,7 @@ export function StatusBar(): React.JSX.Element {
       </div>
 
       <div className="status-bar__group">
+        <StatusExtensions />
         <StatusKeybindings />
         <StatusBranch />
         <StatusProblems />

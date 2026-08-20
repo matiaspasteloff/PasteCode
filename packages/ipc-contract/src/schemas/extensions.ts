@@ -48,6 +48,16 @@ export const ExtensionInfoSchema = z.strictObject({
   displayName: z.string(),
   version: z.string(),
   state: ExtensionStateSchema,
+  /**
+   * Lo que declaró en su manifest.
+   *
+   * Viaja hasta el renderer porque es lo que el modelo de amenazas pide que la
+   * persona pueda ver: *"capability `network` requerida y declarada en el
+   * manifest; el usuario la ve al instalar"*. Y es lo que el main usa para
+   * hacerlas cumplir, que es la razón por la que sale del host junto con el
+   * resto del reporte en vez de volver a leer los manifests.
+   */
+  capabilities: z.array(z.enum(['statusBar', 'documentRead', 'documentWrite', 'network'])),
   reason: z.string().optional(),
 });
 
@@ -58,3 +68,95 @@ export const ListExtensionsRequestSchema = z.strictObject({});
 export const ListExtensionsResponseSchema = z.strictObject({
   extensions: z.array(ExtensionInfoSchema),
 });
+
+/** Un comando que aporta una extensión, ya resuelto. */
+export const ExtensionCommandSchema = z.strictObject({
+  /** Quién lo aporta. Es lo que permite darlo de baja en bloque. */
+  extension: z.string(),
+  id: z.string(),
+  title: z.string(),
+  category: z.string().optional(),
+});
+
+/** Un ítem de la status bar aportado por una extensión. */
+export const ExtensionStatusItemSchema = z.strictObject({
+  extension: z.string(),
+  itemId: z.string(),
+  text: z.string(),
+  tooltip: z.string().optional(),
+  /** El comando que se ejecuta al hacerle clic. */
+  command: z.string().optional(),
+  alignment: z.enum(['left', 'right']),
+  priority: z.number(),
+});
+
+/**
+ * Todo lo que las extensiones aportan a la UI, resuelto.
+ *
+ * Va entero y no como delta, igual que `git:changed`: quien lo recibe no
+ * reconstruye nada, y un evento perdido no deja media status bar de una
+ * extensión que ya se descargó.
+ */
+export const ExtensionContributionsSchema = z.strictObject({
+  commands: z.array(ExtensionCommandSchema),
+  statusItems: z.array(ExtensionStatusItemSchema),
+});
+
+/** Payload de `extensions:executeCommand`: correr un comando de una extensión. */
+export const ExecuteExtensionCommandRequestSchema = z.strictObject({
+  extension: z.string().min(1),
+  id: z.string().min(1),
+});
+
+/** Respuesta de `extensions:executeCommand`. */
+export const ExecuteExtensionCommandResponseSchema = z.strictObject({});
+
+/** Una posición del documento, base 1. La misma convención que el resto. */
+const ExtensionPositionSchema = z.strictObject({
+  line: z.number(),
+  column: z.number(),
+});
+
+/** Un cambio que pide una extensión. */
+export const ExtensionTextEditSchema = z.strictObject({
+  range: z.strictObject({ start: ExtensionPositionSchema, end: ExtensionPositionSchema }),
+  newText: z.string(),
+});
+
+/**
+ * Payload de `extensions:documentResponse`: la otra mitad del pull.
+ *
+ * El `requestId` lo eligió el main al preguntar y vuelve acá para correlacionar.
+ * Sin él, dos extensiones pidiendo el texto a la vez se llevarían la respuesta
+ * de la otra. Ver ADR-0026.
+ */
+export const DocumentResponseRequestSchema = z.strictObject({
+  requestId: z.string().min(1),
+  /** El texto pedido, o `null` si el renderer no lo tiene. */
+  text: z.string().nullable(),
+  /** Si la edición se aplicó. Sólo viaja cuando la pregunta era una edición. */
+  applied: z.boolean().optional(),
+});
+
+/** Respuesta de `extensions:documentResponse`. */
+export const DocumentResponseResponseSchema = z.strictObject({});
+
+/** Payload de `extensions:activeEditorChanged`: el renderer avisa qué está activo. */
+export const ActiveEditorChangedRequestSchema = z.strictObject({
+  /**
+   * El editor activo, o `null` si no hay ninguno.
+   *
+   * **Sin el texto**, a propósito: si esto arrastrara el contenido, cada tecla
+   * serían dos saltos de proceso con el archivo entero adentro. Ver ADR-0026.
+   */
+  editor: z
+    .strictObject({
+      path: z.string(),
+      languageId: z.string(),
+      version: z.number(),
+    })
+    .nullable(),
+});
+
+/** Respuesta de `extensions:activeEditorChanged`. */
+export const ActiveEditorChangedResponseSchema = z.strictObject({});
