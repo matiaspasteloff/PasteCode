@@ -100,16 +100,22 @@ Los IDs son estables y no se reciclan. Si un requerimiento se elimina, su ID que
 
 ## Debug Adapter Protocol (DAP)
 
-| ID     | Prioridad | Requerimiento                            | Criterio de aceptación                                       |
-| ------ | --------- | ---------------------------------------- | ------------------------------------------------------------ |
-| RF-501 | M         | Configuración de debug vía `launch.json` | Schema validado, con autocompletado en el propio editor      |
-| RF-502 | M         | Breakpoints                              | Click en el gutter agrega/quita; se persisten entre sesiones |
-| RF-503 | M         | Controles de ejecución                   | Continue, Step Over, Step Into, Step Out, Restart, Stop      |
-| RF-504 | M         | Panel de variables y call stack          | Objetos expandibles, scopes separados                        |
-| RF-505 | M         | Consola de debug                         | Con evaluación de expresiones en el contexto actual          |
-| RF-506 | S         | Breakpoints condicionales y logpoints    | —                                                            |
-| RF-507 | S         | Watch expressions                        | —                                                            |
-| RF-508 | M         | Soporte inicial: Node.js                 | `vscode-js-debug` integrado                                  |
+| ID     | Prioridad | Requerimiento                            | Criterio de aceptación                                         |
+| ------ | --------- | ---------------------------------------- | -------------------------------------------------------------- |
+| RF-501 | M         | Configuración de debug vía `launch.json` | Schema validado, con autocompletado en el propio editor        |
+| RF-502 | M         | Breakpoints                              | Click en el gutter agrega/quita; se persisten entre sesiones   |
+| RF-503 | M         | Controles de ejecución                   | Continue, Step Over, Step Into, Step Out, Restart, Stop        |
+| RF-504 | M         | Panel de variables y call stack          | Objetos expandibles, scopes separados                          |
+| RF-505 | M         | Consola de debug                         | Con evaluación de expresiones en el contexto actual            |
+| RF-506 | S         | Breakpoints condicionales y logpoints    | —                                                              |
+| RF-507 | S         | Watch expressions                        | —                                                              |
+| RF-508 | M         | Soporte inicial: Node.js                 | `vscode-js-debug` integrado. **Parcial**: ver la nota de abajo |
+
+> **Nota de alcance (RF-508), Etapa 5.** El adaptador es **externo y configurado por ruta**, no empaquetado: `debug.adapterPath` en las settings del usuario, con la misma allow-list que `lsp.serverPaths`. Es la misma decisión que ya se tomó tres veces —`ripgrep`, `git`, los servidores de lenguaje— y por las mismas razones. Depurar Node funciona apuntando esa ruta a un adaptador instalado; lo que **no** se hizo es la parte de _integrado_. Ver [ADR-0028](./adr/0028-adaptador-dap-externo-y-cliente-propio.md).
+>
+> **Nota de alcance (RF-905), Etapa 5.** El evento de cambio de documento activo **no lleva el texto**: sólo `path`, `languageId` y `version`. Con [RNF-03](./04-requerimientos-no-funcionales.md) permitiendo archivos de 10MB, un push del contenido en cada tecla serían dos saltos de proceso con el archivo entero adentro. La extensión lo pide con `getText()` cuando lo necesita, y una edición se aplica contra la versión que leyó o devuelve `false`. Ver [ADR-0026](./adr/0026-broker-unico-y-pull-del-documento-activo.md).
+>
+> **Nota de alcance (RF-113), Etapa 5.** Sigue **diferido**. Los temas de extensión aportan reglas de tokenización en el vocabulario de **Monarch**, el formato propio de Monaco, que es lo que el editor entiende; TextMate de verdad sigue requiriendo WASM y una excepción a [RNF-13](./04-requerimientos-no-funcionales.md), y esta etapa no la tomó. `theme-nord` colorea sin él.
 
 ## Control de versiones (Git)
 

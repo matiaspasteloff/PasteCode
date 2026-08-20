@@ -106,12 +106,19 @@ Las tres sondas marcadas son nuevas de esta fase: `lsp-latency.perf.ts` y el seg
 
 **Entregable:** la arquitectura que justifica todo el proyecto.
 
-- [ ] RF-901 a RF-909 (host de extensiones y API pública)
-- [ ] RF-501 a RF-505, RF-508 (debugging de Node.js)
-- [ ] Documentación completa de la API de extensiones en `docs/extension-api/`
-- [ ] Las 2 extensiones de ejemplo publicadas con su README
+- [x] RF-901 a RF-909 (host de extensiones y API pública)
+- [x] RF-501 a RF-505 (debugging sobre DAP)
+- [ ] **RF-508 (soporte de Node.js con `vscode-js-debug` integrado)** — ver la nota de abajo
+- [x] Documentación completa de la API de extensiones en `docs/extension-api/`
+- [x] Las 2 extensiones de ejemplo publicadas con su README
 
 **Criterio de salida:** alguien más puede escribir una extensión siguiendo sólo la documentación.
+
+> **RF-508 queda abierto, y a propósito.** El requerimiento dice _"`vscode-js-debug` integrado"_, y lo que se construyó es un cliente DAP que habla con **cualquier** adaptador, configurado por `debug.adapterPath` ([ADR-0028](./adr/0028-adaptador-dap-externo-y-cliente-propio.md)). Depurar Node funciona apuntando esa ruta al adaptador; lo que falta es la parte de _integrado_, que significaría empaquetarlo o descargarlo, y ésa es la decisión que el ADR toma al revés por las mismas razones que `ripgrep` y los servidores de lenguaje.
+>
+> El spike S3 tampoco se pudo cerrar midiendo: `vscode-js-debug` no está instalado en la máquina de desarrollo, y la regla 7 de `CLAUDE.md` prohíbe escribir código contra una invocación que no se verificó. Lo que sí se hizo fue diseñar para que la pregunta deje de importar —el cliente recibe streams y no le importa de dónde salen—, así que agregar el soporte por socket es un envoltorio y no una reescritura.
+>
+> Marcarlo hecho sería marcar hecho algo que nadie verificó contra el adaptador real.
 
 ## Fase 5 — Pulido y lanzamiento
 
@@ -148,7 +155,7 @@ Las tres sondas marcadas son nuevas de esta fase: `lsp-latency.perf.ts` y el seg
 
 Al cerrar cada fase, se revisa esta tabla: se actualizan las probabilidades, se agregan los riesgos nuevos que aparecieron y se retiran los que ya no aplican. Un registro de riesgos que nunca cambia es un registro que nadie lee.
 
-**Revisión al cerrar la Fase 4.** Un riesgo nuevo y medido, no estimado: el extension host contra el margen de RNF-04. El de "la complejidad del extension host consume la fase entera" no se materializó —la API mínima creció a comandos, status bar, documento activo y temas sin desbordar—, pero el costo apareció donde no se lo esperaba: en memoria y no en tiempo de desarrollo.
+**Revisión al cerrar la Fase 4.** Dos riesgos se movieron y uno nuevo, medido y no estimado: el extension host contra el margen de RNF-04. El de "la complejidad del extension host consume la fase entera" no se materializó —la API mínima creció a comandos, status bar, documento activo y temas sin desbordar—, pero el costo apareció donde no se lo esperaba: en memoria y no en tiempo de desarrollo.
 
 **Revisión al cerrar la Fase 3.** Tres riesgos nuevos, los tres de cosas que la fase reveló al implementarlas: el costo real de `tsserver`, la dependencia de una instalación de `git` que no controlamos, y la fragilidad de los E2E ante un rediseño —que no es hipotética, ya pasó dos veces—. Dos riesgos se movieron: el de los binarios de terceros subió porque ahora son cuatro, y el de la deuda de requerimientos bajó porque esta vez sí se asignaron.
 
