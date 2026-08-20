@@ -1,11 +1,11 @@
-import { mkdtemp, realpath, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { UnknownTerminalSessionError } from '@pastecode/core';
 import type { TerminalDataEvent, TerminalExitEvent } from '@pastecode/ipc-contract';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { makeTempDirectory, removeTempDirectory } from '../test-support/temp-directory.js';
 
 import type { PtySupervisor } from './pty.js';
 import { createPtySupervisor } from './pty.js';
@@ -13,8 +13,18 @@ import { createPtySupervisor } from './pty.js';
 /** El shell falso: Node ejecutando el script de al lado. Ver fake-shell.mjs. */
 const FAKE_SHELL = join(dirname(fileURLToPath(import.meta.url)), 'fake-shell.mjs');
 
-/** Techo de espera de cualquier `waitFor`. Holgado: el CI de Windows es lento. */
+/**
+ * Techo de tiempo de este archivo, **aplicado de verdad**.
+ *
+ * `vi.setConfig` y no un tercer argumento en cada `it()`: la constante estaba
+ * declarada desde el principio y no se le pasaba a ninguno, así que vitest
+ * mataba los tests a los 5 s por omisión y el techo era decorativo. Configurarlo
+ * una vez por archivo cierra la clase entera de error — un test que se agregue
+ * mañana lo hereda sin que nadie se acuerde.
+ */
 const TIMEOUT_MS = 15_000;
+
+vi.setConfig({ testTimeout: TIMEOUT_MS, hookTimeout: TIMEOUT_MS });
 
 /**
  * Espera a que una condición se cumpla, sondeando.
@@ -40,11 +50,11 @@ describe('createPtySupervisor', () => {
   let exits: TerminalExitEvent[];
 
   beforeEach(async () => {
-    // `realpath` y no `mkdtemp` a secas: en macOS `/tmp` es un enlace a
-    // `/private/tmp`, así que el proceso hijo informa un `cwd` resuelto que no
-    // es, textualmente, la ruta que le pasamos. Comparar contra la ruta sin
-    // resolver hacía fallar el test ahí y sólo ahí.
-    workspace = await realpath(await mkdtemp(join(tmpdir(), 'pastecode-pty-')));
+    // El helper compartido y no un `mkdtemp` a secas: resuelve la ruta larga
+    // —lo que en macOS convierte `/tmp` en `/private/tmp`, que es lo que el
+    // proceso hijo informa como `cwd`, y en Windows expande el formato 8.3 que
+    // aborta a libuv—.
+    workspace = await makeTempDirectory('pastecode-pty-');
     output = '';
     exits = [];
 
@@ -60,7 +70,10 @@ describe('createPtySupervisor', () => {
 
   afterEach(async () => {
     await supervisor.disposeAll();
-    await rm(workspace, { recursive: true, force: true });
+    // Con reintentos: `disposeAll` vuelve cuando pidió la salida, no cuando el
+    // hijo terminó, y en Windows el `cwd` de un proceso todavía vivo bloquea el
+    // directorio. Ver `removeTempDirectory`.
+    await removeTempDirectory(workspace);
   });
 
   it('devuelve una sesión con su pid y su nombre para mostrar', () => {

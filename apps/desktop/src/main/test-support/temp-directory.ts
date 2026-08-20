@@ -1,5 +1,5 @@
 import { realpathSync } from 'node:fs';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -33,4 +33,28 @@ import { join } from 'node:path';
  */
 export async function makeTempDirectory(prefix: string): Promise<string> {
   return realpathSync.native(await mkdtemp(join(tmpdir(), prefix)));
+}
+
+/**
+ * Borra un directorio temporal, con reintentos.
+ *
+ * **Los reintentos no son cosmética.** `rm` de Node no reintenta por omisión
+ * —`maxRetries` vale 0—, y en Windows borrar un directorio que todavía tiene un
+ * handle abierto falla con `EBUSY: resource busy or locked, rmdir`. El handle
+ * llega de dos lados: el `cwd` de un proceso hijo que ya recibió su señal pero
+ * todavía no salió —en Windows el directorio de trabajo de un proceso vivo está
+ * bloqueado—, y el indexador del sistema pasando por ahí.
+ *
+ * Era un flaky real: aparecía en una de cada tres corridas completas de la
+ * suite, en archivos distintos, siempre con la misma firma. Que apareciera en
+ * `workspace.test.ts` y en `pty.test.ts` —que no comparten nada salvo un
+ * `afterEach` que borra un temporal— es lo que delató que la causa no era del
+ * test sino de la limpieza.
+ *
+ * @param path Directorio a borrar. No falla si no existe.
+ * @example
+ * afterEach(() => removeTempDirectory(sandbox));
+ */
+export async function removeTempDirectory(path: string): Promise<void> {
+  await rm(path, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 }

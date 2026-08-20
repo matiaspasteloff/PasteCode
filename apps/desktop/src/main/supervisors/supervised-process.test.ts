@@ -13,7 +13,18 @@ import { createSupervisedProcess } from './supervised-process.js';
 
 const FAKE_SERVER = join(dirname(fileURLToPath(import.meta.url)), 'fake-server.mjs');
 
+/**
+ * Techo de tiempo de este archivo, **aplicado de verdad**.
+ *
+ * `vi.setConfig` y no un tercer argumento en cada `it()`: la constante estaba
+ * declarada desde el principio y no se le pasaba a ninguno, así que vitest
+ * mataba los tests a los 5 s por omisión y el techo era decorativo. Configurarlo
+ * una vez por archivo cierra la clase entera de error — un test que se agregue
+ * mañana lo hereda sin que nadie se acuerde.
+ */
 const TIMEOUT_MS = 15_000;
+
+vi.setConfig({ testTimeout: TIMEOUT_MS, hookTimeout: TIMEOUT_MS });
 
 /** Backoff mínimo: lo que se verifica es la contabilidad, no el reloj. */
 const FAST_POLICY: RestartPolicy = {
