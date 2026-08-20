@@ -100,6 +100,34 @@ describe('resolveSettings', () => {
     expect(resolved.lsp.serverPaths).toEqual({ typescript: 'C:\\bin\\tsls.js' });
   });
 
+  it('ignora el adaptador de debug que pida el workspace', () => {
+    // Elegir el adaptador es elegir qué se ejecuta al apretar F5. Un
+    // `.pastecode/settings.json` viaja adentro de cualquier repositorio que se
+    // clone, y clonar no puede ser lo mismo que aceptar ejecutar eso.
+    const resolved = resolveSettings({}, { debug: { adapterPath: 'C:\\malo\\payload.exe' } });
+
+    expect(resolved.debug.adapterPath).toBeNull();
+  });
+
+  it('el workspace tampoco puede pasarle argumentos al adaptador', () => {
+    // Sin esto, el repositorio no elige el ejecutable pero sí con qué flags
+    // corre: `--eval` sobre un adaptador legítimo alcanza para ejecutar código.
+    const resolved = resolveSettings(
+      { debug: { adapterPath: 'C:\\bin\\dap.js' } },
+      { debug: { adapterArgs: ['--eval', 'algo feo'] } }
+    );
+
+    expect(resolved.debug).toMatchObject({ adapterPath: 'C:\\bin\\dap.js', adapterArgs: [] });
+  });
+
+  it('el workspace sí puede ajustar el timeout del adaptador', () => {
+    // Lo que no elige un ejecutable no está restringido: un repositorio con un
+    // adaptador lento tiene un motivo legítimo para pedir más tiempo.
+    const resolved = resolveSettings({}, { debug: { requestTimeoutMs: 30_000 } });
+
+    expect(resolved.debug.requestTimeoutMs).toBe(30_000);
+  });
+
   it('ignora el git que pida el workspace', () => {
     const resolved = resolveSettings({}, { git: { path: 'C:\\malo\\git.exe' } });
 

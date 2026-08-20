@@ -59,6 +59,26 @@ const terminalFields = {
  * `Record` y no un campo por lenguaje porque la tabla de lenguajes crece con
  * datos y no con código: agregar Python no puede obligar a tocar el schema.
  */
+/**
+ * El debugging.
+ *
+ * `adapterPath` es la ruta absoluta al adaptador DAP, o `null` para *no
+ * configurado*. **No viene ninguno empaquetado**, por la misma razón por la que
+ * `ripgrep` y los servidores de lenguaje se resuelven afuera: un adaptador es
+ * un ejecutable de terceros con su propio ciclo de release, y meterlo adentro
+ * del instalador lo ataría a nuestro calendario y a RNF-05.
+ *
+ * Sin adaptador el debugging queda apagado con un mensaje accionable y el resto
+ * del IDE intacto, exactamente como pasa hoy con `pyright` sin instalar.
+ */
+const debugFields = {
+  adapterPath: z.string().min(1).nullable(),
+  /** Argumentos extra del adaptador. Vacío es lo normal. */
+  adapterArgs: z.array(z.string()),
+  /** Cuánto se espera una respuesta del adaptador antes de darla por perdida. */
+  requestTimeoutMs: z.int().min(1000).max(120_000),
+};
+
 const lspFields = {
   enabled: z.boolean(),
   serverPaths: z.record(z.string().min(1), z.string().min(1).nullable()),
@@ -115,6 +135,7 @@ const windowFields = {
  * preguntarse si `editor.fontSize` existe.
  */
 export const SettingsSchema = z.strictObject({
+  debug: z.strictObject(debugFields),
   editor: z.strictObject(editorFields),
   files: z.strictObject(filesFields),
   git: z.strictObject(gitFields),
@@ -136,6 +157,7 @@ export type Settings = z.infer<typeof SettingsSchema>;
  */
 export const SettingsFileSchema = z.strictObject({
   version: z.literal(SETTINGS_VERSION).optional(),
+  debug: z.strictObject(debugFields).partial().optional(),
   editor: z.strictObject(editorFields).partial().optional(),
   files: z.strictObject(filesFields).partial().optional(),
   git: z.strictObject(gitFields).partial().optional(),
@@ -174,6 +196,11 @@ export const DEFAULT_SETTINGS: Settings = {
     path: null,
     decorationsEnabled: true,
     refreshIntervalMs: 0,
+  },
+  debug: {
+    adapterPath: null,
+    adapterArgs: [],
+    requestTimeoutMs: 10_000,
   },
   lsp: {
     enabled: true,
