@@ -1,0 +1,23 @@
+{
+  "name": "@pastecode/extension-host",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "El protocolo y el runtime del extension host. Define el límite main ↔ host.",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@pastecode/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "4.1.10",
+    "vitest": "4.1.10"
+  }
+}

@@ -15,6 +15,10 @@ import type {
   WriteClipboardRequestSchema,
   WriteClipboardResponseSchema,
 } from './schemas/clipboard.js';
+import type {
+  ExtensionHostStatusSchema,
+  GetExtensionHostStatusRequestSchema,
+} from './schemas/extensions.js';
 import type { IndexFilesRequestSchema, IndexFilesResponseSchema } from './schemas/files.js';
 import type {
   CreateEntryRequestSchema,
@@ -158,6 +162,10 @@ export interface IpcChannels {
   'backups:discard': {
     request: z.infer<typeof DiscardBackupsRequestSchema>;
     response: z.infer<typeof DiscardBackupsResponseSchema>;
+  };
+  'extensions:getStatus': {
+    request: z.infer<typeof GetExtensionHostStatusRequestSchema>;
+    response: z.infer<typeof ExtensionHostStatusSchema>;
   };
   'workspace:open': {
     request: z.infer<typeof OpenWorkspaceRequestSchema>;
