@@ -1,4 +1,5 @@
-import { extname } from 'node:path';
+import { accessSync, constants } from 'node:fs';
+import { extname, isAbsolute } from 'node:path';
 
 import type { Settings } from '@pastecode/core';
 
@@ -71,7 +72,7 @@ export function resolveAdapter(
     };
   }
 
-  const failure = assertExecutable(configured);
+  const failure = verify(configured);
 
   if (failure === 'not-absolute') {
     return {
@@ -94,6 +95,41 @@ export function resolveAdapter(
   return { launch: launchFor(configured, settings.debug.adapterArgs, execPath, environment) };
 }
 
+/** Las extensiones que son un script de Node y no un ejecutable. */
+const SCRIPT_EXTENSIONS = new Set(['.js', '.mjs', '.cjs']);
+
+/** Si la ruta apunta a un script y no a un binario. */
+function isScript(path: string): boolean {
+  return SCRIPT_EXTENSIONS.has(extname(path).toLowerCase());
+}
+
+/**
+ * Verifica que la ruta sirva, pidiéndole a cada cosa lo que de verdad necesita.
+ *
+ * **A un script no se le exige el bit de ejecución**, y la distinción no es
+ * cosmética: un adaptador de JavaScript se distribuye por npm con permisos 644
+ * y nunca se lo ejecuta directo — se lo pasa como argumento a Node—. Pedirle
+ * `X_OK` rechazaría el caso más común del ecosistema. A un binario sí se le
+ * exige, porque a ése sí se lo ejecuta.
+ *
+ * En Windows `X_OK` no significa nada —no hay bit de ejecución— así que las dos
+ * ramas verifican lo mismo y la diferencia sólo se nota en POSIX. Lo cual es
+ * justamente donde se notó: pasaba en local y fallaba en el CI de Linux.
+ */
+function verify(candidate: string): 'not-absolute' | 'not-executable' | null {
+  if (!isScript(candidate)) return assertExecutable(candidate);
+
+  if (!isAbsolute(candidate)) return 'not-absolute';
+
+  try {
+    accessSync(candidate, constants.R_OK);
+  } catch {
+    return 'not-executable';
+  }
+
+  return null;
+}
+
 /** Arma el lanzamiento, eligiendo runtime según la extensión. */
 function launchFor(
   adapterPath: string,
@@ -106,7 +142,11 @@ function launchFor(
   // Un `.js` no se ejecuta solo: necesita un Node. Se usa el propio Electron
   // con `ELECTRON_RUN_AS_NODE`, que es lo que ya hace el LSP con los servidores
   // empaquetados, y lo que evita depender de que haya un Node en el PATH.
-  if (extname(adapterPath).toLowerCase() === '.js') {
+  //
+  // `.mjs` cuenta igual que `.js`: es la extensión que usa medio ecosistema
+  // para distribuir ESM, y dejarla afuera haría que un adaptador perfectamente
+  // válido se intentara ejecutar como si fuera un binario.
+  if (isScript(adapterPath)) {
     return {
       file: execPath,
       args: [adapterPath, ...extraArgs],

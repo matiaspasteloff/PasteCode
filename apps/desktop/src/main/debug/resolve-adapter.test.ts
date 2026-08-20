@@ -1,4 +1,4 @@
-import { writeFile } from 'node:fs/promises';
+import { chmod, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { Settings } from '@pastecode/core';
@@ -17,6 +17,21 @@ function settingsWith(debug: Partial<Settings['debug']>): Settings {
 
 /** Un ejecutable que sí existe en cualquier máquina que corra estos tests. */
 const REAL_EXECUTABLE = process.execPath;
+
+/**
+ * Escribe un binario de mentira, con su bit de ejecución.
+ *
+ * El `chmod` no es decoración: a un **binario** se le exige `X_OK`, y en POSIX
+ * un archivo recién creado con `writeFile` nace en 644. En Windows `X_OK` no
+ * significa nada, así que sin esto el test pasa en local y falla en el CI de
+ * Linux — que es exactamente lo que pasó.
+ *
+ * A un **script** no se le pide: se le pasa a Node y npm los distribuye en 644.
+ */
+async function writeBinary(path: string): Promise<void> {
+  await writeFile(path, '', 'utf8');
+  await chmod(path, 0o755);
+}
 
 /** Resuelve y exige que haya salido bien. Falla con un mensaje útil si no. */
 function launchOf(settings: Settings, environment: NodeJS.ProcessEnv = {}): AdapterLaunch {
@@ -104,6 +119,8 @@ describe('resolveAdapter', () => {
       const sandbox = await makeTempDirectory('pastecode-dap-');
       const script = join(sandbox, 'dapDebugServer.js');
 
+      // Sin `chmod`: un script no necesita el bit de ejecución, y ése es el
+      // caso que npm distribuye.
       await writeFile(script, '// un adaptador de mentira', 'utf8');
 
       const launch = launchOf(settingsWith({ adapterPath: script, adapterArgs: ['4711'] }));
@@ -120,7 +137,7 @@ describe('resolveAdapter', () => {
       const sandbox = await makeTempDirectory('pastecode-dap-');
       const binary = join(sandbox, 'adapter.exe');
 
-      await writeFile(binary, '', 'utf8');
+      await writeBinary(binary);
 
       const launch = launchOf(settingsWith({ adapterPath: binary }));
 
