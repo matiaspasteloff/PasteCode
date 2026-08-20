@@ -148,13 +148,13 @@ Los IDs son estables y no se reciclan. Si un requerimiento se elimina, su ID que
 
 ## Temas y apariencia
 
-| ID     | Prioridad | Requerimiento                                    | Criterio de aceptación                            |
-| ------ | --------- | ------------------------------------------------ | ------------------------------------------------- |
-| RF-801 | M         | Tema claro y tema oscuro incluidos               | Cambio en caliente sin reiniciar                  |
-| RF-802 | M         | Seguir el tema del sistema operativo             | Opción `window.theme: "system"`                   |
-| RF-803 | M         | Temas distribuibles como extensión               | La extensión de ejemplo `theme-nord` lo demuestra |
-| RF-804 | S         | Configurar familia y tamaño de fuente del editor | Con soporte de ligaduras tipográficas             |
-| RF-805 | C         | Personalizar colores individuales de la UI       | —                                                 |
+| ID     | Prioridad | Requerimiento                                    | Criterio de aceptación                                                                                                                                                                                                                                              |
+| ------ | --------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RF-801 | M         | Temas incluidos                                  | Claro, oscuro y los nueve incorporados de la etapa experimental (Dracula, One Dark, Tokyo Night, Gruvbox, Monokai, Solarized Light, Solarized Dark, Catppuccin Mocha y Alto Contraste). Cambio en caliente sin reiniciar, con preview en vivo desde `Ctrl+K Ctrl+T` |
+| RF-802 | M         | Seguir el tema del sistema operativo             | Opción `window.theme: "system"`                                                                                                                                                                                                                                     |
+| RF-803 | M         | Temas distribuibles como extensión               | La extensión de ejemplo `theme-nord` lo demuestra. Los incorporados de RF-801 usan **el mismo camino de aplicación** y no un mecanismo aparte: son datos en `packages/core`, no extensiones empaquetadas ([ADR-0031](./adr/0031-temas-incorporados-como-datos.md))  |
+| RF-804 | S         | Configurar familia y tamaño de fuente del editor | Con soporte de ligaduras tipográficas                                                                                                                                                                                                                               |
+| RF-805 | C         | Personalizar colores individuales de la UI       | —                                                                                                                                                                                                                                                                   |
 
 ## Sistema de extensiones
 
@@ -171,6 +171,27 @@ Los IDs son estables y no se reciclan. Si un requerimiento se elimina, su ID que
 | RF-909 | M         | Dos extensiones de ejemplo documentadas         | `theme-nord` y `word-count`, con README propio                            |
 | RF-910 | S         | Habilitar/deshabilitar extensiones desde la UI  | —                                                                         |
 | RF-911 | W         | Marketplace / instalación remota                | —                                                                         |
+
+## Asistente de IA (etapa experimental)
+
+> **Este módulo no cuenta contra el contrato de alcance de la v1.** Vive en [Alcance experimental](./01-vision-y-alcance.md#alcance-experimental): es opt-in, no cambia nada si no se configura, y se puede sacar sin romper el resto. La decisión está en [ADR-0029](./adr/0029-asistente-de-ia-en-el-main.md).
+
+| ID      | Prioridad | Requerimiento                               | Criterio de aceptación                                                                                                                                                                                                                                                                                        |
+| ------- | --------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RF-1001 | M         | Chat con selección de modelo                | Vista lateral propia con historial de la conversación y un selector de modelo. El modelo elegido se recuerda mientras dure la sesión                                                                                                                                                                          |
+| RF-1002 | M         | Sólo modelos gratuitos                      | La lista que se ofrece sale de `/api/v1/models` de OpenRouter filtrada a `pricing.prompt === '0' && pricing.completion === '0'`. Un modelo que no está en esa lista **no se puede elegir**: la etapa experimental no puede generar un cargo sin que nadie lo haya pedido                                      |
+| RF-1003 | M         | Clave de API en almacenamiento cifrado      | Se guarda con `safeStorage` de Electron, en `userData/ai-credentials.bin`. **Nunca vuelve al renderer**: `ai:getKeyStatus` responde `{ hasKey: boolean }` y nada más. Si `isEncryptionAvailable()` da falso, la clave no se guarda y se avisa — no hay fallback a texto plano                                 |
+| RF-1004 | M         | Respuesta en streaming, token a token       | La respuesta se pinta a medida que llega, por el evento `ai:delta`. Sale del `text/event-stream` de OpenRouter, parseado por un parser incremental propio en `packages/core`                                                                                                                                  |
+| RF-1005 | M         | Herramientas de lectura del workspace       | `list_files`, `read_file` y `search_workspace`. Se resuelven **en el main**, reusando `resolveInsideWorkspace` y el servicio de búsqueda que ya existe: una ruta que el modelo invente fuera del workspace se rechaza igual que una que invente el renderer ([RNF-11](./04-requerimientos-no-funcionales.md)) |
+| RF-1006 | M         | Edición con confirmación previa             | `write_file` y `create_file` **no tocan el disco en el main**. Emiten `ai:toolCall`, el renderer muestra el diff con `monaco.editor.createDiffEditor`, y recién con "Aplicar" se escribe por el canal `fs:*` de siempre. "Descartar" no escribe nada y se lo informa al modelo como resultado                 |
+| RF-1007 | M         | Cancelación de la respuesta en curso        | `ai:cancel` aborta el `fetch` por su `AbortController`. La conversación conserva lo que ya se había pintado                                                                                                                                                                                                   |
+| RF-1008 | S         | Acciones sobre un bloque de código          | Copiar, insertar en el cursor y reemplazar la selección, desde el bloque de código de la respuesta                                                                                                                                                                                                            |
+| RF-1009 | C         | Persistir las conversaciones entre sesiones | —                                                                                                                                                                                                                                                                                                             |
+| RF-1010 | W         | Autocompletado inline con LLM               | Fuera de alcance incluso acá. Ver [Alcance experimental](./01-vision-y-alcance.md#alcance-experimental)                                                                                                                                                                                                       |
+
+> **Nota de seguridad (RF-1005/1006).** Lo que devuelve el modelo es **entrada no confiable**, exactamente igual que lo que manda el renderer. Los argumentos de cada herramienta se validan con su schema antes de tocar nada, y las rutas pasan por `resolveInsideWorkspace` sin excepción. La diferencia con el renderer es que acá el atacante puede ser el contenido de un archivo del propio workspace, así que la confirmación de RF-1006 no es cortesía de UX: es el único punto donde una persona ve qué se va a escribir antes de que se escriba.
+
+---
 
 ---
 
