@@ -11,6 +11,12 @@ export {
   InvalidToolCallError,
   MissingApiKeyError,
 } from './errors/ai-errors.js';
+export {
+  applyCompletionChunk,
+  completedToolCalls,
+  EMPTY_COMPLETION,
+} from './ai/completion-chunks.js';
+export type { CompletionState, ToolCallRequest } from './ai/completion-chunks.js';
 export { splitMarkdown } from './ai/markdown.js';
 export type { MarkdownBlock } from './ai/markdown.js';
 export {
