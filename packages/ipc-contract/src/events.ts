@@ -2,6 +2,7 @@ import type { DocumentDiagnostics, Keybinding, SearchMatch, Settings } from '@pa
 import type { z } from 'zod';
 
 import type { SerializedError } from './result.js';
+import type { DebugStatusSchema } from './schemas/debug.js';
 import type {
   ExtensionContributionsSchema,
   ExtensionHostStatusSchema,
@@ -253,7 +254,36 @@ export interface IpcEvents {
   'extensions:changed': ExtensionsChangedEvent;
   'extensions:contributionsChanged': ExtensionContributionsEvent;
   'extensions:documentRequest': ExtensionDocumentRequestEvent;
+  'debug:stopped': DebugStoppedEvent;
+  'debug:output': DebugOutputEvent;
+  'debug:terminated': DebugTerminatedEvent;
 }
+
+/**
+ * Payload de `debug:stopped`: el programa frenó.
+ *
+ * Trae el hilo y el motivo, y **no** el stack: el call stack se pide con
+ * `debug:getStackTrace` cuando el panel está a la vista. Meterlo acá haría que
+ * cada paso de un `stepOver` arrastrara el stack entero aunque nadie lo mire.
+ */
+export interface DebugStoppedEvent {
+  threadId: number;
+  /** `breakpoint`, `step`, `exception`… Lo elige el adaptador. */
+  reason: string;
+  /** Dónde frenó, si el adaptador lo dice. Es lo que resalta el editor. */
+  path: string | null;
+  line: number | null;
+}
+
+/** Payload de `debug:output`: una línea de la consola de debug (RF-505). */
+export interface DebugOutputEvent {
+  /** `stdout`, `stderr`, `console`… Lo elige el adaptador. */
+  category: string;
+  text: string;
+}
+
+/** Payload de `debug:terminated`: la sesión se fue, con el estado que queda. */
+export type DebugTerminatedEvent = z.infer<typeof DebugStatusSchema>;
 
 export type EventName = keyof IpcEvents;
 export type EventPayload<E extends EventName> = IpcEvents[E];
@@ -286,6 +316,9 @@ export const EVENT_NAMES = [
   'extensions:changed',
   'extensions:contributionsChanged',
   'extensions:documentRequest',
+  'debug:stopped',
+  'debug:output',
+  'debug:terminated',
 ] as const satisfies readonly EventName[];
 
 /**

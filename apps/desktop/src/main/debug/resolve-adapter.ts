@@ -139,7 +139,7 @@ function launchFor(
 ): AdapterLaunch {
   const env = sanitizedEnvironment(environment);
 
-  // Un `.js` no se ejecuta solo: necesita un Node. Se usa el propio Electron
+  // Un script no se ejecuta solo: necesita un Node. Se usa el propio Electron
   // con `ELECTRON_RUN_AS_NODE`, que es lo que ya hace el LSP con los servidores
   // empaquetados, y lo que evita depender de que haya un Node en el PATH.
   //

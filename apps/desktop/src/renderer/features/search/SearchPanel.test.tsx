@@ -159,6 +159,13 @@ describe('SearchResults', () => {
     render(<SearchPanel />);
     await userEvent.click(screen.getByText('const a = 1;'));
 
-    expect(invoke).toHaveBeenCalledWith('fs:readFile', { path: `${ROOT}/src/a.ts` });
+    // `waitFor` y no un assert pelado: abrir el archivo es asincrónico y
+    // `userEvent.click` sólo garantiza que React haya pintado, no que la
+    // cadena de promesas que sale del click haya llegado hasta el IPC. Sin
+    // esto el test pasaba casi siempre y fallaba una de cada tres corridas
+    // completas, que es la peor forma de fallar.
+    await waitFor(() => {
+      expect(invoke).toHaveBeenCalledWith('fs:readFile', { path: `${ROOT}/src/a.ts` });
+    });
   });
 });

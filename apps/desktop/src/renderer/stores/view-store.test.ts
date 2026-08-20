@@ -49,7 +49,7 @@ describe('useViewStore', () => {
   it('declara las vistas como dato recorrible y no como enum', () => {
     // La lista tiene que poder recorrerse: es lo que dibuja el rail.
     expect([...SIDE_VIEWS]).toEqual(['explorer', 'search', 'git']);
-    expect([...PANEL_VIEWS]).toEqual(['terminal', 'problems']);
+    expect([...PANEL_VIEWS]).toEqual(['terminal', 'problems', 'debug']);
   });
 
   it('arranca con el panel inferior cerrado', () => {

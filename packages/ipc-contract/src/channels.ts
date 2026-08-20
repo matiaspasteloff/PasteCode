@@ -17,9 +17,23 @@ import type {
 } from './schemas/clipboard.js';
 import type {
   DebugStatusSchema,
+  EvaluateRequestSchema,
+  EvaluateResponseSchema,
   GetDebugStatusRequestSchema,
   GetLaunchConfigurationsRequestSchema,
   GetLaunchConfigurationsResponseSchema,
+  GetStackTraceRequestSchema,
+  GetStackTraceResponseSchema,
+  GetVariablesRequestSchema,
+  GetVariablesResponseSchema,
+  SetBreakpointsRequestSchema,
+  SetBreakpointsResponseSchema,
+  StartDebugRequestSchema,
+  StartDebugResponseSchema,
+  StepDebugRequestSchema,
+  StepDebugResponseSchema,
+  StopDebugRequestSchema,
+  StopDebugResponseSchema,
 } from './schemas/debug.js';
 import type {
   ActiveEditorChangedRequestSchema,
@@ -192,6 +206,34 @@ export interface IpcChannels {
   'debug:getStatus': {
     request: z.infer<typeof GetDebugStatusRequestSchema>;
     response: z.infer<typeof DebugStatusSchema>;
+  };
+  'debug:start': {
+    request: z.infer<typeof StartDebugRequestSchema>;
+    response: z.infer<typeof StartDebugResponseSchema>;
+  };
+  'debug:stop': {
+    request: z.infer<typeof StopDebugRequestSchema>;
+    response: z.infer<typeof StopDebugResponseSchema>;
+  };
+  'debug:step': {
+    request: z.infer<typeof StepDebugRequestSchema>;
+    response: z.infer<typeof StepDebugResponseSchema>;
+  };
+  'debug:setBreakpoints': {
+    request: z.infer<typeof SetBreakpointsRequestSchema>;
+    response: z.infer<typeof SetBreakpointsResponseSchema>;
+  };
+  'debug:evaluate': {
+    request: z.infer<typeof EvaluateRequestSchema>;
+    response: z.infer<typeof EvaluateResponseSchema>;
+  };
+  'debug:getStackTrace': {
+    request: z.infer<typeof GetStackTraceRequestSchema>;
+    response: z.infer<typeof GetStackTraceResponseSchema>;
+  };
+  'debug:getVariables': {
+    request: z.infer<typeof GetVariablesRequestSchema>;
+    response: z.infer<typeof GetVariablesResponseSchema>;
   };
   'extensions:executeCommand': {
     request: z.infer<typeof ExecuteExtensionCommandRequestSchema>;

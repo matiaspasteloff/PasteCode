@@ -656,6 +656,158 @@ body {
   font-weight: 600;
 }
 
+/* --- Panel de depuración (RF-503 a RF-505) -----------------------------
+   Tres columnas y no pestañas anidadas: con una sesión frenada, mirar una
+   variable y la pila al mismo tiempo es exactamente lo que se hace. */
+.debug-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.debug-panel--empty {
+  padding: var(--space-4);
+  color: var(--color-muted);
+}
+
+.debug-panel__columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  flex: 1;
+  min-height: 0;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+
+.debug-panel__column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.debug-panel__title {
+  margin: 0 0 var(--space-1);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.debug-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.debug-toolbar__button {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+  font: inherit;
+  cursor: pointer;
+}
+
+.debug-toolbar__button:disabled {
+  color: var(--color-muted);
+  cursor: default;
+}
+
+.debug-toolbar__button--danger {
+  color: var(--color-danger);
+}
+
+.debug-toolbar__hint,
+.debug-toolbar__error {
+  color: var(--color-muted);
+}
+
+.debug-toolbar__error {
+  color: var(--color-danger);
+}
+
+.debug-stack,
+.debug-variables {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.debug-variables .debug-variables {
+  padding-left: var(--space-4);
+}
+
+.debug-stack__frame,
+.debug-variables__toggle {
+  display: flex;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.debug-stack__frame--active {
+  color: var(--color-accent);
+}
+
+.debug-stack__line,
+.debug-variables__value {
+  color: var(--color-muted);
+}
+
+.debug-variables__leaf {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.debug-console {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.debug-console__lines {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  list-style: none;
+  /* El output de un programa trae sus propios saltos de línea, y colapsarlos
+     convertiría un stack trace en un párrafo. */
+  white-space: pre-wrap;
+}
+
+.debug-console__line--stderr {
+  color: var(--color-danger);
+}
+
+.debug-console__line--input {
+  color: var(--color-accent);
+}
+
+.debug-console__input {
+  margin-top: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+  color: var(--color-foreground);
+  font-family: var(--font-mono);
+}
+
 /* --- Breakpoints (RF-502) ----------------------------------------------
    El punto se dibuja con un ::before y no con un background del glifo: el
    margen de glifos es tan alto como la línea, y pintarlo entero daría una
