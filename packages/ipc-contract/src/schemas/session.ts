@@ -30,6 +30,8 @@ export const LoadSessionResponseSchema = z.strictObject({
       groups: WorkspaceStateSchema.shape.groups,
       layout: WorkspaceStateSchema.shape.layout,
       activeGroupId: WorkspaceStateSchema.shape.activeGroupId,
+      /** Ausente en una sesión escrita antes del DAP: son cero breakpoints. */
+      breakpoints: WorkspaceStateSchema.shape.breakpoints,
     })
     .nullable(),
 });
@@ -49,6 +51,8 @@ export const SaveSessionRequestSchema = z.strictObject({
   groups: WorkspaceStateSchema.shape.groups,
   layout: WorkspaceStateSchema.shape.layout,
   activeGroupId: WorkspaceStateSchema.shape.activeGroupId,
+  /** Los breakpoints del workspace (RF-502). */
+  breakpoints: WorkspaceStateSchema.shape.breakpoints,
 });
 
 /** Respuesta de `session:save`. */

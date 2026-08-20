@@ -9,6 +9,7 @@ import { TitleToolbar } from './components/TitleToolbar.js';
 import { CommandPalette } from './features/commands/CommandPalette.js';
 import { useAppCommands } from './features/commands/use-app-commands.js';
 import { useKeybindings } from './features/commands/use-keybindings.js';
+import { useBreakpoints } from './features/debug/use-breakpoints.js';
 import { ConflictDialog } from './features/editor/ConflictDialog.js';
 import { EditorArea } from './features/editor/EditorArea.js';
 import { releaseModelsExcept } from './features/editor/model-registry.js';
@@ -49,6 +50,7 @@ export function App(): React.JSX.Element {
   useExtensions();
   useGitEvents();
   useGutter();
+  useBreakpoints();
   useTheme();
   useWorkspaceReset();
 

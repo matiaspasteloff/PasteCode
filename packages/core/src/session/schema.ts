@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { BreakpointSchema } from '../debug/breakpoints.js';
 import { EDITOR_LAYOUTS } from '../workspace/groups.js';
 
 /**
@@ -78,6 +79,16 @@ export const WorkspaceStateSchema = z.looseObject({
    */
   groups: z.array(PersistedGroupSchema).optional(),
   layout: z.enum(EDITOR_LAYOUTS).optional(),
+  /**
+   * Los breakpoints del workspace ([RF-502](../../../../docs/03-requerimientos-funcionales.md)).
+   *
+   * **Es el campo que este schema viene esperando desde la Etapa 3.** El
+   * comentario de arriba lo anunciaba por nombre: `Breakpoint` no existía y
+   * llegaba con el DAP. Que el schema sea laxo es lo que permite que aparezca
+   * ahora sin migración ni bump de versión, y que un archivo escrito por una
+   * versión que lo tiene siga siendo legible por una que no.
+   */
+  breakpoints: z.array(BreakpointSchema).optional(),
   activeGroupId: z.string().min(1).optional(),
   /** Momento del último guardado, en epoch ms. */
   lastSavedAt: z.number(),

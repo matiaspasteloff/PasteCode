@@ -35,6 +35,8 @@ export interface SessionSnapshot {
   groups?: WorkspaceState['groups'] | undefined;
   layout?: WorkspaceState['layout'] | undefined;
   activeGroupId?: string | undefined;
+  /** Los breakpoints, si el renderer los reportó (RF-502). */
+  breakpoints?: WorkspaceState['breakpoints'] | undefined;
 }
 
 /** Dónde viven los archivos de sesión. */
@@ -154,11 +156,17 @@ export async function planSessionRestore(state: WorkspaceState): Promise<Restora
     ...(state.groups ?? []).flatMap((group) => group.openTabs),
   ];
 
-  await Promise.all(
-    everyTab.map(async (tab) => {
-      const path = fromFileUri(tab.uri);
-      if (path === undefined) return;
+  // Los breakpoints van en la misma verificación que las pestañas, y **no**
+  // salen de ellas: un breakpoint puede estar en un archivo que no está
+  // abierto —es justamente por eso que se guardan aparte—, así que mirar sólo
+  // las pestañas los descartaría a todos al restaurar.
+  const candidates = [
+    ...everyTab.flatMap((tab) => fromFileUri(tab.uri) ?? []),
+    ...(state.breakpoints ?? []).map((breakpoint) => breakpoint.path),
+  ];
 
+  await Promise.all(
+    candidates.map(async (path) => {
       await access(path).then(
         () => existing.add(path),
         () => undefined

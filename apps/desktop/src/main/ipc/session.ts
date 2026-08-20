@@ -67,6 +67,7 @@ export function registerSessionIpcHandlers(): void {
         ...(plan.groups === undefined ? {} : { groups: [...plan.groups] }),
         ...(plan.layout === undefined ? {} : { layout: plan.layout }),
         ...(plan.activeGroupId === undefined ? {} : { activeGroupId: plan.activeGroupId }),
+        ...(plan.breakpoints === undefined ? {} : { breakpoints: [...plan.breakpoints] }),
       },
     };
   });

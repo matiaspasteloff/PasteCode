@@ -22,6 +22,13 @@ export type {
   TerminalExitEvent,
 } from './events.js';
 export {
+  DebugStateSchema,
+  DebugStatusSchema,
+  GetDebugStatusRequestSchema,
+  GetLaunchConfigurationsRequestSchema,
+  GetLaunchConfigurationsResponseSchema,
+} from './schemas/debug.js';
+export {
   ActiveEditorChangedRequestSchema,
   DocumentResponseRequestSchema,
   ExecuteExtensionCommandRequestSchema,

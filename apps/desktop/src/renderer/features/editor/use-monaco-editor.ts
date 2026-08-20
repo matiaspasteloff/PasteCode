@@ -204,6 +204,11 @@ function useMountedEditor(
           wordWrap: initial.wordWrap,
           minimap: { enabled: initial.minimap },
           renderWhitespace: initial.renderWhitespace,
+          // El margen de glifos es donde viven los breakpoints (RF-502). Va
+          // siempre encendido y no según si hay alguno: prenderlo y apagarlo
+          // correría el código horizontalmente cada vez que alguien pone el
+          // primero o saca el último.
+          glyphMargin: true,
         });
         setGroupEditor(groupId, editorRef.current);
         setStatus('ready');

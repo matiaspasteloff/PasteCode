@@ -1,68 +1,101 @@
-import { CommandRegistry } from '@pastecode/core';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-/**
- * La regresión que encontró el E2E de `word-count`.
- *
- * `extensions:contributionsChanged` llega **una vez por cada cambio de
- * contribución**, y el payload trae el estado resuelto: una extensión que
- * actualiza su ítem de la barra republica también sus comandos. Volver a
- * registrar lo que ya estaba lanza `DuplicateCommandError`, la excepción se come
- * el resto del listener, y la status bar queda congelada en su primer valor.
- *
- * El síntoma no se parece en nada a la causa, así que el test vive acá: lo que
- * hay que fijar es que registrar dos veces el mismo lote sea inofensivo.
- */
-describe('el registro tolera que el mismo lote llegue dos veces', () => {
-  it('lanza si se registra un id repetido, que es la trampa', () => {
-    const registry = new CommandRegistry();
+import { useCommandStore } from '../../stores/command-store.js';
 
-    registry.register({ id: 'ext:a.b', title: 'a.b', handler: () => undefined });
+import { syncCommands } from './sync-commands.js';
 
-    expect(() => {
-      registry.register({ id: 'ext:a.b', title: 'a.b', handler: () => undefined });
-    }).toThrow();
+/** Un comando aportado, con lo mínimo. */
+function contributed(id: string, extension = 'word-count') {
+  return { extension, id, title: id };
+}
+
+/** Los ids que quedaron en el registro, ordenados. */
+function registeredIds(): string[] {
+  return useCommandStore
+    .getState()
+    .registry.list()
+    .map((command) => command.id)
+    .sort();
+}
+
+beforeEach(() => {
+  for (const { id } of useCommandStore.getState().registry.list()) {
+    useCommandStore.getState().unregister(id);
+  }
+});
+
+describe('syncCommands', () => {
+  it('registra los comandos aportados, con prefijo', () => {
+    syncCommands([contributed('wordCount.toggle')]);
+
+    // Sin prefijo, una extensión podría registrar `file.save` y quedarse con el
+    // atajo de guardar.
+    expect(registeredIds()).toEqual(['ext:wordCount.toggle']);
   });
 
-  it('registrar sólo lo que falta deja el mismo registro dos veces seguidas', () => {
-    const registry = new CommandRegistry();
+  it('el mismo lote dos veces no lanza y deja lo mismo', () => {
+    // **Es la regresión.** El evento llega una vez por cada cambio de
+    // contribución y trae el estado resuelto, así que el mismo comando vuelve a
+    // aparecer. Registrarlo de nuevo lanzaba `DuplicateCommandError`, la
+    // excepción se comía el resto del listener, y el síntoma era la status bar
+    // congelada en su primer valor.
+    const lote = [contributed('wordCount.toggle')];
 
-    /** Lo que hace `syncCommands`: dar de baja lo que sobra, agregar lo que falta. */
-    const sync = (wanted: readonly string[]): void => {
-      const ids = new Set(wanted);
+    syncCommands(lote);
 
-      for (const { id } of registry.list()) {
-        if (!ids.has(id)) registry.unregister(id);
-      }
-
-      const present = new Set(registry.list().map((command) => command.id));
-
-      for (const id of wanted) {
-        if (!present.has(id)) registry.register({ id, title: id, handler: () => undefined });
-      }
-    };
-
-    sync(['ext:a.b', 'ext:c.d']);
-    sync(['ext:a.b', 'ext:c.d']);
-
-    expect(
-      registry
-        .list()
-        .map((command) => command.id)
-        .sort()
-    ).toEqual(['ext:a.b', 'ext:c.d']);
+    expect(() => {
+      syncCommands(lote);
+    }).not.toThrow();
+    expect(registeredIds()).toEqual(['ext:wordCount.toggle']);
   });
 
   it('da de baja lo que la extensión dejó de aportar', () => {
-    const registry = new CommandRegistry();
+    syncCommands([contributed('a.uno'), contributed('a.dos')]);
+    syncCommands([contributed('a.uno')]);
 
-    registry.register({ id: 'ext:a.b', title: 'a.b', handler: () => undefined });
-    registry.register({ id: 'ext:c.d', title: 'c.d', handler: () => undefined });
+    expect(registeredIds()).toEqual(['ext:a.uno']);
+  });
 
-    for (const { id } of registry.list()) {
-      if (id !== 'ext:a.b') registry.unregister(id);
-    }
+  it('no toca los comandos de fábrica', () => {
+    useCommandStore.getState().register({
+      id: 'file.save',
+      title: 'command.save',
+      handler: () => undefined,
+    });
 
-    expect(registry.list().map((command) => command.id)).toEqual(['ext:a.b']);
+    syncCommands([contributed('a.uno')]);
+    syncCommands([]);
+
+    // Sólo se dan de baja los que llevan el prefijo: barrer el registro entero
+    // dejaría al IDE sin sus propios comandos.
+    expect(registeredIds()).toEqual(['file.save']);
+  });
+
+  it('conserva la categoría cuando la hay', () => {
+    syncCommands([{ ...contributed('a.uno'), category: 'Word Count' }]);
+
+    expect(useCommandStore.getState().registry.list()[0]?.category).toBe('Word Count');
+  });
+
+  it('ejecutar el comando pasa por el main con su extensión', async () => {
+    const invoke = vi.fn().mockResolvedValue({ ok: true, value: {} });
+
+    // Sólo `pastecode`: esparcir el `window` de jsdom perdería el prototipo de
+    // sus instancias, y lo único que este test necesita es el canal.
+    vi.stubGlobal('pastecode', { invoke });
+    Object.defineProperty(globalThis.window, 'pastecode', {
+      value: { invoke },
+      configurable: true,
+    });
+
+    syncCommands([contributed('wordCount.toggle', 'word-count')]);
+    await useCommandStore.getState().run('ext:wordCount.toggle');
+
+    expect(invoke).toHaveBeenCalledWith('extensions:executeCommand', {
+      extension: 'word-count',
+      id: 'wordCount.toggle',
+    });
+
+    vi.unstubAllGlobals();
   });
 });

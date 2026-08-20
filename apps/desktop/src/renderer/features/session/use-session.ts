@@ -2,6 +2,7 @@ import type { GroupsState, PersistedGroup, PersistedTabState } from '@pastecode/
 import { activeGroup, fromFileUri, PRIMARY_GROUP_ID, toFileUri } from '@pastecode/core';
 import { useEffect, useRef } from 'react';
 
+import { useDebugStore } from '../../stores/debug-store.js';
 import { useEditorStore } from '../../stores/editor-store.js';
 import { useFileTreeStore } from '../../stores/file-tree-store.js';
 import { useWorkspaceStore } from '../../stores/workspace-store.js';
@@ -27,6 +28,7 @@ export function useSession(): void {
   const workspace = useWorkspaceStore((state) => state.workspace);
   const groups = useEditorStore((state) => state.groups);
   const expandedPaths = useFileTreeStore((state) => state.expandedPaths);
+  const breakpoints = useDebugStore((state) => state.breakpoints);
 
   // Mientras se restaura no se reporta nada: las aperturas que hace la propia
   // restauración dispararían un guardado con la sesión a medio abrir, y si la
@@ -64,8 +66,12 @@ export function useSession(): void {
       // Se guardan **relativas** a la raíz, como pide el modelo de datos: un
       // workspace movido de carpeta sigue reabriendo las mismas carpetas.
       expandedFolders: [...expandedPaths].map((path) => relativize(path, workspace.root)),
+      // Absolutos y no relativos, a diferencia de las carpetas: un breakpoint
+      // puede estar en un archivo de afuera del workspace —una dependencia que
+      // se abrió para mirar—, y relativizarlo lo dejaría apuntando a la nada.
+      breakpoints,
     });
-  }, [workspace, groups, expandedPaths]);
+  }, [workspace, groups, expandedPaths, breakpoints]);
 }
 
 /** Los grupos, en la forma que se persiste. */
@@ -108,6 +114,7 @@ async function restore(): Promise<void> {
   }
 
   applyLayout(state.layout, state.activeGroupId);
+  useDebugStore.getState().setBreakpoints(state.breakpoints ?? []);
 }
 
 /** Reabre las pestañas de un grupo, en orden y adentro de ese grupo. */
