@@ -133,6 +133,19 @@ describe('resolveAdapter', () => {
       await removeTempDirectory(sandbox);
     });
 
+    it('un .mjs también cuenta como script', async () => {
+      // Medio ecosistema distribuye ESM con esa extensión; dejarla afuera haría
+      // que un adaptador válido se intentara ejecutar como si fuera un binario.
+      const sandbox = await makeTempDirectory('pastecode-dap-');
+      const script = join(sandbox, 'adapter.mjs');
+
+      await writeFile(script, '', 'utf8');
+
+      expect(launchOf(settingsWith({ adapterPath: script })).file).toBe(REAL_EXECUTABLE);
+
+      await removeTempDirectory(sandbox);
+    });
+
     it('un binario se lanza tal cual, sin runtime prestado', async () => {
       const sandbox = await makeTempDirectory('pastecode-dap-');
       const binary = join(sandbox, 'adapter.exe');

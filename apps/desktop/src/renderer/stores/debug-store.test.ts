@@ -1,11 +1,17 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { installFakeApi } from '../test-support/fake-api.js';
+
 import { useDebugStore } from './debug-store.js';
 
 const A = 'C:\\p\\a.ts';
 const B = 'C:\\p\\b.ts';
 
 beforeEach(() => {
+  // Poner un breakpoint le avisa al main en el acto: sin el canal, cada
+  // `toggle` dejaría una promesa rechazada suelta.
+  installFakeApi({ 'debug:setBreakpoints': { ok: true, value: {} } });
+
   useDebugStore.getState().clear();
 });
 

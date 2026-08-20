@@ -27,7 +27,10 @@
       "entry": ["src/extension.ts"],
     },
     "e2e": {
-      "entry": ["tests/**/*.spec.ts"],
+      // El adaptador DAP de prueba no lo importa nadie: se lo lanza por ruta,
+      // que es justamente lo que lo hace un ejecutable y no un módulo. Mismo
+      // caso que el shell falso del supervisor.
+      "entry": ["tests/**/*.spec.ts", "fixtures/*.mjs"],
       // El E2E no importa nada de @pastecode/desktop: lanza la app por ruta.
       // La dependencia igual es real y hace falta, porque es lo que le dice a
       // Turborepo que tiene que buildear la app antes de correr los tests

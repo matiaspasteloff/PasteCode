@@ -1,9 +1,11 @@
+import { DebugPanel } from '../features/debug/DebugPanel.js';
 import { ProblemsPanel } from '../features/problems/ProblemsPanel.js';
 import { TerminalPanel } from '../features/terminal/TerminalPanel.js';
 import type { TranslationKey } from '../i18n/index.js';
 import type { PanelView } from '../stores/view-store.js';
 
 import type { IconProps } from './icons/Icon.js';
+import { IconDebug } from './icons/IconDebug.js';
 import { IconProblems } from './icons/IconProblems.js';
 import { IconTerminal } from './icons/IconTerminal.js';
 
@@ -37,5 +39,11 @@ export const PANEL_VIEW_REGISTRY: readonly PanelViewDescriptor[] = [
     labelKey: 'terminal.panel',
     Icon: IconTerminal,
     render: () => <TerminalPanel />,
+  },
+  {
+    id: 'debug',
+    labelKey: 'debug.panel',
+    Icon: IconDebug,
+    render: () => <DebugPanel />,
   },
 ];
