@@ -35,11 +35,13 @@ export function useExtensions(): void {
 function useHostEvents(): void {
   const setHost = useExtensionsStore((state) => state.setHost);
   const setExtensions = useExtensionsStore((state) => state.setExtensions);
+  const setThemes = useExtensionsStore((state) => state.setThemes);
 
   useEffect(() => {
     const stopHost = window.pastecode.subscribe('extensions:hostChanged', setHost);
     const stopList = window.pastecode.subscribe('extensions:changed', (payload) => {
       setExtensions(payload.extensions);
+      setThemes(payload.themes);
     });
 
     // El estado inicial se pregunta: la ventana puede haber montado después de
@@ -48,14 +50,17 @@ function useHostEvents(): void {
       if (result.ok) setHost(result.value);
     });
     void window.pastecode.invoke('extensions:list', {}).then((result) => {
-      if (result.ok) setExtensions(result.value.extensions);
+      if (!result.ok) return;
+
+      setExtensions(result.value.extensions);
+      setThemes(result.value.themes);
     });
 
     return () => {
       stopHost();
       stopList();
     };
-  }, [setHost, setExtensions]);
+  }, [setHost, setExtensions, setThemes]);
 }
 
 /** Cable 2: comandos al registro de fábrica, ítems al store de la barra. */
@@ -78,20 +83,31 @@ function useContributions(): void {
  * Se recalcula entero en vez de aplicar un delta porque el evento trae el
  * estado resuelto: reconstruir a partir de deltas es lo que deja media
  * extensión en la paleta cuando se pierde un evento.
+ *
+ * **Sólo se registra lo que falta.** `CommandRegistry.register` lanza ante un
+ * id repetido, y el evento llega una vez por cada cambio de contribución —una
+ * extensión que actualiza su ítem de la barra republica también sus comandos—,
+ * así que volver a registrar lo que ya estaba tiraba una excepción que se comía
+ * el resto del listener. El síntoma era la status bar congelada en su primer
+ * valor, que no se parece en nada a la causa.
  */
 function syncCommands(commands: ExtensionContributionsEvent['commands']): void {
   const store = useCommandStore.getState();
-  const wanted = new Set(commands.map((command) => command.id));
+  const wanted = new Map(commands.map((command) => [prefixed(command.id), command]));
+  const registered = new Set<string>();
 
   for (const { id } of store.registry.list()) {
-    if (id.startsWith(EXTENSION_PREFIX) && !wanted.has(id.slice(EXTENSION_PREFIX.length))) {
-      store.unregister(id);
-    }
+    if (!id.startsWith(EXTENSION_PREFIX)) continue;
+
+    if (wanted.has(id)) registered.add(id);
+    else store.unregister(id);
   }
 
-  for (const command of commands) {
+  for (const [id, command] of wanted) {
+    if (registered.has(id)) continue;
+
     store.register({
-      id: `${EXTENSION_PREFIX}${command.id}`,
+      id,
       title: command.title,
       ...(command.category === undefined ? {} : { category: command.category }),
       handler: async () => {
@@ -102,6 +118,11 @@ function syncCommands(commands: ExtensionContributionsEvent['commands']): void {
       },
     });
   }
+}
+
+/** El id con el que un comando de extensión vive en el registro. */
+function prefixed(id: string): string {
+  return `${EXTENSION_PREFIX}${id}`;
 }
 
 /**

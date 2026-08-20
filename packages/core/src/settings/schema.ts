@@ -91,6 +91,20 @@ const gitFields = {
 
 const windowFields = {
   theme: z.enum(['light', 'dark', 'system']),
+  /**
+   * El `id` de un tema aportado por una extensión, o vacío para no usar ninguno
+   * ([RF-906](../../../../docs/03-requerimientos-funcionales.md)).
+   *
+   * Va aparte de `theme` y no como un valor más de su enum porque son dos
+   * preguntas distintas: `theme` decide claro contra oscuro —y sigue mandando
+   * cuando el tema elegido no está instalado—, y esto elige qué paleta se pinta
+   * encima. Meterlos en un solo campo obligaría a migrar el archivo de settings
+   * de todos los que ya lo tienen escrito.
+   *
+   * Un id que no corresponde a ningún tema instalado se ignora: una extensión
+   * desinstalada no puede dejar al IDE sin colores.
+   */
+  colorTheme: z.string(),
   zoomLevel: z.number().min(-5).max(5),
 };
 
@@ -174,6 +188,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   window: {
     theme: 'system',
+    colorTheme: '',
     zoomLevel: 0,
   },
 };

@@ -101,7 +101,10 @@ endpoint.handle(HOST_METHODS.activeEditorChanged, async (params) => {
     await runtime.activate({ kind: 'language', languageId: editor.languageId });
   }
 
-  return null;
+  // Se devuelve el estado y no `null`: el aviso pudo haber despertado
+  // extensiones, y el main necesita republicar la lista para que no siga
+  // diciendo `inactive` sobre algo que ya está corriendo.
+  return runtime.report();
 });
 
 /**

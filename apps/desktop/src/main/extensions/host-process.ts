@@ -6,7 +6,7 @@ import type {
   ExtensionHostChangedEvent,
   ExtensionsChangedEvent,
 } from '@pastecode/ipc-contract';
-import { ExtensionInfoSchema } from '@pastecode/ipc-contract';
+import { ExtensionInfoSchema, ExtensionThemeSchema } from '@pastecode/ipc-contract';
 import { utilityProcess } from 'electron';
 
 import { logProcess } from '../services/logger.js';
@@ -30,6 +30,15 @@ export interface ExtensionHostService {
   extensions(): ExtensionsChangedEvent;
   /** La punta del protocolo contra el host vivo. */
   rpc(): RpcEndpoint;
+  /**
+   * Le avisa al host qué documento está activo y republica lo que reporte.
+   *
+   * El aviso puede **despertar** extensiones —`onLanguage:` se cumple recién
+   * cuando hay un documento de ese lenguaje a la vista—, así que el estado de
+   * después no es el de antes. Sin republicar, la lista quedaría diciendo
+   * `inactive` sobre una extensión que ya está corriendo.
+   */
+  notifyActiveEditor(payload: unknown): Promise<void>;
   /** Lo apaga a propósito. Un apagado deliberado no reinicia nada. */
   stop(): Promise<void>;
 }
@@ -125,7 +134,7 @@ export function createExtensionHostService(
     config,
     state: 'starting',
     restarts: 0,
-    extensions: { extensions: [] },
+    extensions: { extensions: [], themes: [] },
     endpoint: createRpcEndpoint({ send: () => undefined }),
     handle: null,
   };
@@ -144,7 +153,7 @@ export function createExtensionHostService(
       host.config.broker?.reset();
       // La lista se vacía: lo que estaba activo murió con el proceso, y
       // mostrarlo como activo mientras el host reinicia sería mentir.
-      publishExtensions(host, { extensions: [] });
+      publishExtensions(host, { extensions: [], themes: [] });
       publish(host, 'restarting');
     },
     onRestart: (handle) => {
@@ -169,6 +178,7 @@ export function createExtensionHostService(
     status: () => statusOf(host),
     extensions: () => host.extensions,
     rpc: () => host.endpoint,
+    notifyActiveEditor: (payload) => notifyActiveEditor(host, payload),
 
     async stop() {
       await supervisor.stop(SHUTDOWN_GRACE_MS);
@@ -233,17 +243,40 @@ async function loadExtensions(host: HostState): Promise<void> {
       directories: extensionDirectories(),
     });
 
-    const extensions = readExtensions(reported);
+    const extensions = readExtensions(readField(reported, 'extensions'));
+    const themes = readThemes(readField(reported, 'themes'));
 
     // Las capabilities primero: el broker las necesita para dejar actuar a
     // cualquiera de las que acaban de activarse.
     host.config.broker?.grant(
       extensions.map((entry) => ({ name: entry.name, capabilities: entry.capabilities }))
     );
-    publishExtensions(host, { extensions });
+    publishExtensions(host, { extensions, themes });
   } catch (cause) {
     logProcess('unhealthy', 'extension-host', { reason: `carga fallida: ${String(cause)}` });
   }
+}
+
+/**
+ * Le pasa el documento activo al host y republica lo que haya cambiado.
+ *
+ * Un fallo acá se traga: significa que el host no está, y el editor va a
+ * seguir cambiando, así que el próximo aviso lo alcanza.
+ */
+async function notifyActiveEditor(host: HostState, payload: unknown): Promise<void> {
+  const reported = await host.endpoint
+    .request(HOST_METHODS.activeEditorChanged, payload)
+    .catch(() => null);
+
+  if (reported === null) return;
+
+  const extensions = readExtensions(reported);
+
+  // Sólo se republica si de verdad cambió algo: sin esta comparación, cada
+  // cambio de pestaña emitiría un evento hacia el renderer sin novedad adentro.
+  if (JSON.stringify(extensions) === JSON.stringify(host.extensions.extensions)) return;
+
+  publishExtensions(host, { extensions, themes: host.extensions.themes });
 }
 
 /**
@@ -257,11 +290,29 @@ async function loadExtensions(host: HostState): Promise<void> {
 function readExtensions(reported: unknown): ExtensionsChangedEvent['extensions'] {
   if (!Array.isArray(reported)) return [];
 
-  return reported.flatMap((entry) => {
+  return reported.flatMap((entry: unknown) => {
     const parsed = ExtensionInfoSchema.safeParse(entry);
 
     return parsed.success ? [parsed.data] : [];
   });
+}
+
+/** Ídem para los temas aportados. */
+function readThemes(reported: unknown): ExtensionsChangedEvent['themes'] {
+  if (!Array.isArray(reported)) return [];
+
+  return reported.flatMap((entry: unknown) => {
+    const parsed = ExtensionThemeSchema.safeParse(entry);
+
+    return parsed.success ? [parsed.data] : [];
+  });
+}
+
+/** Saca un campo sin asumir que lo reportado sea un objeto. */
+function readField(reported: unknown, field: string): unknown {
+  if (typeof reported !== 'object' || reported === null) return undefined;
+
+  return Reflect.get(reported, field);
 }
 
 /** Anota la lista y avisa. */

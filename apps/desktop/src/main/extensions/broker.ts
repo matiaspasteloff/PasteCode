@@ -40,6 +40,13 @@ export interface ExtensionBroker {
   reset(): void;
 }
 
+/** Un ítem de la barra, con lo que el renderer no necesita saber. */
+interface TrackedStatusItem {
+  item: ExtensionContributionsEvent['statusItems'][number];
+  /** Nace en `false`: se le pone el texto y recién ahí `show()`. */
+  visible: boolean;
+}
+
 /** Una pregunta al renderer que todavía no volvió. */
 interface PendingPull {
   readonly settle: (value: { text: string | null; applied?: boolean }) => void;
@@ -51,7 +58,8 @@ interface BrokerState {
   readonly config: BrokerConfig;
   readonly capabilities: Map<string, readonly Capability[]>;
   readonly commands: Map<string, ExtensionContributionsEvent['commands'][number]>;
-  readonly statusItems: Map<string, ExtensionContributionsEvent['statusItems'][number]>;
+  /** Los ítems creados, visibles o no. La barra sólo ve los visibles. */
+  readonly statusItems: Map<string, TrackedStatusItem>;
   readonly pulls: Map<string, PendingPull>;
   rpc: RpcEndpoint | null;
 }
@@ -168,15 +176,19 @@ function attachStatusBar(state: BrokerState, rpc: RpcEndpoint): void {
     const options = readField(params, 'options');
 
     state.statusItems.set(itemId, {
-      extension,
-      itemId,
-      text: '',
-      alignment: readAlignment(options),
-      priority: readNumber(options, 'priority') ?? 0,
+      item: {
+        extension,
+        itemId,
+        text: '',
+        alignment: readAlignment(options),
+        priority: readNumber(options, 'priority') ?? 0,
+      },
+      // Nace oculto: se le pone el texto y recién ahí `show()`. Al revés
+      // parpadearía vacío, que es lo que pasaba cuando `visible` no existía y
+      // cualquier `setTooltip` alcanzaba para dibujarlo.
+      visible: false,
     });
 
-    // Nace oculto: se publica recién cuando le ponen texto y lo muestran. Al
-    // revés parpadearía vacío.
     return itemId;
   });
 
@@ -281,17 +293,13 @@ function allow(state: BrokerState, extension: string, needed: Capability): void 
 }
 
 /** El ítem, si de verdad es de esa extensión. */
-function ownedItem(
-  state: BrokerState,
-  extension: string,
-  itemId: string
-): ExtensionContributionsEvent['statusItems'][number] {
+function ownedItem(state: BrokerState, extension: string, itemId: string): TrackedStatusItem {
   const item = state.statusItems.get(itemId);
 
   // La atribución no es paranoia: el `itemId` viaja por un canal que del otro
   // lado maneja código de terceros, así que nada impide que una extensión mande
   // el id de otra. El main es el único que puede notar la diferencia.
-  if (item?.extension !== extension) {
+  if (item?.item.extension !== extension) {
     throw new Error(`El ítem "${itemId}" no es de "${extension}"`);
   }
 
@@ -305,21 +313,21 @@ function updateStatusItem(
   itemId: string,
   patch: unknown
 ): void {
-  const item = ownedItem(state, extension, itemId);
+  const tracked = ownedItem(state, extension, itemId);
   const text = readString2(patch, 'text');
   const tooltip = readString2(patch, 'tooltip');
   const command = readString2(patch, 'command');
   const visible = readField(patch, 'visible');
 
-  const next = {
-    ...item,
-    ...(text === undefined ? {} : { text }),
-    ...(tooltip === undefined ? {} : { tooltip }),
-    ...(command === undefined ? {} : { command }),
-  };
-
-  if (visible === false) state.statusItems.delete(itemId);
-  else state.statusItems.set(itemId, next);
+  state.statusItems.set(itemId, {
+    item: {
+      ...tracked.item,
+      ...(text === undefined ? {} : { text }),
+      ...(tooltip === undefined ? {} : { tooltip }),
+      ...(command === undefined ? {} : { command }),
+    },
+    visible: typeof visible === 'boolean' ? visible : tracked.visible,
+  });
 
   publish(state);
 }
@@ -328,7 +336,10 @@ function updateStatusItem(
 function contributionsOf(state: BrokerState): ExtensionContributionsEvent {
   return {
     commands: [...state.commands.values()],
-    statusItems: [...state.statusItems.values()].sort((a, b) => b.priority - a.priority),
+    statusItems: [...state.statusItems.values()]
+      .filter((tracked) => tracked.visible)
+      .map((tracked) => tracked.item)
+      .sort((a, b) => b.priority - a.priority),
   };
 }
 

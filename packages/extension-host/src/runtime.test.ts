@@ -67,7 +67,7 @@ describe('createExtensionRuntime', () => {
     );
 
     const runtime = createExtensionRuntime(silentRpc());
-    const reported = await runtime.load([sandbox]);
+    const { extensions: reported } = await runtime.load([sandbox]);
 
     expect(reported).toEqual([
       {
@@ -89,7 +89,7 @@ describe('createExtensionRuntime', () => {
 
     const runtime = createExtensionRuntime(silentRpc());
 
-    expect((await runtime.load([sandbox]))[0]?.state).toBe('inactive');
+    expect((await runtime.load([sandbox])).extensions[0]?.state).toBe('inactive');
   });
 
   it('la activa cuando aparece su lenguaje', async () => {
@@ -114,7 +114,7 @@ describe('createExtensionRuntime', () => {
 
     const runtime = createExtensionRuntime(silentRpc());
 
-    expect((await runtime.load([sandbox]))[0]).toMatchObject({ state: 'inactive' });
+    expect((await runtime.load([sandbox])).extensions[0]).toMatchObject({ state: 'inactive' });
   });
 
   it('le pasa a activate un objeto con los dos namespaces', async () => {
@@ -129,7 +129,7 @@ describe('createExtensionRuntime', () => {
 
     const runtime = createExtensionRuntime(silentRpc());
 
-    expect((await runtime.load([sandbox]))[0]?.state).toBe('active');
+    expect((await runtime.load([sandbox])).extensions[0]?.state).toBe('active');
   });
 
   describe('RF-902: una extensión rota no toca a las demás', () => {
@@ -145,7 +145,9 @@ describe('createExtensionRuntime', () => {
         `export const activate = () => {};`
       );
 
-      const reported = await createExtensionRuntime(silentRpc()).load([sandbox]);
+      const { extensions: reported } = await createExtensionRuntime(silentRpc()).load([
+        sandbox,
+      ]);
       const byName = new Map(reported.map((entry) => [entry.name, entry]));
 
       expect(byName.get('rota')?.state).toBe('failed');
@@ -160,7 +162,9 @@ describe('createExtensionRuntime', () => {
         `export const nada = 1;`
       );
 
-      const reported = await createExtensionRuntime(silentRpc()).load([sandbox]);
+      const { extensions: reported } = await createExtensionRuntime(silentRpc()).load([
+        sandbox,
+      ]);
 
       expect(reported[0]?.state).toBe('failed');
       expect(reported[0]?.reason).toContain('activate');
@@ -172,15 +176,17 @@ describe('createExtensionRuntime', () => {
         activationEvents: ['onStartupFinished'],
       });
 
-      expect((await createExtensionRuntime(silentRpc()).load([sandbox]))[0]?.state).toBe(
-        'failed'
-      );
+      expect(
+        (await createExtensionRuntime(silentRpc()).load([sandbox])).extensions[0]?.state
+      ).toBe('failed');
     });
 
     it('reporta también a las que no llegaron a tener manifest válido', async () => {
       await mkdir(join(sandbox, 'sin-manifest'), { recursive: true });
 
-      const reported = await createExtensionRuntime(silentRpc()).load([sandbox]);
+      const { extensions: reported } = await createExtensionRuntime(silentRpc()).load([
+        sandbox,
+      ]);
 
       // Desaparecer de la lista sin decir nada no es un error **visible**.
       expect(reported).toHaveLength(1);

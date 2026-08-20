@@ -89,9 +89,14 @@ void app.whenReady().then(async () => {
   // hace falta para el build empaquetado.
   if (!isDevelopment) serveRendererFrom(join(__dirname, '../renderer'));
 
-  startExtensionHost();
-
   createMainWindow();
+
+  // **Después** de la ventana, y no antes. El host publica lo que cargó por
+  // `extensions:changed`, y un evento emitido cuando todavía no hay ninguna
+  // ventana no lo recibe nadie: se pierde y la UI queda mostrando cero
+  // extensiones para siempre. De paso, la ventana pinta sin esperar a que se
+  // forkee un proceso, que es lo que RNF-01 mide.
+  startExtensionHost();
 
   app.on('activate', () => {
     // macOS: hacer click en el ícono del dock con la app abierta y sin

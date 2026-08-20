@@ -12,9 +12,12 @@ interface ExtensionsState {
   extensions: ExtensionsChangedEvent['extensions'];
   /** Los ítems de la status bar aportados, ya ordenados por prioridad. */
   statusItems: ExtensionContributionsEvent['statusItems'];
+  /** Los temas aportados, listos para aplicar. */
+  themes: ExtensionsChangedEvent['themes'];
 
   setHost: (host: ExtensionHostChangedEvent) => void;
   setExtensions: (extensions: ExtensionsChangedEvent['extensions']) => void;
+  setThemes: (themes: ExtensionsChangedEvent['themes']) => void;
   setStatusItems: (items: ExtensionContributionsEvent['statusItems']) => void;
 }
 
@@ -38,6 +41,7 @@ export const useExtensionsStore = create<ExtensionsState>((set) => ({
   host: { state: 'starting', pid: null, restarts: 0 },
   extensions: [],
   statusItems: [],
+  themes: [],
 
   setHost: (host) => {
     set({ host });
@@ -45,6 +49,10 @@ export const useExtensionsStore = create<ExtensionsState>((set) => ({
 
   setExtensions: (extensions) => {
     set({ extensions });
+  },
+
+  setThemes: (themes) => {
+    set({ themes });
   },
 
   setStatusItems: (statusItems) => {

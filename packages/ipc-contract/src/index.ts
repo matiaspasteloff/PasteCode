@@ -28,6 +28,7 @@ export {
   ExtensionCommandSchema,
   ExtensionContributionsSchema,
   ExtensionStatusItemSchema,
+  ExtensionThemeSchema,
   ExtensionTextEditSchema,
   ExtensionHostStatusSchema,
   ExtensionInfoSchema,

@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // El único lugar del repo que emite: una extensión se distribuye compilada,
+    // y el host la carga con un `import()` dinámico. Sin bundler y sin
+    // dependencias nuevas de build, que es lo que el plan pedía: `tsc` a ESM.
+    "noEmit": false,
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "declaration": false,
+    "sourceMap": true
+  }
+}

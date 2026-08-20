@@ -10,7 +10,14 @@ export { assertCapability } from './capabilities.js';
 export { createExtensionApi, forgetExtensionCommands, runRegisteredCommand } from './api.js';
 export type { ApiContext, EditorSnapshot } from './api.js';
 export { createExtensionRuntime } from './runtime.js';
-export type { ExtensionReport, ExtensionRuntime, ExtensionState } from './runtime.js';
+export type {
+  ExtensionReport,
+  ExtensionRuntime,
+  ExtensionState,
+  LoadResult,
+} from './runtime.js';
+export { readThemes } from './themes.js';
+export type { LoadedTheme } from './themes.js';
 export { HOST_METHODS, MAIN_METHODS } from './protocol.js';
 export { scanExtensions } from './scan.js';
 export type { DiscoveredExtension, ExtensionFailure, ScanResult } from './scan.js';

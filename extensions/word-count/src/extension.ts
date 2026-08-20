@@ -47,6 +47,7 @@ async function render(editor: TextEditor | undefined): Promise<void> {
   }
 
   const text = await editor.document.getText();
+
   await statusItem.setText(`${String(countWords(text))} palabras`);
   await statusItem.show();
 }
