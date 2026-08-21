@@ -299,6 +299,22 @@ export interface AiDoneEvent {
   error: SerializedError | null;
 }
 
+/**
+ * Payload de `window:maximizedChanged`: la ventana se maximizó o se restauró.
+ *
+ * Hace falta un evento y no alcanza con `window:isMaximized` porque **el
+ * estado cambia también sin que nadie apriete un botón**: arrastrar la ventana
+ * al borde superior de la pantalla la maximiza, y un doble click en la barra
+ * la restaura. Sin esto, el glifo del botón se queda mostrando lo contrario de
+ * lo que pasó.
+ *
+ * Mismo par que `git:getStatus` / `git:changed`: la pregunta para el montaje,
+ * el hecho para lo que pasa después.
+ */
+export interface WindowMaximizedChangedEvent {
+  isMaximized: boolean;
+}
+
 export interface IpcEvents {
   'terminal:data': TerminalDataEvent;
   'terminal:exit': TerminalExitEvent;
@@ -320,6 +336,7 @@ export interface IpcEvents {
   'ai:delta': AiDeltaEvent;
   'ai:toolCall': AiToolCallEvent;
   'ai:done': AiDoneEvent;
+  'window:maximizedChanged': WindowMaximizedChangedEvent;
 }
 
 /**
@@ -385,6 +402,7 @@ export const EVENT_NAMES = [
   'ai:delta',
   'ai:toolCall',
   'ai:done',
+  'window:maximizedChanged',
 ] as const satisfies readonly EventName[];
 
 /**

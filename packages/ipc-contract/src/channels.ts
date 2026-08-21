@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 
 import type { AiChannels } from './channels-ai.js';
+import type { WindowChannels } from './channels-window.js';
 import type { GetVersionRequestSchema, GetVersionResponseSchema } from './schemas/app.js';
 import type {
   DiscardBackupsRequestSchema,
@@ -148,13 +149,14 @@ import type {
  * type V = Response<'app:getVersion'>; // { version: string }
  */
 /**
- * Los canales del asistente viven en `channels-ai.js` y se heredan, no se
- * escriben acá: es una etapa experimental que tiene que poder sacarse en un
- * borrado, y este archivo llegó al techo de 400 líneas de RNF-20. La cláusula
+ * Los canales del asistente y los de la ventana viven en `channels-ai.js` y
+ * `channels-window.js` y se heredan, no se escriben acá: este archivo llegó al
+ * techo de 400 líneas de RNF-20, y el asistente además es una etapa
+ * experimental que tiene que poder sacarse en un borrado. La cláusula
  * `extends` mantiene un solo `ChannelName` con todos los canales, así que un
  * canal sin handler sigue siendo un error de compilación.
  */
-export interface IpcChannels extends AiChannels {
+export interface IpcChannels extends AiChannels, WindowChannels {
   'app:getVersion': {
     request: z.infer<typeof GetVersionRequestSchema>;
     response: z.infer<typeof GetVersionResponseSchema>;

@@ -18,6 +18,16 @@ export {
   SetAiApiKeyRequestSchema,
   SetAiApiKeyResponseSchema,
 } from './schemas/ai.js';
+export {
+  CloseWindowRequestSchema,
+  CloseWindowResponseSchema,
+  IsWindowMaximizedRequestSchema,
+  IsWindowMaximizedResponseSchema,
+  MinimizeWindowRequestSchema,
+  MinimizeWindowResponseSchema,
+  ToggleMaximizeWindowRequestSchema,
+  ToggleMaximizeWindowResponseSchema,
+} from './schemas/window.js';
 export { EVENT_NAMES, isEventName } from './events.js';
 export type {
   AiDeltaEvent,
@@ -44,6 +54,7 @@ export type {
   SettingsChangedEvent,
   TerminalDataEvent,
   TerminalExitEvent,
+  WindowMaximizedChangedEvent,
 } from './events.js';
 export {
   DebugStateSchema,

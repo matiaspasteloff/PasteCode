@@ -54,5 +54,38 @@ export function viewCommands(): readonly Command[] {
         useViewStore.getState().toggleSide('explorer');
       },
     },
+    ...panelCommands(),
+  ];
+}
+
+/**
+ * Los comandos de los dos inquilinos del panel inferior que no tenían uno.
+ *
+ * La terminal ya tenía el suyo desde la Etapa 3; problemas y depuración sólo
+ * se podían abrir clickeando su pestaña. Sin éstos, la barra de menús de
+ * [ADR-0030](../../../../../../docs/adr/0030-barra-de-titulo-propia.md) no
+ * tendría nada que ofrecer en Ver ni en Ejecutar — y ése es exactamente el
+ * síntoma de que faltaban.
+ *
+ * @returns Los comandos, listos para registrar.
+ * @example
+ * for (const command of panelCommands()) register(command);
+ */
+function panelCommands(): readonly Command[] {
+  return [
+    {
+      id: 'problems.togglePanel',
+      title: 'command.problemsTogglePanel',
+      handler: () => {
+        useViewStore.getState().togglePanel('problems');
+      },
+    },
+    {
+      id: 'debug.togglePanel',
+      title: 'command.debugTogglePanel',
+      handler: () => {
+        useViewStore.getState().togglePanel('debug');
+      },
+    },
   ];
 }

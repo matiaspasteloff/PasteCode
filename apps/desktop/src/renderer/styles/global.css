@@ -31,37 +31,57 @@ body {
 }
 
 /*
- * La toolbar cruza las tres columnas y va **debajo** del marco nativo de
- * Windows, no en lugar de él: ver ADR-0022.
+ * La barra de título propia: reemplaza al marco nativo de Windows desde
+ * ADR-0030, que derogó la parte de ADR-0022 que lo defendía.
+ *
+ * `-webkit-app-region: drag` es lo que hace que la ventana se arrastre, se
+ * maximice con doble click y haga snap a los bordes, **sin una línea de
+ * JavaScript**. Es el argumento que volvió barato lo que ADR-0022 había
+ * descartado por caro.
  */
 .title-toolbar {
   display: flex;
   grid-column: 1 / -1;
   align-items: center;
-  padding: 0 var(--space-3);
+  padding-left: var(--space-2);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
-  gap: var(--space-4);
   font-size: 0.8rem;
+  -webkit-app-region: drag;
+}
+
+/*
+ * **La regla que evita el error clásico de esta feature.** Un control adentro
+ * de una región de arrastre no recibe clicks: el sistema operativo se queda
+ * con el mousedown para mover la ventana. El síntoma —"el botón no anda"— no
+ * se parece en nada a la causa, así que esto cubre a *todos* los hijos
+ * interactivos de una vez en lugar de ir caso por caso, y agregar un control
+ * nuevo no incluye acordarse de nada.
+ */
+.title-toolbar button,
+.title-toolbar input,
+.title-toolbar select,
+.title-toolbar [role='menu'] {
+  -webkit-app-region: no-drag;
 }
 
 .title-toolbar__project {
   overflow: hidden;
-  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 /* Centrado y con ancho propio: es el objeto más parecido a una barra de
    direcciones que tiene la app, y moverlo de lugar lo vuelve difícil de
-   encontrar. */
+   encontrar. Con la barra propia, además, ahora está centrado respecto de la
+   ventana de verdad y no de una franja que empieza más abajo. */
 .title-toolbar__commands {
   display: flex;
   width: min(24rem, 40vw);
   align-items: center;
   justify-content: center;
   margin: 0 auto;
-  padding: var(--space-1) var(--space-3);
+  padding: 2px var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-background);
@@ -81,13 +101,129 @@ body {
   outline-offset: -2px;
 }
 
-/* El slot de la derecha. Queda vacío hasta que Git exista: ahí va la rama. */
-.title-toolbar__end {
+/* --- Barra de menús ------------------------------------------------------ */
+
+.menu-bar {
   display: flex;
-  min-width: 8rem;
   align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-2);
+}
+
+.menu-bar__slot {
+  position: relative;
+}
+
+.menu-bar__trigger {
+  padding: var(--space-1) var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-foreground);
+  cursor: default;
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.menu-bar__trigger:hover,
+.menu-bar__trigger[aria-expanded='true'] {
+  background: var(--color-surface-raised);
+}
+
+.menu-bar__trigger:focus-visible,
+.menu-bar__item:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+/* El desplegable se posiciona respecto del título y no del documento: así
+   acompaña al botón sin que nadie tenga que calcular coordenadas. */
+.menu-bar__dropdown {
+  position: absolute;
+  z-index: 40;
+  top: 100%;
+  left: 0;
+  display: flex;
+  min-width: 15rem;
+  flex-direction: column;
+  padding: var(--space-1) 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
+}
+
+.menu-bar__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-1) var(--space-3);
+  border: none;
+  background: none;
+  color: var(--color-foreground);
+  cursor: default;
+  font: inherit;
+  font-size: 0.75rem;
+  gap: var(--space-5);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.menu-bar__item:hover {
+  background: var(--color-selection);
+}
+
+.menu-bar__shortcut {
+  color: var(--color-muted);
+  font-size: 0.7rem;
+}
+
+.menu-bar__rule {
+  height: 0;
+  margin: var(--space-1) 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+/* --- Botones de ventana --------------------------------------------------
+ * Los glifos son los de Segoe Fluent Icons, la fuente de iconos que Windows
+ * trae de fábrica: son exactamente los mismos que dibujaba el marco nativo.
+ * El fallback importa igual —en un sistema sin esa fuente, los caracteres
+ * caen en la monoespaciada y se ven como cuadraditos, no como nada—.
+ */
+.window-controls {
+  display: flex;
+  height: var(--toolbar-height);
+  margin-left: auto;
+  font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets', var(--font-mono);
+}
+
+.window-controls button {
+  display: flex;
+  width: 2.9rem;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--color-foreground);
+  cursor: default;
+  font-family: inherit;
+  font-size: 0.625rem;
+  line-height: 1;
+}
+
+.window-controls button:hover {
+  background: var(--color-surface-raised);
+}
+
+.window-controls button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+/* El rojo de cerrar es el del sistema y no `--color-danger`: es el único
+   control de la app donde el color lo elige Windows y no el tema. */
+.window-controls__close:hover {
+  background: #c42b1c;
+  color: #ffffff;
 }
 
 /*
