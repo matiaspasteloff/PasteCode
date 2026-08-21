@@ -51,12 +51,28 @@ Documentar lo que **no** se hace es tan importante como lo que sí. Esto evita e
 - ❌ Remote development / SSH / containers
 - ❌ Live share / colaboración en tiempo real
 - ❌ Notebooks (Jupyter)
-- ❌ Integración de IA / autocompletado con LLM _(candidato a Fase 5, no antes)_
 - ❌ Soporte para monorepos con múltiples carpetas raíz _(sólo una carpeta raíz por ventana en v1)_
 - ❌ Versión web / browser-based
 - ❌ Traducción a otros idiomas _(la arquitectura debe soportar i18n, pero sólo se envía `en` y `es`)_
 
 > **Esta lista es un contrato.** Toda feature nueva que quiera entrar requiere sacar otra. Ver [riesgos](./06-roadmap-y-riesgos.md#riesgos-identificados).
+
+## Alcance experimental
+
+Hay una tercera categoría además de "adentro" y "afuera": lo que se construye **al lado** del contrato de la v1, sin contar contra él.
+
+La IA vivía en la lista de arriba como "❌ Integración de IA / autocompletado con LLM _(candidato a Fase 5, no antes)_". Se sacó de ahí por decisión explícita, y no se movió a "Alcance — Dentro": pasa a esta sección, que tiene reglas propias.
+
+| Regla                                  | Qué significa                                                                                                                                                                                                               |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **No cuenta contra el contrato**       | Que la IA exista no obliga a sacar ninguna feature de la lista de adentro. La regla de "una entra, otra sale" aplica al alcance de la v1, y esto no está en la v1.                                                          |
+| **Es opt-in**                          | Sin clave de API configurada, el asistente no hace una sola llamada de red. El IDE arranca, edita, busca, compila y depura exactamente igual con la etapa experimental sin tocar.                                           |
+| **Se puede sacar sin romper nada**     | La superficie es una vista lateral más en el registro de [ADR-0022](./adr/0022-cascaron-con-barra-de-actividades.md), un módulo de canales en el contrato y una carpeta en el main. Borrar los tres deja la app compilando. |
+| **No entra en los criterios de éxito** | CE-01 a CE-05 se miden sobre el IDE, no sobre el asistente.                                                                                                                                                                 |
+
+Lo que se construyó está en el módulo **[RF-10xx · Asistente de IA](./03-requerimientos-funcionales.md#asistente-de-ia-etapa-experimental)** y su decisión en [ADR-0029](./adr/0029-asistente-de-ia-en-el-main.md).
+
+**Lo que sigue afuera, incluso acá:** autocompletado inline con LLM (el ruido de un modelo sugiriendo en cada tecla es un problema de producto distinto y mucho más caro), indexación semántica del workspace, y cualquier modelo que corra local.
 
 ## Criterios de éxito
 

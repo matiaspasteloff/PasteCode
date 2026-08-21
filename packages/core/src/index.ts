@@ -4,6 +4,55 @@ export { KeybindingsFileSchema, normalizeKey, userKeybindings } from './keybindi
 export type { KeybindingsFile } from './keybindings/file.js';
 export { InvalidWhenExpressionError, parseWhen } from './keybindings/when-parser.js';
 export type { WhenExpression } from './keybindings/when-parser.js';
+export {
+  AiCancelledError,
+  AiRequestError,
+  EncryptionUnavailableError,
+  InvalidToolCallError,
+  MissingApiKeyError,
+} from './errors/ai-errors.js';
+export {
+  applyCompletionChunk,
+  completedToolCalls,
+  EMPTY_COMPLETION,
+} from './ai/completion-chunks.js';
+export type { CompletionState, ToolCallRequest } from './ai/completion-chunks.js';
+export { splitMarkdown } from './ai/markdown.js';
+export type { MarkdownBlock } from './ai/markdown.js';
+export {
+  AI_MESSAGE_ROLES,
+  AiMessageSchema,
+  estimateTokens,
+  trimToBudget,
+} from './ai/messages.js';
+export type { AiMessage, AiMessageRole } from './ai/messages.js';
+export { AiModelSchema, freeModels } from './ai/models.js';
+export type { AiModel } from './ai/models.js';
+export { consumeSse } from './ai/sse.js';
+export type { SseParseResult } from './ai/sse.js';
+export {
+  AI_TOOL_NAMES,
+  AI_TOOLS,
+  isReadOnlyTool,
+  isToolName,
+  parseToolArguments,
+  READ_ONLY_TOOLS,
+} from './ai/tools.js';
+export type {
+  AiToolArguments,
+  AiToolDefinition,
+  AiToolName,
+  ReadOnlyToolName,
+} from './ai/tools.js';
+export { BUILT_IN_THEMES, builtInTheme } from './theme/built-in-themes.js';
+export { blend, contrastRatio, parseHex, relativeLuminance } from './theme/contrast.js';
+export { buildTheme } from './theme/palette.js';
+export type {
+  AnsiPalette,
+  BuiltInTheme,
+  ThemePalette,
+  TokenColorRule,
+} from './theme/palette.js';
 export { fuzzyMatch, rankByFuzzyMatch } from './commands/fuzzy.js';
 export type { FuzzyMatch } from './commands/fuzzy.js';
 export {

@@ -88,12 +88,13 @@ test('cambia de tema en caliente y repinta toda la aplicación', async () => {
 
   await window.keyboard.press('Control+Shift+P');
   await expect(window.getByRole('combobox')).toBeVisible();
-  await window.keyboard.type('tema');
 
-  // Se verifica que el comando del tema quede **primero**, y no que sea el
-  // único que coincide: el matcher es difuso, así que cualquier comando con
-  // "terminal" en el título coincide con "tema" por subsecuencia. Contar
-  // resultados ataba este test al catálogo entero de comandos de la app.
+  // Se escribe el título completo y no `tema` a secas. Desde la etapa
+  // experimental hay **dos** comandos de tema —rotar claro/oscuro y elegir uno
+  // de los nueve incorporados— y el matcher es difuso, así que `tema` ya no
+  // identifica a ninguno: apretar Enter podía abrir el selector en vez de
+  // rotar, y el síntoma era este test viendo la paleta todavía abierta.
+  await window.keyboard.type('Cambiar el tema');
   await expect(window.getByRole('option').first()).toHaveText(
     'Cambiar el tema (claro, oscuro, sistema)'
   );
@@ -103,4 +104,29 @@ test('cambia de tema en caliente y repinta toda la aplicación', async () => {
   expect(['light', 'dark']).toContain(
     await window.evaluate(() => document.documentElement.dataset.theme)
   );
+});
+
+test('el selector de temas previsualiza al moverse y restaura al cancelar', async () => {
+  // Los nueve temas incorporados de ADR-0031, por el camino de verdad. Va en su
+  // propio test y no fusionado con el de arriba porque lo que verifica es otra
+  // cosa: que el preview **pinte** y que cancelar **restaure**, que es la mitad
+  // del valor del selector y la parte que es fácil romper sin notarlo.
+  const window = await app.firstWindow();
+  await window.getByRole('button', { name: 'Abrir carpeta' }).waitFor();
+
+  const before = await backgroundOf(window, 'body');
+
+  // El primer acorde del proyecto: Ctrl+K, soltar, Ctrl+T.
+  await window.keyboard.press('Control+K');
+  await window.keyboard.press('Control+T');
+  await expect(window.getByRole('combobox')).toBeVisible();
+
+  // Abrirse ya previsualiza el primero de la lista.
+  const previewed = await backgroundOf(window, 'body');
+  expect(previewed).not.toBe(before);
+
+  await window.keyboard.press('Escape');
+
+  await expect(window.locator('.palette')).toHaveCount(0);
+  expect(await backgroundOf(window, 'body')).toBe(before);
 });

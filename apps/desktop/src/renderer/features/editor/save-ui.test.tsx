@@ -39,9 +39,11 @@ describe('TabStrip', () => {
 
     render(<TabStrip group={primaryGroup()} />);
 
+    // Sólo el nombre: desde el rediseño, el icono del archivo y la × de cerrar
+    // son SVG y no texto, así que ya no ensucian el contenido de la pestaña.
     expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
-      'saludo.ts×',
-      'otro.ts×',
+      'saludo.ts',
+      'otro.ts',
     ]);
   });
 

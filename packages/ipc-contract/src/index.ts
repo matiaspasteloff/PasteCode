@@ -1,7 +1,38 @@
 export type { PasteCodeApi } from './api.js';
 export type { ChannelName, IpcChannels, Request, RequestSchema, Response } from './channels.js';
+export {
+  AI_TOOL_OUTCOMES,
+  AiChatRequestSchema,
+  AiChatResponseSchema,
+  AiKeyStatusRequestSchema,
+  AiKeyStatusResponseSchema,
+  AiToolNameSchema,
+  AiToolResultRequestSchema,
+  AiToolResultResponseSchema,
+  CancelAiRequestSchema,
+  CancelAiResponseSchema,
+  ClearAiApiKeyRequestSchema,
+  ClearAiApiKeyResponseSchema,
+  ListAiModelsRequestSchema,
+  ListAiModelsResponseSchema,
+  SetAiApiKeyRequestSchema,
+  SetAiApiKeyResponseSchema,
+} from './schemas/ai.js';
+export {
+  CloseWindowRequestSchema,
+  CloseWindowResponseSchema,
+  IsWindowMaximizedRequestSchema,
+  IsWindowMaximizedResponseSchema,
+  MinimizeWindowRequestSchema,
+  MinimizeWindowResponseSchema,
+  ToggleMaximizeWindowRequestSchema,
+  ToggleMaximizeWindowResponseSchema,
+} from './schemas/window.js';
 export { EVENT_NAMES, isEventName } from './events.js';
 export type {
+  AiDeltaEvent,
+  AiDoneEvent,
+  AiToolCallEvent,
   EventName,
   EventPayload,
   ExtensionHostChangedEvent,
@@ -23,6 +54,7 @@ export type {
   SettingsChangedEvent,
   TerminalDataEvent,
   TerminalExitEvent,
+  WindowMaximizedChangedEvent,
 } from './events.js';
 export {
   DebugStateSchema,

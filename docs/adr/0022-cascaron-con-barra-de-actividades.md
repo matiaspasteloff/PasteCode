@@ -2,9 +2,11 @@
 
 ## Estado
 
-`Aceptado`
+`Aceptado` · **Supersedida parcialmente por [ADR-0030](./0030-barra-de-titulo-propia.md)**
 
 **Fecha:** 2026-08-16
+
+> **Qué quedó sin efecto.** La decisión de conservar el marco nativo de Windows —el párrafo de "La barra de título nativa de Windows **queda intacta**" y la fila de alternativas que descartaba `frame: false`— la deroga [ADR-0030](./0030-barra-de-titulo-propia.md), que la reemplaza por una barra de título propia. **Todo el resto de este ADR sigue vigente**: el rail de actividades, el ruteo en `view-store`, el registro de vistas, el panel inferior con pestañas y la decisión de no crear `packages/ui`. La cuarta vista lateral que sumó la etapa experimental entró como una entrada más en el registro, sin tocar el cascarón, que era exactamente lo que este ADR predecía.
 
 ## Contexto
 
@@ -28,7 +30,7 @@ El rail **dispara comandos, no acciones del store**. Podría llamar a `toggleSid
 
 La geometría es una grilla de tres columnas (`activity` / `side` / `main`) y tres filas (`toolbar` / contenido / `status`). **El panel inferior vive adentro de `main` como columna flex, no como fila de la grilla**: no debe extenderse por debajo de la barra lateral, y así conserva intacta la geometría actual de `TerminalPanel`.
 
-La barra de título nativa de Windows **queda intacta**: la barra superior del diseño se adapta a una toolbar propia debajo del marco, sin `frame: false`. Un marco propio obliga a reimplementar arrastre, snap, doble click para maximizar y los botones de ventana, y a mantenerlos en tres plataformas.
+~~La barra de título nativa de Windows **queda intacta**: la barra superior del diseño se adapta a una toolbar propia debajo del marco, sin `frame: false`. Un marco propio obliga a reimplementar arrastre, snap, doble click para maximizar y los botones de ventana, y a mantenerlos en tres plataformas.~~ **Derogado por [ADR-0030](./0030-barra-de-titulo-propia.md).** El costo se achicó —`-webkit-app-region` resuelve arrastre, snap y doble click sin JavaScript, y el proyecto empaqueta sólo para Windows— y lo que había del otro lado creció: sin marco propio no hay dónde poner la barra de menús.
 
 ## Alternativas consideradas
 

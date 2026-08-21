@@ -4,6 +4,7 @@ import { app, BrowserWindow } from 'electron';
 
 import { dataDirectoryOverride, isDevelopment } from './environment.js';
 import { useExtensionsDirectory } from './extensions/directories.js';
+import { registerAiIpcHandlers } from './ipc/ai.js';
 import { registerAppIpcHandlers } from './ipc/app.js';
 import { registerBackupsIpcHandlers } from './ipc/backups.js';
 import { registerClipboardIpcHandlers } from './ipc/clipboard.js';
@@ -18,6 +19,7 @@ import { flushSession, registerSessionIpcHandlers } from './ipc/session.js';
 import { registerSettingsIpcHandlers, startSettings } from './ipc/settings.js';
 import { registerTerminalIpcHandlers } from './ipc/terminal.js';
 import { registerWatcherDisposer } from './ipc/watcher.js';
+import { registerWindowIpcHandlers } from './ipc/window.js';
 import { registerWorkspaceIpcHandlers } from './ipc/workspace.js';
 import { useBackupDirectory } from './services/backups.js';
 import { useSessionDirectory } from './services/session.js';
@@ -30,6 +32,7 @@ import { createMainWindow } from './windows/create-window.js';
 registerAppScheme();
 
 registerAppIpcHandlers();
+registerAiIpcHandlers();
 registerFsIpcHandlers();
 registerBackupsIpcHandlers();
 registerExtensionsIpcHandlers();
@@ -43,6 +46,7 @@ registerSessionIpcHandlers();
 registerSearchIpcHandlers();
 registerLspIpcHandlers();
 registerGitIpcHandlers();
+registerWindowIpcHandlers();
 registerWatcherDisposer();
 
 /**

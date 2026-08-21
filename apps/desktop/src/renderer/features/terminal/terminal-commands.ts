@@ -1,12 +1,9 @@
 import type { Command } from '@pastecode/core';
 
-import { useTerminalStore } from '../../stores/terminal-store.js';
+import { selectActiveSession, useTerminalStore } from '../../stores/terminal-store.js';
 import { useViewStore } from '../../stores/view-store.js';
 
 import { getTerminal } from './terminal-registry.js';
-
-/** Tamaño con el que nace una sesión antes de que xterm mida el panel. */
-const INITIAL_DIMENSIONS = { cols: 80, rows: 24 };
 
 /**
  * Los comandos de la terminal.
@@ -35,7 +32,12 @@ export function terminalCommands(): readonly Command[] {
     {
       id: 'terminal.new',
       title: 'command.terminalNew',
-      handler: () => useTerminalStore.getState().create(INITIAL_DIMENSIONS),
+      // Abrir una terminal ya no lanza nada: agrega un slot, y el PTY lo pide
+      // la superficie cuando xterm terminó de medir. Es lo que evita el resize
+      // inicial que hacía a conpty reproducir su buffer.
+      handler: () => {
+        useTerminalStore.getState().openSlot();
+      },
     },
     {
       id: 'terminal.copy',
@@ -64,7 +66,7 @@ export function terminalCommands(): readonly Command[] {
  * dejaría `terminalFocus` en verdadero con el panel escondido y `Ctrl+Shift+C`
  * robándole la combinación al editor.
  */
-function toggle(): Promise<void> | undefined {
+function toggle(): undefined {
   const view = useViewStore.getState();
 
   if (view.panelView === 'terminal') {
@@ -75,13 +77,14 @@ function toggle(): Promise<void> | undefined {
   }
 
   view.showPanel('terminal');
+  useTerminalStore.getState().ensureSlot();
 
-  return useTerminalStore.getState().ensureSession();
+  return undefined;
 }
 
 /** Copia la selección de la terminal activa al portapapeles del sistema. */
 async function copySelection(): Promise<void> {
-  const selection = getTerminal(useTerminalStore.getState().activeSessionId)?.getSelection();
+  const selection = getTerminal(useTerminalStore.getState().activeSlotId)?.getSelection();
 
   // Copiar sin selección no es un error: es no hacer nada. Escribir una cadena
   // vacía borraría lo que la persona tenía en el portapapeles.
@@ -92,8 +95,11 @@ async function copySelection(): Promise<void> {
 
 /** Pega el portapapeles como entrada del PTY de la terminal activa. */
 async function pasteIntoTerminal(): Promise<void> {
-  const { activeSessionId } = useTerminalStore.getState();
-  if (activeSessionId === null) return;
+  const session = selectActiveSession(useTerminalStore.getState());
+
+  // Sin proceso todavía no hay adónde pegar: xterm puede estar montado y
+  // midiendo mientras el PTY viene en camino.
+  if (session === null) return;
 
   const result = await window.pastecode.invoke('clipboard:readText', {});
   if (!result.ok || result.value.text === '') return;
@@ -102,7 +108,7 @@ async function pasteIntoTerminal(): Promise<void> {
   // lo escribe el shell. Escribirlo en xterm lo pintaría dos veces sin
   // ejecutar nada.
   await window.pastecode.invoke('terminal:write', {
-    sessionId: activeSessionId,
+    sessionId: session.sessionId,
     data: result.value.text,
   });
 }

@@ -1,34 +1,30 @@
 import { useEffect } from 'react';
 
 import { t } from '../../i18n/index.js';
+import type { TerminalSlot } from '../../stores/terminal-store.js';
 import { useTerminalStore } from '../../stores/terminal-store.js';
-import { useViewStore } from '../../stores/view-store.js';
 
-import { TerminalTabs } from './TerminalTabs.js';
 import { useTerminal } from './use-terminal.js';
 
-/** Tamaño con el que se crea una sesión antes de que xterm mida el panel. */
-const INITIAL_DIMENSIONS = { cols: 80, rows: 24 };
-
-/** Una sesión: su instancia de xterm, montada aunque esté oculta. */
+/** Una terminal: su instancia de xterm, montada aunque esté oculta. */
 function TerminalSurface({
-  sessionId,
+  slot,
   isVisible,
 }: {
-  sessionId: string;
+  slot: TerminalSlot;
   isVisible: boolean;
 }): React.JSX.Element {
-  const hostRef = useTerminal(sessionId, isVisible);
+  const hostRef = useTerminal(slot, isVisible);
 
   // Se esconde con `hidden` y no desmontando: desmontar tiraría el scrollback
-  // de xterm, así que cambiar de pestaña y volver perdería todo lo que la
-  // terminal había escrito.
+  // de xterm, así que cambiar de terminal y volver perdería todo lo que se
+  // había escrito.
   return (
     <div
       ref={hostRef}
       className="terminal-panel__surface"
       hidden={!isVisible}
-      data-testid={`terminal-surface-${sessionId}`}
+      data-testid={`terminal-surface-${slot.slotId}`}
     />
   );
 }
@@ -37,27 +33,22 @@ function TerminalSurface({
  * El panel de terminales integradas ([RF-301 a RF-305](../../../../../docs/03-requerimientos-funcionales.md#terminal-integrada)).
  *
  * Se suscribe a `terminal:exit` una sola vez para todo el panel y no una vez
- * por sesión: el evento dice a qué sesión pertenece, y una suscripción por
+ * por terminal: el evento dice a qué sesión pertenece, y una suscripción por
  * instancia significaría N listeners recibiendo N eventos cada uno.
  *
- * Desde el paso 26½ **no decide si se ve**: es un inquilino del panel inferior,
- * que es quien tiene el `role="tablist"`, el alto, el borde y la decisión de
- * qué pestaña está a la vista.
+ * **La tira de terminales ya no vive acá**: desde el rediseño se dibuja al
+ * extremo derecho de la barra del panel inferior, que es donde el registro de
+ * paneles la enchufa como `Actions`. El panel se quedó con lo que de verdad es
+ * suyo: las superficies y el error.
  *
  * Lo que sí conserva es su propia `<section>` con su nombre accesible. No es
- * decoración: es la región que un lector de pantalla anuncia al entrar, y es el
- * ancla de los E2E de la terminal. La regla dura del rediseño es que ningún
- * selector existente cambie de nombre, y la primera versión de este PR la violó
- * —el panel pasó a ser un `<div>` y los dos specs de terminal se cayeron—.
+ * decoración: es la región que un lector de pantalla anuncia al entrar, y es
+ * el ancla de los E2E de la terminal.
  */
 export function TerminalPanel(): React.JSX.Element {
-  const sessions = useTerminalStore((state) => state.sessions);
-  const activeSessionId = useTerminalStore((state) => state.activeSessionId);
+  const slots = useTerminalStore((state) => state.slots);
+  const activeSlotId = useTerminalStore((state) => state.activeSlotId);
   const error = useTerminalStore((state) => state.error);
-  const activate = useTerminalStore((state) => state.activate);
-  const dispose = useTerminalStore((state) => state.dispose);
-  const create = useTerminalStore((state) => state.create);
-  const closePanel = useViewStore((state) => state.closePanel);
   const forget = useTerminalStore((state) => state.forget);
 
   useEffect(
@@ -70,30 +61,17 @@ export function TerminalPanel(): React.JSX.Element {
 
   return (
     <section className="terminal-panel" aria-label={t('terminal.panel')}>
-      <TerminalTabs
-        sessions={sessions}
-        activeSessionId={activeSessionId}
-        onActivate={activate}
-        onDispose={(sessionId) => {
-          void dispose(sessionId);
-        }}
-        onCreate={() => {
-          void create(INITIAL_DIMENSIONS);
-        }}
-        onClosePanel={closePanel}
-      />
-
       {error !== null && (
         <p className="terminal-panel__error" role="alert">
           {error.userMessage}
         </p>
       )}
 
-      {sessions.map((session) => (
+      {slots.map((slot) => (
         <TerminalSurface
-          key={session.sessionId}
-          sessionId={session.sessionId}
-          isVisible={session.sessionId === activeSessionId}
+          key={slot.slotId}
+          slot={slot}
+          isVisible={slot.slotId === activeSlotId}
         />
       ))}
     </section>

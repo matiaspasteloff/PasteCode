@@ -214,6 +214,42 @@ _~4 semanas_
 
 ---
 
+## Etapa Experimental 1 — Asistente de IA y pasada de UI
+
+_~2 semanas_
+
+**Numeración propia (E1.1 … E1.7), no 44 en adelante.** Los pasos 1-43 son el roadmap de la v1 y su numeración es una referencia estable: `docs/06-roadmap-y-riesgos.md`, los ADRs y los cierres de etapa apuntan a números concretos. Esta etapa va **al lado** del contrato de alcance y no adentro (ver [Alcance experimental](./01-vision-y-alcance.md#alcance-experimental)), así que numerarla como continuación diría lo contrario de lo que es.
+
+**E1.1. Documentación primero.** El módulo RF-10xx, la sección de alcance experimental, y los ADR-0029, 0030 y 0031 antes de una línea de código. Es la misma regla que la Etapa 5: si la decisión no se puede escribir, no está tomada.
+
+**E1.2. El contrato del asistente.** `packages/ipc-contract/src/schemas/ai.ts`, siete canales y tres eventos. El streaming va por evento y no por `invoke` por lo mismo que `search:result`: una respuesta son cientos de chunks y `invoke` sólo sabe responder preguntas. Las herramientas de escritura usan el pull correlacionado de [ADR-0026](./adr/0026-broker-unico-y-pull-del-documento-activo.md).
+
+**E1.3. La lógica pura.** Parser de SSE, filtro de modelos gratuitos, recorte por presupuesto de contexto, validación de los argumentos que devuelve el modelo, y un partidor de markdown en prosa y bloques de código. Todo en `packages/core`, todo con test — que es lo que evita meter una librería de markdown y una de SSE contra el techo de RNF-05.
+
+**E1.4. El main.** La clave en `safeStorage`, la llamada HTTP con `fetch` nativo y el loop de herramientas. **La red vive acá y no en el renderer**: es lo que deja la CSP con `connect-src 'self'` sin una excepción nueva.
+
+**E1.5. La vista.** Una entrada más en `SIDE_VIEWS` y en `SIDE_VIEW_REGISTRY`. Ése es el punto del registro de ADR-0022 y es la prueba de que el cascarón aguanta una cuarta vista sin tocarse.
+
+**E1.6. La barra de título.** `frame: false` y una barra propia con menús, caja de comandos y botones de ventana. Deroga la parte de ADR-0022 que defendía el marco nativo; ver [ADR-0030](./adr/0030-barra-de-titulo-propia.md).
+
+**E1.7. Temas y bugs.** Nueve temas incorporados **como datos** ([ADR-0031](./adr/0031-temas-incorporados-como-datos.md)), y los tres bugs que salieron de usar el IDE todos los días: el hueco al colapsar el explorador, cerrar pestañas con la ruedita, y la terminal.
+
+> **Checkpoint:** el IDE se usa para escribir el IDE, y esta etapa salió entera de esa costumbre. Los tres bugs no los encontró ningún test.
+
+### Lo que salió distinto de lo previsto
+
+**El bug del hueco era CSS, no React.** La sospecha era que `SideView` devolvía `null` y algo quedaba montado. La causa real es que ninguno de los tres hijos de la fila 2 declaraba su columna: caían por auto-placement, y con la barra colapsada el área de edición se corría a la columna 2 —que es `auto`— dejando la 3 (`1fr`) vacía. Tres declaraciones de `grid-column` lo cerraron.
+
+**El `>>>>>>>` de la terminal era un problema de orden, no de conpty.** El PTY se abría con un `80×24` hardcodeado antes de que xterm existiera; el `fit()` posterior mandaba el tamaño real y conpty **reproduce su buffer** al recibir un resize, lo que hacía que PSReadLine redibujara el prompt encima de sí mismo. Invertir el orden —montar xterm, medir, y recién ahí crear la sesión— lo eliminó sin tocar una línea del supervisor.
+
+**El acorde no llega con el foco en la terminal, y está bien así.** `Ctrl+K Ctrl+T` abre el selector de temas desde cualquier lado menos desde adentro de la terminal: xterm consume `Ctrl+K` —es la tecla de _kill-line_ de readline— y corta la propagación antes de que el listener del documento la vea. Lo encontró la pasada manual, no un test, y la conclusión fue no arreglarlo: es exactamente lo que hace VS Code, y lo contrario significaría que un IDE le robe teclas a la terminal que aloja.
+
+**El E2E del tema se cayó por una razón que vale anotar.** El matcher de la paleta es difuso, y con un segundo comando que habla de temas la palabra "tema" dejó de identificar a ninguno: apretar Enter abría el selector nuevo en vez de rotar claro/oscuro. El test no estaba mal escrito cuando se escribió; envejeció. La lección es que un aserto sobre "el primero que coincide" en una lista difusa es una dependencia oculta del catálogo entero.
+
+**`-webkit-app-region` es el error clásico de la barra de título.** Un botón sin `no-drag` no se puede clickear, y el síntoma —"el botón no anda"— no se parece a la causa. Va como regla en `global.css` sobre **todos** los hijos interactivos de la barra, no caso por caso.
+
+---
+
 ## Reglas de ritmo
 
 Lo que hace fracasar proyectos como este no es la dificultad técnica. Es el mes cuatro.

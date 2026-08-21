@@ -87,6 +87,38 @@
   --color-icon-image: #96227c;
   --color-icon-default: var(--color-muted);
 
+  /* --- Terminal ----------------------------------------------------------
+   * Los 16 ANSI, el cursor y la selección. Están acá y no en una tabla de
+   * JavaScript para que un tema —incorporado o de extensión— los pise por el
+   * mismo camino que cualquier otro color: escribiendo variables en el
+   * `<html>`. Sin ellos, xterm usa su paleta de fábrica, que no pertenece a
+   * ninguna y encima cambia de legibilidad según el fondo.
+   *
+   * **No se les mide contraste** en `check-contrast.mjs`, a propósito: son una
+   * paleta estándar con significados fijos —el rojo de un error es rojo— y
+   * empujarlos hasta 4.5:1 los convertiría en otra cosa. Lo que sí se verifica
+   * es que los tres bloques declaren los mismos tokens.
+   */
+  --color-terminal-cursor: #14161d;
+  --color-terminal-cursor-accent: #ffffff;
+  --color-terminal-selection: #d5cdf7;
+  --color-terminal-black: #3b4252;
+  --color-terminal-red: #b3261e;
+  --color-terminal-green: #1a6039;
+  --color-terminal-yellow: #7a4e00;
+  --color-terminal-blue: #0b5fa5;
+  --color-terminal-magenta: #96227c;
+  --color-terminal-cyan: #147d70;
+  --color-terminal-white: #d7dae2;
+  --color-terminal-bright-black: #5c6376;
+  --color-terminal-bright-red: #d4402f;
+  --color-terminal-bright-green: #2a8a52;
+  --color-terminal-bright-yellow: #a9700a;
+  --color-terminal-bright-blue: #1d7fce;
+  --color-terminal-bright-magenta: #b8409c;
+  --color-terminal-bright-cyan: #1a9e8e;
+  --color-terminal-bright-white: #14161d;
+
   /* --- Tipografía --------------------------------------------------------
    * La monoespaciada es la del sistema y no una empaquetada: una fuente en el
    * instalador son megabytes contra el techo de RNF-05, y `ui-monospace` ya
@@ -155,6 +187,27 @@
     --color-icon-config: #ffc861;
     --color-icon-image: #f0a3d8;
     --color-icon-default: var(--color-muted);
+
+    /* --- Terminal. Ver el bloque claro para el porqué. --------------------- */
+    --color-terminal-cursor: #e7eaf2;
+    --color-terminal-cursor-accent: #0f1117;
+    --color-terminal-selection: #33305e;
+    --color-terminal-black: #2a2f3d;
+    --color-terminal-red: #ff8a8a;
+    --color-terminal-green: #6ee7a8;
+    --color-terminal-yellow: #ffc861;
+    --color-terminal-blue: #7cc4ff;
+    --color-terminal-magenta: #f0a3d8;
+    --color-terminal-cyan: #5fd9c4;
+    --color-terminal-white: #c9d0e0;
+    --color-terminal-bright-black: #4b5265;
+    --color-terminal-bright-red: #ffabab;
+    --color-terminal-bright-green: #96f2c3;
+    --color-terminal-bright-yellow: #ffd88f;
+    --color-terminal-bright-blue: #a5d8ff;
+    --color-terminal-bright-magenta: #f8c4e8;
+    --color-terminal-bright-cyan: #8fe8db;
+    --color-terminal-bright-white: #e7eaf2;
   }
 }
 
@@ -196,4 +249,25 @@
   --color-icon-config: #ffc861;
   --color-icon-image: #f0a3d8;
   --color-icon-default: var(--color-muted);
+
+  /* --- Terminal. Ver el bloque claro para el porqué. --------------------- */
+  --color-terminal-cursor: #e7eaf2;
+  --color-terminal-cursor-accent: #0f1117;
+  --color-terminal-selection: #33305e;
+  --color-terminal-black: #2a2f3d;
+  --color-terminal-red: #ff8a8a;
+  --color-terminal-green: #6ee7a8;
+  --color-terminal-yellow: #ffc861;
+  --color-terminal-blue: #7cc4ff;
+  --color-terminal-magenta: #f0a3d8;
+  --color-terminal-cyan: #5fd9c4;
+  --color-terminal-white: #c9d0e0;
+  --color-terminal-bright-black: #4b5265;
+  --color-terminal-bright-red: #ffabab;
+  --color-terminal-bright-green: #96f2c3;
+  --color-terminal-bright-yellow: #ffd88f;
+  --color-terminal-bright-blue: #a5d8ff;
+  --color-terminal-bright-magenta: #f8c4e8;
+  --color-terminal-bright-cyan: #8fe8db;
+  --color-terminal-bright-white: #e7eaf2;
 }

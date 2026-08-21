@@ -12,6 +12,7 @@ export default {
       2,
       'always',
       [
+        'ai',
         'editor',
         'terminal',
         'lsp',

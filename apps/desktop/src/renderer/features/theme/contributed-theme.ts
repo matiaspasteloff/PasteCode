@@ -1,3 +1,4 @@
+import type { BuiltInTheme } from '@pastecode/core';
 import type { ExtensionsChangedEvent } from '@pastecode/ipc-contract';
 
 import { getLoadedMonaco } from '../editor/monaco-instance.js';
@@ -5,7 +6,17 @@ import { getLoadedMonaco } from '../editor/monaco-instance.js';
 import { monacoThemeFor } from './use-theme.js';
 
 /** Un tema aportado por una extensión, tal como llega del contrato. */
-export type ContributedTheme = ExtensionsChangedEvent['themes'][number];
+type ContributedTheme = ExtensionsChangedEvent['themes'][number];
+
+/**
+ * Lo que hace falta para pintar un tema, venga de donde venga.
+ *
+ * Los incorporados de [ADR-0031](../../../../../../docs/adr/0031-temas-incorporados-como-datos.md)
+ * y los de extensión entran por acá **con la misma función**: lo único que los
+ * distingue es de dónde sale el descriptor, y un segundo camino de aplicación
+ * sería un segundo lugar donde arreglar el mismo bug de pintado.
+ */
+export type ApplicableTheme = ContributedTheme | BuiltInTheme;
 
 /**
  * El nombre con el que se registra en Monaco el tema de una extensión.
@@ -34,7 +45,7 @@ function monacoThemeName(id: string): string {
  * @example
  * applyContributedTheme(nord);
  */
-export function applyContributedTheme(theme: ContributedTheme): void {
+export function applyContributedTheme(theme: ApplicableTheme): void {
   const root = document.documentElement;
 
   // La base primero: lo que el tema no pisa se hereda del claro o del oscuro
@@ -70,7 +81,7 @@ export function clearContributedTheme(resolved: 'light' | 'dark'): void {
  * arrancar aunque no haya ningún archivo abierto, que es la misma razón por la
  * que `use-theme` tampoco lo importa.
  */
-function applyToMonaco(theme: ContributedTheme): void {
+function applyToMonaco(theme: ApplicableTheme): void {
   const monaco = getLoadedMonaco();
 
   if (monaco === null) return;

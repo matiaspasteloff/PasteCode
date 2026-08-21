@@ -59,7 +59,9 @@ main ─────●──────●──────●─────
 [footer opcional: BREAKING CHANGE, Closes #42]
 ```
 
-**Scopes válidos:** `editor`, `terminal`, `lsp`, `dap`, `git`, `fs`, `ext-host`, `ui`, `core`, `ipc`, `settings`, `search`, `session`, `perf`, `build`, `ci`
+**Scopes válidos:** `ai`, `editor`, `terminal`, `lsp`, `dap`, `git`, `fs`, `ext-host`, `ui`, `core`, `ipc`, `settings`, `search`, `session`, `perf`, `build`, `ci`
+
+`ai` cubre el asistente de la [etapa experimental](../01-vision-y-alcance.md#alcance-experimental): el contrato de sus canales, su lógica en `core`, su servicio en el main y su vista. Que tenga scope propio y no caiga en `ui` es lo que deja el historial legible el día que la etapa experimental se saque o se promueva.
 
 La lista es cerrada y vive por duplicado en [`commitlint.config.js`](../../commitlint.config.js), que es quien la hace cumplir en el hook `commit-msg`. Agregar un scope acá sin agregarlo allá no cambia nada; los dos se tocan juntos.
 

@@ -19,9 +19,17 @@ body {
  * fila, y la barra de estado cruza las tres columnas. Con flex habría que
  * anidar dos contenedores para decir lo mismo.
  *
- * La columna de la barra lateral es `auto` y no un ancho fijo: cuando la vista
- * está colapsada, `SideView` no renderiza nada y la columna se cierra sola, sin
- * que nadie tenga que cambiar el `grid-template`.
+ * **Las tres columnas de la fila 2 se declaran explícitamente**, y ahí está el
+ * arreglo del hueco a la derecha al colapsar el explorador. Antes ninguno de
+ * los tres hijos decía en qué columna iba: se colocaban por auto-placement, y
+ * con la barra lateral abierta caían en 1, 2 y 3 por casualidad. Cuando
+ * `SideView` devuelve `null` —que es lo que hace al colapsar— el área de
+ * edición se corría a la columna 2, que mide `auto`, y la 3, que es la que
+ * lleva el `1fr`, quedaba vacía: ése era el hueco.
+ *
+ * Con `grid-column` en cada uno, el área de edición se queda siempre en la 3 y
+ * la 2 colapsa sola al no tener contenido, que es justamente para lo que sirve
+ * una pista `auto`.
  */
 .app {
   display: grid;
@@ -30,38 +38,70 @@ body {
   height: 100vh;
 }
 
+.activity-bar {
+  grid-column: 1;
+}
+
+.sidebar {
+  grid-column: 2;
+}
+
+.editor-area {
+  grid-column: 3;
+}
+
 /*
- * La toolbar cruza las tres columnas y va **debajo** del marco nativo de
- * Windows, no en lugar de él: ver ADR-0022.
+ * La barra de título propia: reemplaza al marco nativo de Windows desde
+ * ADR-0030, que derogó la parte de ADR-0022 que lo defendía.
+ *
+ * `-webkit-app-region: drag` es lo que hace que la ventana se arrastre, se
+ * maximice con doble click y haga snap a los bordes, **sin una línea de
+ * JavaScript**. Es el argumento que volvió barato lo que ADR-0022 había
+ * descartado por caro.
  */
 .title-toolbar {
   display: flex;
   grid-column: 1 / -1;
   align-items: center;
-  padding: 0 var(--space-3);
+  padding-left: var(--space-2);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
-  gap: var(--space-4);
   font-size: 0.8rem;
+  -webkit-app-region: drag;
+}
+
+/*
+ * **La regla que evita el error clásico de esta feature.** Un control adentro
+ * de una región de arrastre no recibe clicks: el sistema operativo se queda
+ * con el mousedown para mover la ventana. El síntoma —"el botón no anda"— no
+ * se parece en nada a la causa, así que esto cubre a *todos* los hijos
+ * interactivos de una vez en lugar de ir caso por caso, y agregar un control
+ * nuevo no incluye acordarse de nada.
+ */
+.title-toolbar button,
+.title-toolbar input,
+.title-toolbar select,
+.title-toolbar [role='menu'] {
+  -webkit-app-region: no-drag;
 }
 
 .title-toolbar__project {
   overflow: hidden;
-  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 /* Centrado y con ancho propio: es el objeto más parecido a una barra de
    direcciones que tiene la app, y moverlo de lugar lo vuelve difícil de
-   encontrar. */
+   encontrar. Con la barra propia, además, ahora está centrado respecto de la
+   ventana de verdad y no de una franja que empieza más abajo. */
 .title-toolbar__commands {
   display: flex;
   width: min(24rem, 40vw);
   align-items: center;
   justify-content: center;
   margin: 0 auto;
-  padding: var(--space-1) var(--space-3);
+  padding: 2px var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-background);
@@ -81,13 +121,129 @@ body {
   outline-offset: -2px;
 }
 
-/* El slot de la derecha. Queda vacío hasta que Git exista: ahí va la rama. */
-.title-toolbar__end {
+/* --- Barra de menús ------------------------------------------------------ */
+
+.menu-bar {
   display: flex;
-  min-width: 8rem;
   align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-2);
+}
+
+.menu-bar__slot {
+  position: relative;
+}
+
+.menu-bar__trigger {
+  padding: var(--space-1) var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-foreground);
+  cursor: default;
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.menu-bar__trigger:hover,
+.menu-bar__trigger[aria-expanded='true'] {
+  background: var(--color-surface-raised);
+}
+
+.menu-bar__trigger:focus-visible,
+.menu-bar__item:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+/* El desplegable se posiciona respecto del título y no del documento: así
+   acompaña al botón sin que nadie tenga que calcular coordenadas. */
+.menu-bar__dropdown {
+  position: absolute;
+  z-index: 40;
+  top: 100%;
+  left: 0;
+  display: flex;
+  min-width: 15rem;
+  flex-direction: column;
+  padding: var(--space-1) 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
+}
+
+.menu-bar__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-1) var(--space-3);
+  border: none;
+  background: none;
+  color: var(--color-foreground);
+  cursor: default;
+  font: inherit;
+  font-size: 0.75rem;
+  gap: var(--space-5);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.menu-bar__item:hover {
+  background: var(--color-selection);
+}
+
+.menu-bar__shortcut {
+  color: var(--color-muted);
+  font-size: 0.7rem;
+}
+
+.menu-bar__rule {
+  height: 0;
+  margin: var(--space-1) 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+/* --- Botones de ventana --------------------------------------------------
+ * Los glifos son los de Segoe Fluent Icons, la fuente de iconos que Windows
+ * trae de fábrica: son exactamente los mismos que dibujaba el marco nativo.
+ * El fallback importa igual —en un sistema sin esa fuente, los caracteres
+ * caen en la monoespaciada y se ven como cuadraditos, no como nada—.
+ */
+.window-controls {
+  display: flex;
+  height: var(--toolbar-height);
+  margin-left: auto;
+  font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets', var(--font-mono);
+}
+
+.window-controls button {
+  display: flex;
+  width: 2.9rem;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--color-foreground);
+  cursor: default;
+  font-family: inherit;
+  font-size: 0.625rem;
+  line-height: 1;
+}
+
+.window-controls button:hover {
+  background: var(--color-surface-raised);
+}
+
+.window-controls button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+/* El rojo de cerrar es el del sistema y no `--color-danger`: es el único
+   control de la app donde el color lo elige Windows y no el tema. */
+.window-controls__close:hover {
+  background: #c42b1c;
+  color: #ffffff;
 }
 
 /*
@@ -169,7 +325,9 @@ body {
   display: none;
 }
 
-/* El rail de vistas. Vertical, angosto y siempre presente. */
+/* El rail de vistas. Vertical, angosto y siempre presente. Comparte la
+   superficie hundida con la tira de pestañas, para que las dos se lean como el
+   borde de la superficie de edición y no como tres barras distintas. */
 .activity-bar {
   display: flex;
   flex-direction: column;
@@ -415,43 +573,77 @@ body {
   margin: auto;
 }
 
+/* --- Pestañas del editor -------------------------------------------------
+ * La pestaña activa lleva **el fondo del editor** y un borde superior de
+ * acento, que es lo que la conecta visualmente con el código de abajo: sin
+ * eso, la tira de pestañas se lee como una barra aparte y no como el borde de
+ * la superficie que se está mirando.
+ */
 .tabs {
   display: flex;
   overflow-x: auto;
   flex: none;
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  background: var(--color-surface-sunken);
 }
 
 .tabs__tab {
+  position: relative;
   display: flex;
   align-items: center;
-  padding: 0.3rem 0.5rem 0.3rem 0.75rem;
+  max-width: 15rem;
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
   border-right: 1px solid var(--color-border);
+  color: var(--color-muted);
   cursor: pointer;
-  gap: 0.4rem;
+  gap: var(--space-2);
   font-size: 0.8rem;
   white-space: nowrap;
+}
+
+.tabs__tab:hover {
+  background: var(--color-surface);
 }
 
 .tabs__tab[data-active='true'] {
   background: var(--color-background);
   box-shadow: inset 0 2px 0 var(--color-accent);
+  color: var(--color-foreground);
 }
 
 .tabs__tab:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: -2px;
+}
+
+.tabs__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* El punto de sucio y la × ocupan **la misma ranura**: son la misma cosa —el
+   estado del archivo y qué hacer con él— y darles dos lugares obligaba a
+   apuntar a un blanco de ocho píxeles al lado de otro. El punto se ve en
+   reposo; al pasar el mouse o con el foco adentro, cede el lugar a la ×. */
+.tabs__dirty,
+.tabs__close {
+  display: flex;
+  width: 1.1rem;
+  height: 1.1rem;
+  align-items: center;
+  justify-content: center;
+  flex: none;
 }
 
 .tabs__dirty {
   color: var(--color-accent);
-  font-size: 0.7rem;
+  font-size: 0.6rem;
 }
 
 .tabs__close {
-  padding: 0 0.2rem;
+  padding: 0;
   border: none;
+  border-radius: var(--radius-sm);
   background: none;
   color: var(--color-muted);
   cursor: pointer;
@@ -459,8 +651,28 @@ body {
   line-height: 1;
 }
 
+.tabs__tab[data-dirty='true'] .tabs__close {
+  display: none;
+}
+
+.tabs__tab[data-dirty='true']:hover .tabs__dirty,
+.tabs__tab[data-dirty='true']:focus-within .tabs__dirty {
+  display: none;
+}
+
+.tabs__tab[data-dirty='true']:hover .tabs__close,
+.tabs__tab[data-dirty='true']:focus-within .tabs__close {
+  display: flex;
+}
+
 .tabs__close:hover {
+  background: var(--color-surface-raised);
   color: var(--color-foreground);
+}
+
+.tabs__close:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
 }
 
 .status-bar__saving {
@@ -616,11 +828,10 @@ body {
   padding: 0 var(--space-3);
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
+  color: var(--color-muted);
   font-size: 0.7rem;
 }
 
-/* Dos grupos, uno por punta. Los indicadores del archivo activo van a la
-   derecha, que es donde la vista los busca. */
 .status-bar__group {
   display: flex;
   align-items: center;
@@ -646,6 +857,12 @@ body {
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+
+.status-bar__item--action:focus-visible,
+.status-bar__button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
 }
 
 .status-bar__item--action:hover {
@@ -944,13 +1161,15 @@ body {
   flex-direction: column;
 }
 
+/* La tira de terminales, al extremo derecho de la barra del panel inferior.
+   Antes era una segunda fila con su propio botón de esconder el panel: dos
+   franjas de cromo apiladas y un botón duplicado. */
 .terminal-tabs {
   display: flex;
+  overflow: hidden;
   align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--color-border);
-  gap: 0.6rem;
-  padding: 0 0.6rem;
+  margin-left: auto;
+  gap: var(--space-1);
 }
 
 .terminal-tabs__list {
@@ -959,44 +1178,53 @@ body {
   align-items: center;
   margin: 0;
   padding: 0;
-  gap: 0.35rem;
+  gap: var(--space-1);
   list-style: none;
 }
 
 .terminal-tabs__list li {
   display: flex;
   align-items: center;
+  border-radius: var(--radius-sm);
 }
 
 .terminal-tabs__tab,
 .terminal-tabs__close,
-.terminal-tabs__actions button {
+.terminal-tabs__new {
+  padding: var(--space-1);
   border: none;
   background: none;
   color: var(--color-muted);
   cursor: pointer;
   font: inherit;
-  padding: 0.6rem 0.35rem;
+  font-size: 0.7rem;
+  white-space: nowrap;
 }
 
 .terminal-tabs__tab[aria-current='true'] {
-  border-bottom: 2px solid var(--color-accent);
   color: var(--color-foreground);
 }
 
-.terminal-tabs__actions {
-  display: flex;
-  gap: 0.35rem;
+.terminal-tabs__list li:has(.terminal-tabs__tab[aria-current='true']) {
+  background: var(--color-surface-raised);
+}
+
+.terminal-tabs__tab:hover,
+.terminal-tabs__close:hover,
+.terminal-tabs__new:hover {
+  color: var(--color-foreground);
 }
 
 /* xterm mide su contenedor para calcular filas y columnas, así que necesita
    uno con alto propio. `min-height: 0` es lo que deja que un hijo de flex se
-   achique por debajo de su contenido en vez de desbordar el panel. */
+   achique por debajo de su contenido en vez de desbordar el panel.
+   **Sin padding**: xterm no lo pinta, así que ese borde quedaba del color del
+   panel y no del de la terminal — una franja de otro color alrededor del
+   texto. El aire lo pone xterm por dentro. */
 .terminal-panel__surface {
   overflow: hidden;
   min-height: 0;
   flex: 1;
-  padding: 0.35rem;
 }
 
 .terminal-panel__surface[hidden] {
@@ -1519,4 +1747,300 @@ body {
   padding: 0;
   overflow-y: auto;
   list-style: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * Asistente de IA (etapa experimental)
+ *
+ * Bloque propio y al final del archivo a propósito: la etapa experimental
+ * tiene que poder sacarse sin romper nada, y con las reglas repartidas entre
+ * las demás eso sería un diff quirúrgico sobre la hoja entera.
+ * ------------------------------------------------------------------------ */
+
+.ai-panel {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.ai-panel--empty {
+  align-items: flex-start;
+  padding: var(--space-3);
+  gap: var(--space-3);
+}
+
+.ai-panel__toolbar {
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  gap: var(--space-2);
+}
+
+.ai-panel__model {
+  min-width: 0;
+  flex: 1;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.ai-panel__key {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  font: inherit;
+}
+
+.ai-panel__key:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+}
+
+.ai-panel__messages {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: var(--space-3);
+  gap: var(--space-4);
+  overflow-y: auto;
+}
+
+.ai-panel__empty,
+.ai-panel__error {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.ai-panel__error {
+  color: var(--color-danger);
+}
+
+.ai-message {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.ai-message__author {
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* El mensaje de la persona lleva fondo; el del asistente no. Es lo que hace
+   que la conversación se escanee sin leerla: los bloques con fondo son los
+   turnos propios. */
+.ai-message[data-role='user'] .ai-message__prose {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+}
+
+.ai-message__prose {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ai-message__caret {
+  color: var(--color-accent);
+}
+
+.ai-code {
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  overflow: hidden;
+}
+
+.ai-code__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  gap: var(--space-2);
+  font-size: 0.7rem;
+}
+
+.ai-code__language {
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+}
+
+.ai-code__actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.ai-code__actions button {
+  padding: 2px var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
+}
+
+.ai-code__actions button:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+}
+
+.ai-code__body {
+  max-height: 22rem;
+  margin: 0;
+  padding: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  overflow: auto;
+}
+
+/* La tarjeta de confirmación es el único punto donde alguien ve qué se va a
+   escribir antes de que se escriba (RF-1006), así que se distingue del resto
+   de la conversación con el borde de acento. */
+.ai-tool-call {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.ai-tool-call__header {
+  display: flex;
+  align-items: baseline;
+  padding: var(--space-2) var(--space-3);
+  gap: var(--space-2);
+  font-size: 0.75rem;
+}
+
+.ai-tool-call__title {
+  color: var(--color-muted);
+}
+
+.ai-tool-call__path {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-tool-call__diff {
+  height: 16rem;
+  border-block: 1px solid var(--color-border);
+}
+
+.ai-tool-call__actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-2);
+  gap: var(--space-2);
+}
+
+.ai-tool-call__actions button {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.ai-tool-call__apply {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+.ai-tool-call__actions button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.ai-panel__composer {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  gap: var(--space-2);
+}
+
+.ai-panel__input {
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font: inherit;
+  font-size: 0.8rem;
+  resize: none;
+}
+
+.ai-panel__input:focus-visible {
+  border-color: var(--color-focus-ring);
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -1px;
+}
+
+.ai-panel__send {
+  align-self: flex-end;
+  padding: var(--space-1) var(--space-4);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.ai-panel--empty button,
+.ai-key__input {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.ai-key__label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 0.75rem;
+}
+
+.ai-key__input {
+  width: 100%;
+  cursor: text;
+  font-family: var(--font-mono);
 }

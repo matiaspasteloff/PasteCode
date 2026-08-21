@@ -5,6 +5,7 @@ import { useCommandStore } from '../../stores/command-store.js';
 import { activeGroupId, selectActiveTabs, useEditorStore } from '../../stores/editor-store.js';
 import { useThemeStore } from '../../stores/theme-store.js';
 import { useWorkspaceStore } from '../../stores/workspace-store.js';
+import { aiCommands } from '../ai/ai-commands.js';
 import { treeCommands } from '../file-tree/tree-commands.js';
 import { fileCommands } from '../files/file-commands.js';
 import { gitCommands } from '../git/git-commands.js';
@@ -100,6 +101,7 @@ function appCommands(): readonly Command[] {
       title: 'command.fileCloseAll',
       handler: editor.closeAll,
     },
+    ...aiCommands(),
     ...terminalCommands(),
     ...searchCommands(),
     ...gitCommands(),

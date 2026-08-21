@@ -2,6 +2,7 @@ import type { DocumentDiagnostics, Keybinding, SearchMatch, Settings } from '@pa
 import type { z } from 'zod';
 
 import type { SerializedError } from './result.js';
+import type { AiToolNameSchema } from './schemas/ai.js';
 import type { DebugStatusSchema } from './schemas/debug.js';
 import type {
   ExtensionContributionsSchema,
@@ -239,6 +240,81 @@ export interface ExtensionDocumentRequestEvent {
   edits?: z.infer<typeof ExtensionTextEditSchema>[];
 }
 
+/**
+ * Payload de `ai:delta`: un trozo de la respuesta que se está escribiendo.
+ *
+ * Viaja de a trozos y no de a uno completo por lo mismo que `search:result`:
+ * una respuesta son cientos de chunks, y esperar al final para pintarla
+ * convierte quince segundos de escritura en quince segundos de pantalla
+ * quieta. El `requestId` lo eligió el renderer y vuelve acá para que pueda
+ * tirar lo que llegue de una respuesta que ya canceló.
+ *
+ * **No se acumula en el main.** El renderer concatena; el main no guarda
+ * historial de la conversación (ver `AiChatRequestSchema`).
+ */
+export interface AiDeltaEvent {
+  requestId: string;
+  /** El texto nuevo. Se concatena a lo que ya había. */
+  text: string;
+}
+
+/**
+ * Payload de `ai:toolCall`: el modelo quiere escribir un archivo.
+ *
+ * Es la mitad main → renderer del pull correlacionado de
+ * [ADR-0026](../../../docs/adr/0026-broker-unico-y-pull-del-documento-activo.md),
+ * exactamente como `extensions:documentRequest`: el main no le puede
+ * *preguntar* nada al renderer, así que la pregunta viaja como evento con un
+ * `toolCallId` y la respuesta vuelve por el canal `ai:toolResult`.
+ *
+ * **Sólo las herramientas de escritura llegan hasta acá.** Las de lectura se
+ * resuelven enteras en el main; ver `READ_ONLY_TOOLS` en `@pastecode/core`.
+ *
+ * `previousContent` es `null` cuando el archivo no existe todavía: es lo que
+ * le dice al diff que muestre una creación y no un reemplazo.
+ */
+export interface AiToolCallEvent {
+  requestId: string;
+  /** Correlaciona con la respuesta. Lo elige el modelo, lo valida el main. */
+  toolCallId: string;
+  tool: z.infer<typeof AiToolNameSchema>;
+  /** Ruta absoluta, **ya validada** contra el workspace por el main. */
+  path: string;
+  /** Lo que el modelo propone dejar en el archivo. */
+  nextContent: string;
+  /** Lo que hay hoy, o `null` si el archivo no existe. */
+  previousContent: string | null;
+}
+
+/**
+ * Payload de `ai:done`: la respuesta terminó.
+ *
+ * `error` es `null` si terminó bien. Una cancelación **también llega por acá**,
+ * con el código de `AiCancelledError`: quien escucha no tiene que distinguir
+ * "terminó" de "lo cortaron" con un campo aparte, que es la misma forma de
+ * `search:done`.
+ */
+export interface AiDoneEvent {
+  requestId: string;
+  error: SerializedError | null;
+}
+
+/**
+ * Payload de `window:maximizedChanged`: la ventana se maximizó o se restauró.
+ *
+ * Hace falta un evento y no alcanza con `window:isMaximized` porque **el
+ * estado cambia también sin que nadie apriete un botón**: arrastrar la ventana
+ * al borde superior de la pantalla la maximiza, y un doble click en la barra
+ * la restaura. Sin esto, el glifo del botón se queda mostrando lo contrario de
+ * lo que pasó.
+ *
+ * Mismo par que `git:getStatus` / `git:changed`: la pregunta para el montaje,
+ * el hecho para lo que pasa después.
+ */
+export interface WindowMaximizedChangedEvent {
+  isMaximized: boolean;
+}
+
 export interface IpcEvents {
   'terminal:data': TerminalDataEvent;
   'terminal:exit': TerminalExitEvent;
@@ -257,6 +333,10 @@ export interface IpcEvents {
   'debug:stopped': DebugStoppedEvent;
   'debug:output': DebugOutputEvent;
   'debug:terminated': DebugTerminatedEvent;
+  'ai:delta': AiDeltaEvent;
+  'ai:toolCall': AiToolCallEvent;
+  'ai:done': AiDoneEvent;
+  'window:maximizedChanged': WindowMaximizedChangedEvent;
 }
 
 /**
@@ -319,6 +399,10 @@ export const EVENT_NAMES = [
   'debug:stopped',
   'debug:output',
   'debug:terminated',
+  'ai:delta',
+  'ai:toolCall',
+  'ai:done',
+  'window:maximizedChanged',
 ] as const satisfies readonly EventName[];
 
 /**

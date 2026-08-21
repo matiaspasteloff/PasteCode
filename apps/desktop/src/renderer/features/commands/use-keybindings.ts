@@ -1,5 +1,5 @@
-import { resolveKeybinding, type WhenContext } from '@pastecode/core';
-import { useEffect } from 'react';
+import { resolveKeybinding, type Keybinding, type WhenContext } from '@pastecode/core';
+import { useEffect, useRef } from 'react';
 
 import { useCommandStore } from '../../stores/command-store.js';
 import { selectActiveTabs, useEditorStore } from '../../stores/editor-store.js';
@@ -30,6 +30,13 @@ export function useKeybindings(): void {
   const openPalette = useCommandStore((state) => state.openPalette);
   const load = useKeybindingsStore((state) => state.load);
   const apply = useKeybindingsStore((state) => state.apply);
+  /**
+   * La primera mitad de un acorde, si se está esperando la segunda.
+   *
+   * Es un ref y no estado: cambiarlo no tiene que repintar nada, y con estado
+   * el listener se volvería a montar entre las dos teclas del acorde.
+   */
+  const pendingChord = useRef<string | null>(null);
 
   useEffect(() => {
     void load();
@@ -56,8 +63,26 @@ export function useKeybindings(): void {
       // Se leen con `getState()` y no por suscripción por la misma razón que el
       // contexto: el listener no se tiene que volver a montar con cada cambio.
       const bindings = [...DEFAULT_KEYBINDINGS, ...useKeybindingsStore.getState().bindings];
-      const resolved = resolveKeybinding(bindings, combination, currentContext());
-      if (resolved === null) return;
+
+      // Un acorde es un atajo cuya tecla son dos combinaciones separadas por un
+      // espacio (`ctrl+k ctrl+t`). La primera no dispara nada: se recuerda y se
+      // resuelve la unión con la siguiente. El resolver no cambia — lo que
+      // cambia es qué cadena se le pasa.
+      const started = pendingChord.current;
+      const candidate = started === null ? combination : `${started} ${combination}`;
+      const resolved = resolveKeybinding(bindings, candidate, currentContext());
+
+      if (resolved === null) {
+        pendingChord.current = startsChord(bindings, started, combination) ? combination : null;
+
+        // El prefijo de un acorde también se cancela: sin esto, `Ctrl+K` haría
+        // lo que el navegador quiera mientras se espera la segunda tecla.
+        if (pendingChord.current !== null) event.preventDefault();
+
+        return;
+      }
+
+      pendingChord.current = null;
 
       // Sólo se cancela el default cuando el atajo es nuestro: si no, `Ctrl+C`
       // y compañía dejarían de funcionar en el editor.
@@ -74,7 +99,7 @@ export function useKeybindings(): void {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [run, openPalette]);
+  }, [run, openPalette, pendingChord]);
 }
 
 /**
@@ -104,4 +129,21 @@ function currentContext(): WhenContext {
     terminalFocus: useTerminalStore.getState().hasFocus,
     editorFocus: tabs.activeTabIndex !== -1 && !useTerminalStore.getState().hasFocus,
   };
+}
+
+/**
+ * Si una combinación abre un acorde que todavía no empezó.
+ *
+ * `started !== null` significa que ya se estaba esperando la segunda tecla y no
+ * llegó ninguna que sirva: ahí el acorde se abandona en vez de encadenar un
+ * tercero, que es lo que espera cualquiera que se equivocó de tecla.
+ */
+function startsChord(
+  bindings: readonly Keybinding[],
+  started: string | null,
+  combination: string
+): boolean {
+  return (
+    started === null && bindings.some((binding) => binding.key.startsWith(`${combination} `))
+  );
 }
