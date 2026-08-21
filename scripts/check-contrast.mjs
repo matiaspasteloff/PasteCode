@@ -20,6 +20,12 @@
  * No es un motor de CSS: entiende hexadecimales y un nivel de `var()`, que es
  * todo lo que `tokens.css` usa. Si algún día hiciera falta más, lo que
  * corresponde es simplificar el archivo de tokens y no complicar esto.
+ *
+ * **Los nueve temas incorporados no se miden acá**, y no es un olvido: son
+ * datos de TypeScript en `packages/core` y esto es un `.mjs` que corre sin
+ * build. Los mide `built-in-themes.test.ts`, contra la misma lista de pares,
+ * que por eso vive en un JSON compartido y no acá adentro. Los dos corren en
+ * `pnpm check`.
  */
 
 import { readFile } from 'node:fs/promises';
@@ -38,59 +44,32 @@ const TOKENS = join(
 );
 
 /**
- * Los pares que se verifican.
+ * Los pares que se verifican, leídos del JSON que comparten los dos
+ * verificadores de RNF-22.
  *
- * `min` es 4.5 para todo lo que se lee como texto y 3 para lo que no: el anillo
- * de foco, los iconos del árbol y las marcas del gutter son indicadores
- * gráficos, y WCAG 1.4.11 les pide 3:1.
+ * El otro es `packages/core/src/theme/built-in-themes.test.ts`, que mide los
+ * nueve temas incorporados de ADR-0031. Éste no puede medirlos —son datos de
+ * TypeScript y esto es un `.mjs` que corre sin build— y aquél no puede parsear
+ * CSS. Un JSON es lo único que los dos leen, y tener la lista una sola vez es
+ * lo que evita que un tema pase un umbral que el otro no.
  *
- * Los `-subtle` **no** están: son fondos de realce y nunca se usan de color de
- * letra, así que medirlos como texto sería inventar un requisito.
- *
- * Los bordes tampoco: un borde de separación no transmite información por sí
- * mismo —siempre hay un cambio de superficie al lado— y exigirle 3:1 forzaría
- * una línea dura alrededor de cada panel, que es peor de mirar y no más
- * accesible.
+ * `min` es 4.5 para lo que se lee como texto y 3 para lo que no. El detalle de
+ * qué queda afuera y por qué está en el propio JSON.
  */
-const PAIRS = [
-  { fg: 'foreground', bg: 'background', min: 4.5 },
-  { fg: 'foreground', bg: 'surface', min: 4.5 },
-  { fg: 'foreground', bg: 'surface-raised', min: 4.5 },
-  { fg: 'foreground', bg: 'surface-sunken', min: 4.5 },
-  { fg: 'foreground', bg: 'selection', min: 4.5 },
-  { fg: 'muted', bg: 'background', min: 4.5 },
-  { fg: 'muted', bg: 'surface', min: 4.5 },
-  { fg: 'muted', bg: 'surface-raised', min: 4.5 },
-  { fg: 'accent', bg: 'background', min: 4.5 },
-  { fg: 'accent', bg: 'surface', min: 4.5 },
-  { fg: 'accent-contrast', bg: 'accent', min: 4.5 },
-  { fg: 'danger', bg: 'background', min: 4.5 },
-  { fg: 'danger', bg: 'surface', min: 4.5 },
-  { fg: 'warning', bg: 'background', min: 4.5 },
-  { fg: 'warning', bg: 'surface', min: 4.5 },
-  { fg: 'success', bg: 'background', min: 4.5 },
-  { fg: 'success', bg: 'surface', min: 4.5 },
-  { fg: 'info', bg: 'background', min: 4.5 },
-  { fg: 'info', bg: 'surface', min: 4.5 },
-  // Los estados de Git tiñen **el nombre del archivo** en el árbol, así que se
-  // leen como texto y van a 4.5 contra la superficie de la barra lateral.
-  { fg: 'git-added', bg: 'surface', min: 4.5 },
-  { fg: 'git-modified', bg: 'surface', min: 4.5 },
-  { fg: 'git-deleted', bg: 'surface', min: 4.5 },
-  { fg: 'git-untracked', bg: 'surface', min: 4.5 },
-  { fg: 'git-conflict', bg: 'surface', min: 4.5 },
-  // El anillo de foco y los iconos son gráficos: 3:1 (WCAG 1.4.11).
-  { fg: 'focus-ring', bg: 'background', min: 3 },
-  { fg: 'focus-ring', bg: 'surface', min: 3 },
-  { fg: 'icon-code', bg: 'surface', min: 3 },
-  { fg: 'icon-markup', bg: 'surface', min: 3 },
-  { fg: 'icon-style', bg: 'surface', min: 3 },
-  { fg: 'icon-data', bg: 'surface', min: 3 },
-  { fg: 'icon-doc', bg: 'surface', min: 3 },
-  { fg: 'icon-config', bg: 'surface', min: 3 },
-  { fg: 'icon-image', bg: 'surface', min: 3 },
-  { fg: 'icon-default', bg: 'surface', min: 3 },
-];
+const PAIRS = JSON.parse(
+  await readFile(
+    join(
+      dirname(fileURLToPath(import.meta.url)),
+      '..',
+      'packages',
+      'core',
+      'src',
+      'theme',
+      'contrast-pairs.json'
+    ),
+    'utf8'
+  )
+).pairs;
 
 /** Saca las declaraciones `--x: y;` del bloque que arranca en `openBrace`. */
 function declarationsFrom(css, openBrace) {

@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 import { QuickPickList, quickPickOptionId } from './QuickPickList.js';
 import { useQuickPickKeyboard } from './use-quick-pick-keyboard.js';
 
@@ -14,6 +16,14 @@ interface QuickPickProps<T> {
   query: string;
   onQueryChange: (query: string) => void;
   onPick: (item: T) => void;
+  /**
+   * Se llama cada vez que cambia el candidato resaltado, con o sin elección.
+   *
+   * Existe para el preview en vivo del selector de temas: mover la flecha
+   * tiene que **aplicar** el tema, no sólo resaltarlo. Es opcional porque los
+   * otros dos usos —la paleta y quick open— no tienen nada que previsualizar.
+   */
+  onHighlight?: (item: T | undefined) => void;
   onClose: () => void;
   placeholder: string;
   label: string;
@@ -44,6 +54,8 @@ export function QuickPick<T>(props: QuickPickProps<T>): React.JSX.Element | null
     const chosen = items[index];
     if (chosen !== undefined) onPick(chosen);
   });
+
+  useHighlightNotice(isOpen, items[keyboard.highlighted], props.onHighlight);
 
   if (!isOpen) return null;
 
@@ -89,4 +101,21 @@ export function QuickPick<T>(props: QuickPickProps<T>): React.JSX.Element | null
       </div>
     </div>
   );
+}
+
+/**
+ * Avisa cuál es el candidato resaltado, cada vez que cambia.
+ *
+ * Es un efecto y no una llamada en el manejador de teclado porque el resaltado
+ * cambia también al filtrar y al abrir, no sólo con las flechas. Para el
+ * preview de temas los tres casos son el mismo: si está resaltado, se pinta.
+ */
+function useHighlightNotice<T>(
+  isOpen: boolean,
+  item: T | undefined,
+  onHighlight: ((item: T | undefined) => void) | undefined
+): void {
+  useEffect(() => {
+    if (isOpen) onHighlight?.(item);
+  }, [isOpen, item, onHighlight]);
 }

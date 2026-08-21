@@ -139,3 +139,39 @@ describe('los atajos del usuario (RF-702)', () => {
     expect(run).toHaveBeenCalledWith('file.save');
   });
 });
+
+describe('acordes', () => {
+  it('no dispara nada con la primera mitad de un acorde', async () => {
+    render(<KeybindingHost />);
+
+    await userEvent.keyboard('{Control>}k{/Control}');
+
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('dispara el comando con la segunda mitad', async () => {
+    render(<KeybindingHost />);
+
+    await userEvent.keyboard('{Control>}k{/Control}');
+    await userEvent.keyboard('{Control>}t{/Control}');
+
+    expect(run).toHaveBeenCalledWith('view.selectTheme');
+  });
+
+  it('abandona el acorde cuando la segunda tecla no completa ninguno', async () => {
+    // Es lo que espera cualquiera que se equivocó de tecla: el acorde se cae,
+    // no queda esperando una tercera.
+    render(<KeybindingHost />);
+
+    await userEvent.keyboard('{Control>}k{/Control}');
+    await userEvent.keyboard('{Control>}j{/Control}');
+    await userEvent.keyboard('{Control>}t{/Control}');
+
+    expect(run).not.toHaveBeenCalledWith('view.selectTheme');
+
+    // Y el atajo simple siguiente vuelve a funcionar.
+    await userEvent.keyboard('{Control>}s{/Control}');
+
+    expect(run).toHaveBeenCalledWith('file.save');
+  });
+});

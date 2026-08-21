@@ -29,6 +29,7 @@ import { useLsp } from './features/lsp/use-lsp.js';
 import { useSearchEvents } from './features/search/use-search-events.js';
 import { useSession } from './features/session/use-session.js';
 import { useSettings } from './features/settings/use-settings.js';
+import { ThemePicker } from './features/theme/ThemePicker.js';
 import { useTheme } from './features/theme/use-theme.js';
 import { useWorkspaceReset } from './features/workspace/use-workspace-reset.js';
 import { useEditorStore } from './stores/editor-store.js';
@@ -96,6 +97,7 @@ export function App(): React.JSX.Element {
       <FilePalette />
       <BranchPicker />
       <ApiKeyDialog />
+      <ThemePicker />
     </div>
   );
 }

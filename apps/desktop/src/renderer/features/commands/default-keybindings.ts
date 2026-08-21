@@ -37,6 +37,10 @@ export const DEFAULT_KEYBINDINGS: readonly Keybinding[] = [
   { key: 'ctrl+shift+\\', command: 'editor.splitDown', when: 'hasOpenTab' },
   { key: 'ctrl+1', command: 'editor.focusFirstGroup', when: 'hasSecondGroup' },
   { key: 'ctrl+2', command: 'editor.focusSecondGroup', when: 'hasSecondGroup' },
+  // Un **acorde**: se pulsa `Ctrl+K`, se suelta, y después `Ctrl+T`. Es la
+  // convención que arrastra todo el mundo desde VS Code para las acciones que
+  // no tienen una tecla obvia, y la primera de este proyecto.
+  { key: 'ctrl+k ctrl+t', command: 'view.selectTheme' },
   { key: 'ctrl+shift+c', command: 'terminal.copy', when: 'terminalFocus' },
   { key: 'ctrl+shift+v', command: 'terminal.paste', when: 'terminalFocus' },
 ];

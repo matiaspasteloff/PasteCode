@@ -2,6 +2,7 @@ import type { Command } from '@pastecode/core';
 import { PRIMARY_GROUP_ID, SECONDARY_GROUP_ID } from '@pastecode/core';
 
 import { useEditorStore } from '../../stores/editor-store.js';
+import { useThemeStore } from '../../stores/theme-store.js';
 import { useViewStore } from '../../stores/view-store.js';
 
 /**
@@ -52,6 +53,13 @@ export function viewCommands(): readonly Command[] {
       title: 'command.viewShowExplorer',
       handler: () => {
         useViewStore.getState().toggleSide('explorer');
+      },
+    },
+    {
+      id: 'view.selectTheme',
+      title: 'command.viewSelectTheme',
+      handler: () => {
+        useThemeStore.getState().openPicker();
       },
     },
     ...panelCommands(),

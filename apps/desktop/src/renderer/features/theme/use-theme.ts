@@ -1,3 +1,4 @@
+import { builtInTheme } from '@pastecode/core';
 import { useEffect } from 'react';
 
 import { useExtensionsStore } from '../../stores/extensions-store.js';
@@ -28,9 +29,14 @@ export function useTheme(): void {
   const theme = useThemeStore((state) => state.theme);
   const colorTheme = useSettingsStore((state) => state.settings.window.colorTheme);
   const themes = useExtensionsStore((state) => state.themes);
-  // Un id que no corresponde a ningún tema instalado se ignora: una extensión
-  // desinstalada no puede dejar al IDE sin colores.
-  const contributed = themes.find((candidate) => candidate.id === colorTheme);
+  const preview = useThemeStore((state) => state.preview);
+  // Los incorporados y los de extensión comparten el mismo lookup: el schema
+  // de settings no cambió, `window.colorTheme` sigue siendo un id (ADR-0031).
+  // Un id que no corresponde a ninguno se ignora, y eso es lo que hace que una
+  // extensión desinstalada no deje al IDE sin colores.
+  const chosen = preview ?? colorTheme;
+  const applicable =
+    builtInTheme(chosen) ?? themes.find((candidate) => candidate.id === chosen);
 
   useEffect(() => {
     const media = globalThis.matchMedia('(prefers-color-scheme: dark)');
@@ -39,11 +45,12 @@ export function useTheme(): void {
       const resolved: ResolvedTheme =
         theme === 'system' ? (media.matches ? 'dark' : 'light') : theme;
 
-      // El tema de una extensión gana sobre claro/oscuro, pero se dibuja
-      // **encima** de uno de los dos: lo que no pisa lo hereda de la base, así
-      // que un tema que sólo define un acento sigue siendo legible (RF-906).
-      if (contributed !== undefined) {
-        applyContributedTheme(contributed);
+      // Un tema con nombre gana sobre claro/oscuro, pero se dibuja **encima**
+      // de uno de los dos: lo que no pisa lo hereda de la base, así que un tema
+      // de extensión que sólo define un acento sigue siendo legible (RF-906).
+      // Los incorporados declaran todo, así que no heredan nada.
+      if (applicable !== undefined) {
+        applyContributedTheme(applicable);
         return;
       }
 
@@ -65,7 +72,7 @@ export function useTheme(): void {
     return () => {
       media.removeEventListener('change', apply);
     };
-  }, [theme, contributed]);
+  }, [theme, applicable]);
 }
 
 /**

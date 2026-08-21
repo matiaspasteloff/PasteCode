@@ -11,9 +11,24 @@ export type ResolvedTheme = 'light' | 'dark';
 
 interface ThemeState {
   theme: Theme;
+  /**
+   * El tema que se está previsualizando, o `null`.
+   *
+   * Existe para el selector de `Ctrl+K Ctrl+T`: mover la selección lo aplica y
+   * cancelar lo restaura. Va **aparte** de `window.colorTheme` a propósito —si
+   * el preview escribiera las settings, cada tecla de flecha escribiría el
+   * `settings.json` del usuario, y cancelar tendría que deshacerlo—.
+   */
+  preview: string | null;
+  /** Si el selector de `Ctrl+K Ctrl+T` está a la vista. */
+  isPickerOpen: boolean;
+  openPicker: () => void;
+  closePicker: () => void;
   setTheme: (theme: Theme) => void;
   /** Rota entre claro, oscuro y sistema. Es lo que usa el comando. */
   cycleTheme: () => void;
+  /** Pinta un tema sin guardarlo. `null` vuelve a lo elegido de verdad. */
+  setPreview: (colorTheme: string | null) => void;
 }
 
 /**
@@ -29,6 +44,8 @@ interface ThemeState {
  */
 export const useThemeStore = create<ThemeState>((set, get) => ({
   theme: 'system',
+  preview: null,
+  isPickerOpen: false,
 
   setTheme: (theme) => {
     set({ theme });
@@ -37,5 +54,17 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   cycleTheme: () => {
     const next = THEMES[(THEMES.indexOf(get().theme) + 1) % THEMES.length] ?? 'system';
     set({ theme: next });
+  },
+
+  setPreview: (preview) => {
+    set({ preview });
+  },
+
+  openPicker: () => {
+    set({ isPickerOpen: true });
+  },
+
+  closePicker: () => {
+    set({ isPickerOpen: false });
   },
 }));

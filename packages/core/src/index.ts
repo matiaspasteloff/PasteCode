@@ -44,6 +44,15 @@ export type {
   AiToolName,
   ReadOnlyToolName,
 } from './ai/tools.js';
+export { BUILT_IN_THEMES, builtInTheme } from './theme/built-in-themes.js';
+export { blend, contrastRatio, parseHex, relativeLuminance } from './theme/contrast.js';
+export { buildTheme } from './theme/palette.js';
+export type {
+  AnsiPalette,
+  BuiltInTheme,
+  ThemePalette,
+  TokenColorRule,
+} from './theme/palette.js';
 export { fuzzyMatch, rankByFuzzyMatch } from './commands/fuzzy.js';
 export type { FuzzyMatch } from './commands/fuzzy.js';
 export {
