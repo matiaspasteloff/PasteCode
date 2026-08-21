@@ -166,6 +166,7 @@ export const es = {
   'debug.noSession': 'No hay ninguna sesión de depuración en curso.',
   'debug.noConfigurations': 'No hay configuraciones en el launch.json de este workspace.',
   'terminal.sessions': 'Terminales abiertas',
+  'terminal.starting': 'Abriendo…',
   'workspace.emptyDescription': 'Abrí una carpeta para empezar a editar.',
   'workspace.emptyTitle': 'No hay ninguna carpeta abierta',
   'workspace.open': 'Abrir carpeta',

@@ -1,7 +1,13 @@
 import type { Terminal } from '@xterm/xterm';
 
 /**
- * Las instancias vivas de xterm, por sesión.
+ * Las instancias vivas de xterm, por **slot** y no por sesión.
+ *
+ * La clave es el id local del slot porque xterm existe **antes** que el
+ * proceso: se lo monta, se lo mide, y recién con esas columnas y filas se pide
+ * el PTY. Con el id de sesión como clave, la instancia no se podría registrar
+ * hasta después de un viaje de IPC — y es justamente en ese intervalo cuando
+ * hay que medirla.
  *
  * Existe por la misma razón que el `EditorModelRegistry` de Monaco: hay
  * comandos —copiar y pegar, [RF-304](../../../../../docs/03-requerimientos-funcionales.md#terminal-integrada)—
@@ -14,36 +20,36 @@ import type { Terminal } from '@xterm/xterm';
 const instances = new Map<string, Terminal>();
 
 /**
- * Registra la instancia de una sesión.
+ * Registra la instancia de una terminal.
  *
- * @param sessionId Sesión a la que pertenece.
+ * @param slotId Terminal a la que pertenece.
  * @param terminal La instancia recién creada.
  * @example
- * registerTerminal('terminal-1', terminal);
+ * registerTerminal(slot.slotId, terminal);
  */
-export function registerTerminal(sessionId: string, terminal: Terminal): void {
-  instances.set(sessionId, terminal);
+export function registerTerminal(slotId: string, terminal: Terminal): void {
+  instances.set(slotId, terminal);
 }
 
 /**
  * Saca una instancia del registro. La llama el cleanup del efecto que la montó.
  *
- * @param sessionId Sesión que se desmonta.
+ * @param slotId Terminal que se desmonta.
  * @example
- * releaseTerminal('terminal-1');
+ * releaseTerminal(slot.slotId);
  */
-export function releaseTerminal(sessionId: string): void {
-  instances.delete(sessionId);
+export function releaseTerminal(slotId: string): void {
+  instances.delete(slotId);
 }
 
 /**
- * La instancia de una sesión, si sigue montada.
+ * La instancia de una terminal, si sigue montada.
  *
- * @param sessionId Sesión buscada.
- * @returns La instancia, o `undefined` si la sesión murió o nunca existió.
+ * @param slotId Terminal buscada.
+ * @returns La instancia, o `undefined` si la terminal se cerró o nunca existió.
  * @example
- * getTerminal(activeSessionId)?.getSelection();
+ * getTerminal(activeSlotId)?.getSelection();
  */
-export function getTerminal(sessionId: string | null): Terminal | undefined {
-  return sessionId === null ? undefined : instances.get(sessionId);
+export function getTerminal(slotId: string | null): Terminal | undefined {
+  return slotId === null ? undefined : instances.get(slotId);
 }

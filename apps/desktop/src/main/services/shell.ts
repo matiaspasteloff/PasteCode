@@ -40,23 +40,47 @@ const STRIPPED_VARIABLES = [
  * configuración del usuario, puesta en su cuenta del sistema y no en un
  * archivo del proyecto.
  *
+ * En Windows se prefiere PowerShell 7 y se cae al de fábrica si no está; el
+ * porqué está en `windowsShell`.
+ *
  * @returns El ejecutable y sus argumentos.
  * @example
- * defaultShell(); // { file: 'C:\\WINDOWS\\System32\\...\\powershell.exe', args: [] }
+ * defaultShell(); // { file: 'C:\\Program Files\\PowerShell\\7\\pwsh.exe', args: ['-NoLogo'] }
  */
 function defaultShell(): ShellCommand {
-  if (process.platform === 'win32') {
-    const systemRoot = process.env.SystemRoot ?? 'C:\\Windows';
-
-    return {
-      file: join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
-      // `-NoLogo` saca el banner de copyright, que ocupa tres líneas de una
-      // terminal que arranca con veinticuatro.
-      args: ['-NoLogo'],
-    };
-  }
+  if (process.platform === 'win32') return windowsShell();
 
   return { file: process.env.SHELL ?? '/bin/sh', args: [] };
+}
+
+/**
+ * PowerShell 7 si está instalado, y si no el que trae Windows.
+ *
+ * `pwsh.exe` es el que la gente usa: tiene predicción de comandos, colores por
+ * defecto y un prompt que no tarda un segundo en aparecer. Pero **no viene con
+ * Windows**, así que asumirlo dejaría la terminal rota en cualquier máquina
+ * recién instalada, y una terminal que no abre es peor que una vieja.
+ *
+ * Las dos rutas se prueban **absolutas y en orden**, nunca por `PATH`: un
+ * `pwsh.exe` puesto en un directorio del PATH por un repositorio clonado
+ * ganaría, y el PATH de un proyecto lo escribe cualquiera. Es el mismo criterio
+ * con el que [seguridad.md](../../../../../docs/convenciones/seguridad.md#procesos-hijo-y-binarios-externos)
+ * resuelve ripgrep.
+ *
+ * `-NoLogo` saca el banner de copyright, que ocupa tres líneas de una terminal
+ * que arranca con veinticuatro.
+ */
+function windowsShell(): ShellCommand {
+  const programFiles = process.env.ProgramFiles ?? 'C:\\Program Files';
+  const systemRoot = process.env.SystemRoot ?? 'C:\\Windows';
+  const pwsh = join(programFiles, 'PowerShell', '7', 'pwsh.exe');
+
+  if (assertExecutable(pwsh) === null) return { file: pwsh, args: ['-NoLogo'] };
+
+  return {
+    file: join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+    args: ['-NoLogo'],
+  };
 }
 
 /**
