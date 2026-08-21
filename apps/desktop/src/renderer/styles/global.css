@@ -1520,3 +1520,299 @@ body {
   overflow-y: auto;
   list-style: none;
 }
+
+/* ---------------------------------------------------------------------------
+ * Asistente de IA (etapa experimental)
+ *
+ * Bloque propio y al final del archivo a propósito: la etapa experimental
+ * tiene que poder sacarse sin romper nada, y con las reglas repartidas entre
+ * las demás eso sería un diff quirúrgico sobre la hoja entera.
+ * ------------------------------------------------------------------------ */
+
+.ai-panel {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.ai-panel--empty {
+  align-items: flex-start;
+  padding: var(--space-3);
+  gap: var(--space-3);
+}
+
+.ai-panel__toolbar {
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  gap: var(--space-2);
+}
+
+.ai-panel__model {
+  min-width: 0;
+  flex: 1;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.ai-panel__key {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  font: inherit;
+}
+
+.ai-panel__key:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+}
+
+.ai-panel__messages {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: var(--space-3);
+  gap: var(--space-4);
+  overflow-y: auto;
+}
+
+.ai-panel__empty,
+.ai-panel__error {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.ai-panel__error {
+  color: var(--color-danger);
+}
+
+.ai-message {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.ai-message__author {
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* El mensaje de la persona lleva fondo; el del asistente no. Es lo que hace
+   que la conversación se escanee sin leerla: los bloques con fondo son los
+   turnos propios. */
+.ai-message[data-role='user'] .ai-message__prose {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+}
+
+.ai-message__prose {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ai-message__caret {
+  color: var(--color-accent);
+}
+
+.ai-code {
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  overflow: hidden;
+}
+
+.ai-code__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  gap: var(--space-2);
+  font-size: 0.7rem;
+}
+
+.ai-code__language {
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+}
+
+.ai-code__actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.ai-code__actions button {
+  padding: 2px var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
+}
+
+.ai-code__actions button:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+}
+
+.ai-code__body {
+  max-height: 22rem;
+  margin: 0;
+  padding: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  overflow: auto;
+}
+
+/* La tarjeta de confirmación es el único punto donde alguien ve qué se va a
+   escribir antes de que se escriba (RF-1006), así que se distingue del resto
+   de la conversación con el borde de acento. */
+.ai-tool-call {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.ai-tool-call__header {
+  display: flex;
+  align-items: baseline;
+  padding: var(--space-2) var(--space-3);
+  gap: var(--space-2);
+  font-size: 0.75rem;
+}
+
+.ai-tool-call__title {
+  color: var(--color-muted);
+}
+
+.ai-tool-call__path {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-tool-call__diff {
+  height: 16rem;
+  border-block: 1px solid var(--color-border);
+}
+
+.ai-tool-call__actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-2);
+  gap: var(--space-2);
+}
+
+.ai-tool-call__actions button {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.ai-tool-call__apply {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+.ai-tool-call__actions button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.ai-panel__composer {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  gap: var(--space-2);
+}
+
+.ai-panel__input {
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font: inherit;
+  font-size: 0.8rem;
+  resize: none;
+}
+
+.ai-panel__input:focus-visible {
+  border-color: var(--color-focus-ring);
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -1px;
+}
+
+.ai-panel__send {
+  align-self: flex-end;
+  padding: var(--space-1) var(--space-4);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.ai-panel--empty button,
+.ai-key__input {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.ai-key__label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 0.75rem;
+}
+
+.ai-key__input {
+  width: 100%;
+  cursor: text;
+  font-family: var(--font-mono);
+}

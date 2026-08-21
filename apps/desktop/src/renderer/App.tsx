@@ -6,6 +6,8 @@ import { BottomPanel } from './components/BottomPanel.js';
 import { SideView } from './components/SideView.js';
 import { StatusBar } from './components/StatusBar.js';
 import { TitleToolbar } from './components/TitleToolbar.js';
+import { ApiKeyDialog } from './features/ai/ApiKeyDialog.js';
+import { useAiEvents } from './features/ai/use-ai-events.js';
 import { CommandPalette } from './features/commands/CommandPalette.js';
 import { useAppCommands } from './features/commands/use-app-commands.js';
 import { useKeybindings } from './features/commands/use-keybindings.js';
@@ -41,6 +43,7 @@ export function App(): React.JSX.Element {
   const groups = useEditorStore((state) => state.groups);
 
   useAppCommands();
+  useAiEvents();
   useKeybindings();
   useSettings();
   useSession();
@@ -92,6 +95,7 @@ export function App(): React.JSX.Element {
       <CommandPalette />
       <FilePalette />
       <BranchPicker />
+      <ApiKeyDialog />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { activeTab } from '@pastecode/core';
 
+import { AiPanel } from '../features/ai/AiPanel.js';
 import { FileTree } from '../features/file-tree/FileTree.js';
 import { SourceControlPanel } from '../features/git/SourceControlPanel.js';
 import { SearchPanel } from '../features/search/SearchPanel.js';
@@ -8,6 +9,7 @@ import { selectActiveTabs, useEditorStore } from '../stores/editor-store.js';
 import type { SideView } from '../stores/view-store.js';
 
 import type { IconProps } from './icons/Icon.js';
+import { IconAi } from './icons/IconAi.js';
 import { IconExplorer } from './icons/IconExplorer.js';
 import { IconGit } from './icons/IconGit.js';
 import { IconSearch } from './icons/IconSearch.js';
@@ -82,5 +84,15 @@ export const SIDE_VIEW_REGISTRY: readonly SideViewDescriptor[] = [
     commandId: 'git.toggle',
     Icon: IconGit,
     render: () => <SourceControlPanel />,
+  },
+  // El asistente de la etapa experimental entró como una entrada más, sin
+  // tocar el cascarón. Es la segunda prueba de que este registro anda, después
+  // de Git, y la que además deja que sacarlo sea borrar estas seis líneas.
+  {
+    id: 'ai',
+    labelKey: 'view.ai',
+    commandId: 'ai.toggle',
+    Icon: IconAi,
+    render: () => <AiPanel />,
   },
 ];

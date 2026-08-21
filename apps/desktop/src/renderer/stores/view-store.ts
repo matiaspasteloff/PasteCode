@@ -8,7 +8,7 @@ import { create } from 'zustand';
  * la unión sale del array, así que la lista de vistas es un dato que se puede
  * recorrer y no un tipo que sólo existe en tiempo de compilación.
  */
-export const SIDE_VIEWS = ['explorer', 'search', 'git'] as const;
+export const SIDE_VIEWS = ['explorer', 'search', 'git', 'ai'] as const;
 
 export type SideView = (typeof SIDE_VIEWS)[number];
 

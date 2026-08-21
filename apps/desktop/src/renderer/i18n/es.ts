@@ -10,6 +10,39 @@
  * para que agregar una no sea una decisión.
  */
 export const es = {
+  'ai.apply': 'Aplicar',
+  'ai.ask': 'Preguntarle al asistente',
+  'ai.assistant': 'Asistente',
+  'ai.cancel': 'Cancelar',
+  'ai.code': 'código',
+  'ai.configureKey': 'Configurar la clave',
+  'ai.copy': 'Copiar',
+  'ai.discard': 'Descartar',
+  'ai.empty':
+    'Preguntale algo sobre el proyecto. Puede leer archivos, buscar en el workspace y proponer cambios.',
+  'ai.insert': 'Insertar en el cursor',
+  'ai.keyCancel': 'Cancelar',
+  'ai.keyClear': 'Borrar la clave',
+  'ai.keyLabel': 'Clave de OpenRouter',
+  'ai.keyMessage':
+    'El asistente usa OpenRouter y sólo ofrece modelos gratuitos. La clave se guarda cifrada por el sistema operativo y nunca sale de esta computadora.',
+  'ai.keyNotPersisted':
+    'Este sistema no ofrece almacenamiento cifrado, así que la clave no se va a guardar: vas a tener que pegarla de nuevo en la próxima sesión.',
+  'ai.keySave': 'Guardar',
+  'ai.keyTitle': 'Clave del asistente',
+  'ai.model': 'Modelo',
+  'ai.needsKey':
+    'El asistente necesita una clave de OpenRouter para funcionar. Es gratis y sólo se ofrecen modelos sin costo.',
+  'ai.noModels': 'No hay modelos disponibles',
+  'ai.placeholder': 'Preguntá algo… (Enter para enviar, Shift+Enter para un salto de línea)',
+  'ai.replace': 'Reemplazar la selección',
+  'ai.send': 'Enviar',
+  'ai.willCreate': 'Va a crear',
+  'ai.willWrite': 'Va a reescribir',
+  'ai.you': 'Vos',
+  'command.aiExplainSelection': 'Explicar la selección con el asistente',
+  'command.aiNewChat': 'Empezar una conversación nueva con el asistente',
+  'command.aiToggle': 'Mostrar u ocultar el asistente',
   'command.editorFocusFirstGroup': 'Ir al primer grupo de edición',
   'command.editorFocusSecondGroup': 'Ir al segundo grupo de edición',
   'command.editorSplitDown': 'Partir el editor hacia abajo',
@@ -95,6 +128,7 @@ export const es = {
   'search.wholeWord': 'ab|',
   'tabs.close': 'Cerrar',
   'view.activityBar': 'Vistas',
+  'view.ai': 'Asistente',
   'view.explorer': 'Explorador',
   'view.git': 'Control de código fuente',
   'view.search': 'Búsqueda',
