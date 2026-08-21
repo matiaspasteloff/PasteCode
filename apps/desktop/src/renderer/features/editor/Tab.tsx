@@ -2,6 +2,8 @@ import type { TabState } from '@pastecode/core';
 
 import { t } from '../../i18n/index.js';
 
+import { middleClickToClose } from './middle-click-close.js';
+
 interface TabProps {
   tab: TabState;
   isActive: boolean;
@@ -19,6 +21,10 @@ function fileNameOf(path: string): string {
  *
  * **Es presentacional**: no lee el store, sólo avisa qué le hicieron
  * ([regla 3 de React](../../../../../../docs/convenciones/codigo.md#reglas-de-react)).
+ *
+ * Se cierra también con la ruedita, que es lo que espera cualquiera que venga
+ * de un navegador o de otro editor. Los dos handlers que hacen falta —y el
+ * `preventDefault` que se olvida— están en `middleClickToClose`.
  */
 export function Tab({ tab, isActive, onActivate, onClose }: TabProps): React.JSX.Element {
   const name = fileNameOf(tab.path);
@@ -33,6 +39,7 @@ export function Tab({ tab, isActive, onActivate, onClose }: TabProps): React.JSX
       className="tabs__tab"
       data-active={isActive}
       data-testid={`tab-${name}`}
+      {...middleClickToClose(onClose)}
       onClick={onActivate}
       onKeyDown={(event) => {
         if (event.key !== 'Enter' && event.key !== ' ') return;

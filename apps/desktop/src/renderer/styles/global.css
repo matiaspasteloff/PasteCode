@@ -19,15 +19,35 @@ body {
  * fila, y la barra de estado cruza las tres columnas. Con flex habría que
  * anidar dos contenedores para decir lo mismo.
  *
- * La columna de la barra lateral es `auto` y no un ancho fijo: cuando la vista
- * está colapsada, `SideView` no renderiza nada y la columna se cierra sola, sin
- * que nadie tenga que cambiar el `grid-template`.
+ * **Las tres columnas de la fila 2 se declaran explícitamente**, y ahí está el
+ * arreglo del hueco a la derecha al colapsar el explorador. Antes ninguno de
+ * los tres hijos decía en qué columna iba: se colocaban por auto-placement, y
+ * con la barra lateral abierta caían en 1, 2 y 3 por casualidad. Cuando
+ * `SideView` devuelve `null` —que es lo que hace al colapsar— el área de
+ * edición se corría a la columna 2, que mide `auto`, y la 3, que es la que
+ * lleva el `1fr`, quedaba vacía: ése era el hueco.
+ *
+ * Con `grid-column` en cada uno, el área de edición se queda siempre en la 3 y
+ * la 2 colapsa sola al no tener contenido, que es justamente para lo que sirve
+ * una pista `auto`.
  */
 .app {
   display: grid;
   grid-template-columns: var(--activity-bar-width) auto 1fr;
   grid-template-rows: var(--toolbar-height) 1fr auto;
   height: 100vh;
+}
+
+.activity-bar {
+  grid-column: 1;
+}
+
+.sidebar {
+  grid-column: 2;
+}
+
+.editor-area {
+  grid-column: 3;
 }
 
 /*
@@ -1080,13 +1100,15 @@ body {
   flex-direction: column;
 }
 
+/* La tira de terminales, al extremo derecho de la barra del panel inferior.
+   Antes era una segunda fila con su propio botón de esconder el panel: dos
+   franjas de cromo apiladas y un botón duplicado. */
 .terminal-tabs {
   display: flex;
+  overflow: hidden;
   align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--color-border);
-  gap: 0.6rem;
-  padding: 0 0.6rem;
+  margin-left: auto;
+  gap: var(--space-1);
 }
 
 .terminal-tabs__list {
@@ -1095,44 +1117,53 @@ body {
   align-items: center;
   margin: 0;
   padding: 0;
-  gap: 0.35rem;
+  gap: var(--space-1);
   list-style: none;
 }
 
 .terminal-tabs__list li {
   display: flex;
   align-items: center;
+  border-radius: var(--radius-sm);
 }
 
 .terminal-tabs__tab,
 .terminal-tabs__close,
-.terminal-tabs__actions button {
+.terminal-tabs__new {
+  padding: var(--space-1);
   border: none;
   background: none;
   color: var(--color-muted);
   cursor: pointer;
   font: inherit;
-  padding: 0.6rem 0.35rem;
+  font-size: 0.7rem;
+  white-space: nowrap;
 }
 
 .terminal-tabs__tab[aria-current='true'] {
-  border-bottom: 2px solid var(--color-accent);
   color: var(--color-foreground);
 }
 
-.terminal-tabs__actions {
-  display: flex;
-  gap: 0.35rem;
+.terminal-tabs__list li:has(.terminal-tabs__tab[aria-current='true']) {
+  background: var(--color-surface-raised);
+}
+
+.terminal-tabs__tab:hover,
+.terminal-tabs__close:hover,
+.terminal-tabs__new:hover {
+  color: var(--color-foreground);
 }
 
 /* xterm mide su contenedor para calcular filas y columnas, así que necesita
    uno con alto propio. `min-height: 0` es lo que deja que un hijo de flex se
-   achique por debajo de su contenido en vez de desbordar el panel. */
+   achique por debajo de su contenido en vez de desbordar el panel.
+   **Sin padding**: xterm no lo pinta, así que ese borde quedaba del color del
+   panel y no del de la terminal — una franja de otro color alrededor del
+   texto. El aire lo pone xterm por dentro. */
 .terminal-panel__surface {
   overflow: hidden;
   min-height: 0;
   flex: 1;
-  padding: 0.35rem;
 }
 
 .terminal-panel__surface[hidden] {
