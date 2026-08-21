@@ -88,15 +88,16 @@ test('cambia de tema en caliente y repinta toda la aplicación', async () => {
 
   await window.keyboard.press('Control+Shift+P');
   await expect(window.getByRole('combobox')).toBeVisible();
-  await window.keyboard.type('tema');
 
-  // Se verifica que el primero que coincide sea **un** comando de tema, y no
-  // uno en particular: el matcher es difuso, así que cualquier comando con
-  // "terminal" en el título coincide con "tema" por subsecuencia, y desde la
-  // etapa experimental hay dos comandos de tema —rotar claro/oscuro y elegir
-  // uno de los nueve incorporados—. Fijar cuál gana ataría este test al orden
-  // interno del ranking.
-  await expect(window.getByRole('option').first()).toContainText(/tema/i);
+  // Se escribe el título completo y no `tema` a secas. Desde la etapa
+  // experimental hay **dos** comandos de tema —rotar claro/oscuro y elegir uno
+  // de los nueve incorporados— y el matcher es difuso, así que `tema` ya no
+  // identifica a ninguno: apretar Enter podía abrir el selector en vez de
+  // rotar, y el síntoma era este test viendo la paleta todavía abierta.
+  await window.keyboard.type('Cambiar el tema');
+  await expect(window.getByRole('option').first()).toHaveText(
+    'Cambiar el tema (claro, oscuro, sistema)'
+  );
   await window.keyboard.press('Enter');
 
   await expect(window.locator('.palette')).toHaveCount(0);
