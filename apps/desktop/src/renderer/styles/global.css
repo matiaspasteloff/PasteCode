@@ -325,7 +325,9 @@ body {
   display: none;
 }
 
-/* El rail de vistas. Vertical, angosto y siempre presente. */
+/* El rail de vistas. Vertical, angosto y siempre presente. Comparte la
+   superficie hundida con la tira de pestañas, para que las dos se lean como el
+   borde de la superficie de edición y no como tres barras distintas. */
 .activity-bar {
   display: flex;
   flex-direction: column;
@@ -571,43 +573,77 @@ body {
   margin: auto;
 }
 
+/* --- Pestañas del editor -------------------------------------------------
+ * La pestaña activa lleva **el fondo del editor** y un borde superior de
+ * acento, que es lo que la conecta visualmente con el código de abajo: sin
+ * eso, la tira de pestañas se lee como una barra aparte y no como el borde de
+ * la superficie que se está mirando.
+ */
 .tabs {
   display: flex;
   overflow-x: auto;
   flex: none;
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  background: var(--color-surface-sunken);
 }
 
 .tabs__tab {
+  position: relative;
   display: flex;
   align-items: center;
-  padding: 0.3rem 0.5rem 0.3rem 0.75rem;
+  max-width: 15rem;
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
   border-right: 1px solid var(--color-border);
+  color: var(--color-muted);
   cursor: pointer;
-  gap: 0.4rem;
+  gap: var(--space-2);
   font-size: 0.8rem;
   white-space: nowrap;
+}
+
+.tabs__tab:hover {
+  background: var(--color-surface);
 }
 
 .tabs__tab[data-active='true'] {
   background: var(--color-background);
   box-shadow: inset 0 2px 0 var(--color-accent);
+  color: var(--color-foreground);
 }
 
 .tabs__tab:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: -2px;
+}
+
+.tabs__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* El punto de sucio y la × ocupan **la misma ranura**: son la misma cosa —el
+   estado del archivo y qué hacer con él— y darles dos lugares obligaba a
+   apuntar a un blanco de ocho píxeles al lado de otro. El punto se ve en
+   reposo; al pasar el mouse o con el foco adentro, cede el lugar a la ×. */
+.tabs__dirty,
+.tabs__close {
+  display: flex;
+  width: 1.1rem;
+  height: 1.1rem;
+  align-items: center;
+  justify-content: center;
+  flex: none;
 }
 
 .tabs__dirty {
   color: var(--color-accent);
-  font-size: 0.7rem;
+  font-size: 0.6rem;
 }
 
 .tabs__close {
-  padding: 0 0.2rem;
+  padding: 0;
   border: none;
+  border-radius: var(--radius-sm);
   background: none;
   color: var(--color-muted);
   cursor: pointer;
@@ -615,8 +651,28 @@ body {
   line-height: 1;
 }
 
+.tabs__tab[data-dirty='true'] .tabs__close {
+  display: none;
+}
+
+.tabs__tab[data-dirty='true']:hover .tabs__dirty,
+.tabs__tab[data-dirty='true']:focus-within .tabs__dirty {
+  display: none;
+}
+
+.tabs__tab[data-dirty='true']:hover .tabs__close,
+.tabs__tab[data-dirty='true']:focus-within .tabs__close {
+  display: flex;
+}
+
 .tabs__close:hover {
+  background: var(--color-surface-raised);
   color: var(--color-foreground);
+}
+
+.tabs__close:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
 }
 
 .status-bar__saving {
@@ -772,11 +828,10 @@ body {
   padding: 0 var(--space-3);
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
+  color: var(--color-muted);
   font-size: 0.7rem;
 }
 
-/* Dos grupos, uno por punta. Los indicadores del archivo activo van a la
-   derecha, que es donde la vista los busca. */
 .status-bar__group {
   display: flex;
   align-items: center;
@@ -802,6 +857,12 @@ body {
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+
+.status-bar__item--action:focus-visible,
+.status-bar__button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
 }
 
 .status-bar__item--action:hover {
