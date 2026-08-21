@@ -158,6 +158,32 @@ describe('acordes', () => {
     expect(run).toHaveBeenCalledWith('view.selectTheme');
   });
 
+  it('un atajo directo le gana al prefijo de un acorde', async () => {
+    // `Ctrl+K` es la primera mitad de `Ctrl+K Ctrl+T`, pero también es un atajo
+    // que el usuario puede definir en su keybindings.json. Cuando existe, gana:
+    // esperar una segunda tecla dejaría al atajo del usuario sin disparar nunca.
+    // Por el api falso y no con `setState`: el hook pide los atajos al montar,
+    // y lo que responda ese canal pisa cualquier estado puesto de antemano.
+    installFakeApi({
+      'keybindings:get': {
+        ok: true,
+        value: {
+          bindings: [{ key: 'ctrl+k', command: 'palette.open' }],
+          conflicts: [],
+          error: null,
+        },
+      },
+    });
+    render(<KeybindingHost />);
+
+    await waitFor(() => {
+      expect(useKeybindingsStore.getState().bindings).toHaveLength(1);
+    });
+    await userEvent.keyboard('{Control>}k{/Control}');
+
+    expect(openPalette).toHaveBeenCalledOnce();
+  });
+
   it('abandona el acorde cuando la segunda tecla no completa ninguno', async () => {
     // Es lo que espera cualquiera que se equivocó de tecla: el acorde se cae,
     // no queda esperando una tercera.
