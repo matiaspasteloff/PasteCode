@@ -7,6 +7,7 @@ import {
 import type { BrowserWindow } from 'electron';
 import { BrowserWindow as ElectronBrowserWindow } from 'electron';
 
+import type { EventRecipient } from './emitter.js';
 import { emit } from './emitter.js';
 import { registerHandler } from './handler.js';
 
@@ -69,6 +70,18 @@ export function registerWindowIpcHandlers(): void {
 }
 
 /**
+ * Lo único que `watchMaximizedState` necesita de una ventana.
+ *
+ * `BrowserWindow` lo cumple estructuralmente. Pedir la interfaz mínima y no la
+ * clase de Electron es lo que deja testear esto en Node sin levantar una app:
+ * es la misma razón por la que `EventRecipient` existe, y de hecho lo extiende.
+ */
+export interface MaximizableWindow extends EventRecipient {
+  isMaximized(): boolean;
+  on(event: 'maximize' | 'unmaximize' | 'leave-full-screen', listener: () => void): void;
+}
+
+/**
  * Avisa al renderer cada vez que la ventana se maximiza o se restaura.
  *
  * **No alcanza con que el renderer pregunte al montar.** El estado cambia
@@ -83,7 +96,7 @@ export function registerWindowIpcHandlers(): void {
  * @example
  * watchMaximizedState(window);
  */
-export function watchMaximizedState(window: BrowserWindow): void {
+export function watchMaximizedState(window: MaximizableWindow): void {
   const publish = (): void => {
     emit(window, 'window:maximizedChanged', { isMaximized: window.isMaximized() });
   };
