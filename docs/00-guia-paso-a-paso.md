@@ -242,6 +242,10 @@ _~2 semanas_
 
 **El `>>>>>>>` de la terminal era un problema de orden, no de conpty.** El PTY se abría con un `80×24` hardcodeado antes de que xterm existiera; el `fit()` posterior mandaba el tamaño real y conpty **reproduce su buffer** al recibir un resize, lo que hacía que PSReadLine redibujara el prompt encima de sí mismo. Invertir el orden —montar xterm, medir, y recién ahí crear la sesión— lo eliminó sin tocar una línea del supervisor.
 
+**El acorde no llega con el foco en la terminal, y está bien así.** `Ctrl+K Ctrl+T` abre el selector de temas desde cualquier lado menos desde adentro de la terminal: xterm consume `Ctrl+K` —es la tecla de _kill-line_ de readline— y corta la propagación antes de que el listener del documento la vea. Lo encontró la pasada manual, no un test, y la conclusión fue no arreglarlo: es exactamente lo que hace VS Code, y lo contrario significaría que un IDE le robe teclas a la terminal que aloja.
+
+**El E2E del tema se cayó por una razón que vale anotar.** El matcher de la paleta es difuso, y con un segundo comando que habla de temas la palabra "tema" dejó de identificar a ninguno: apretar Enter abría el selector nuevo en vez de rotar claro/oscuro. El test no estaba mal escrito cuando se escribió; envejeció. La lección es que un aserto sobre "el primero que coincide" en una lista difusa es una dependencia oculta del catálogo entero.
+
 **`-webkit-app-region` es el error clásico de la barra de título.** Un botón sin `no-drag` no se puede clickear, y el síntoma —"el botón no anda"— no se parece a la causa. Va como regla en `global.css` sobre **todos** los hijos interactivos de la barra, no caso por caso.
 
 ---
