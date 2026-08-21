@@ -6,7 +6,7 @@ import { getLoadedMonaco } from '../editor/monaco-instance.js';
 import { monacoThemeFor } from './use-theme.js';
 
 /** Un tema aportado por una extensión, tal como llega del contrato. */
-export type ContributedTheme = ExtensionsChangedEvent['themes'][number];
+type ContributedTheme = ExtensionsChangedEvent['themes'][number];
 
 /**
  * Lo que hace falta para pintar un tema, venga de donde venga.

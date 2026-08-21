@@ -1,3 +1,4 @@
+import { DEFAULT_SETTINGS } from '@pastecode/core';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -52,7 +53,7 @@ describe('ThemePicker', () => {
     // de la persona, y escribirlo en el `.pastecode/` de un repositorio se lo
     // impondría a cualquiera que lo clone.
     const invoke = installFakeApi({
-      'settings:update': { ok: true, value: { settings: null, error: null } },
+      'settings:update': { ok: true, value: { settings: DEFAULT_SETTINGS, error: null } },
     });
     render(<ThemePicker />);
 

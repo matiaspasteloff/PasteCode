@@ -5,8 +5,8 @@ import { create } from 'zustand';
 /** Una propuesta de escritura esperando que alguien la mire. */
 export type PendingToolCall = AiToolCallEvent;
 
-/** Qué se le contesta a una propuesta. */
-export type ToolOutcome = 'applied' | 'discarded' | 'failed';
+/** Qué se le contesta a una propuesta. Los tres valores de `AI_TOOL_OUTCOMES`. */
+type ToolOutcome = 'applied' | 'discarded' | 'failed';
 
 /** Lo que sabe el store, sin las acciones. */
 interface AiData {
