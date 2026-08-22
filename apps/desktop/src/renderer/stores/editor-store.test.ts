@@ -199,3 +199,31 @@ describe('descartar cambios', () => {
     expect(invoke).not.toHaveBeenCalled();
   });
 });
+
+describe('adoptExternalWrite', () => {
+  it('lleva al editor lo que se escribió por afuera del watcher', () => {
+    // `fs:writeFile` llama a `noteOwnWrite`, así que el watcher se traga su
+    // propio evento y `applyExternalChanges` nunca corre: sin esto, la pestaña
+    // abierta se queda mostrando el contenido viejo.
+    useEditorStore.setState({ groups: groupsWith([A]), mtimes: { [A]: 10 } });
+
+    state().adoptExternalWrite(A, 'lo que escribió la IA', 33);
+
+    expect(state().pendingFile).toEqual({ path: A, content: 'lo que escribió la IA' });
+  });
+
+  it('actualiza el mtime, que es lo que evita un STALE_FILE falso', () => {
+    useEditorStore.setState({ groups: groupsWith([A]), mtimes: { [A]: 10 } });
+
+    state().adoptExternalWrite(A, 'x', 33);
+
+    expect(state().mtimes[A]).toBe(33);
+  });
+
+  it('actualiza el mtime aunque el archivo no esté abierto, y no toca el editor', () => {
+    state().adoptExternalWrite(B, 'x', 44);
+
+    expect(state().mtimes[B]).toBe(44);
+    expect(state().pendingFile).toBeNull();
+  });
+});

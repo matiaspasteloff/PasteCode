@@ -87,6 +87,22 @@ interface EditorState {
    *   `Ctrl+S` lo recrea.
    */
   applyExternalChanges: (changes: readonly FileChangePayload[]) => Promise<void>;
+  /**
+   * Adopta una escritura que ya ocurrió y que el watcher **no** va a informar.
+   *
+   * Existe por `noteOwnWrite`: `fs:writeFile` marca la ruta para que el
+   * watcher se trague su propio evento —sin eso, cada `Ctrl+S` dispararía una
+   * recarga espuria—, y esa marca vale igual cuando quien escribió fue el
+   * asistente en modo agente. El resultado es que una pestaña abierta y limpia
+   * se queda mostrando el contenido viejo, que es el peligro 2 de
+   * [ADR-0032](../../../../../docs/adr/0032-modos-del-asistente-y-edicion-directa.md).
+   *
+   * **Actualiza `mtimes` siempre.** Olvidarlo convierte el próximo guardado de
+   * ese archivo en un `STALE_FILE` falso; es la misma trampa que documenta
+   * `reloadFromDisk`. El `mtimeMs` lo devuelve `fs:writeFile`, así que no hace
+   * falta releer el disco.
+   */
+  adoptExternalWrite: (path: string, content: string, mtimeMs: number) => void;
   closeAll: () => void;
 }
 
@@ -152,6 +168,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   applyExternalChanges: (changes) => applyExternalChanges(changes, set, get),
+
+  adoptExternalWrite: (path, content, mtimeMs) => {
+    adoptExternalWrite(path, content, mtimeMs, set, get);
+  },
 
   closeAll: () => {
     set({
@@ -341,6 +361,25 @@ async function reloadFromDisk(
     mtimes: { ...get().mtimes, [path]: result.value.mtimeMs },
     groups: setDirtyEverywhere(get().groups, path, false),
     pendingFile: { path, content: result.value.content },
+  });
+}
+
+/** Deja el editor y los `mtimes` al día con una escritura que ya ocurrió. */
+function adoptExternalWrite(
+  path: string,
+  content: string,
+  mtimeMs: number,
+  set: SetEditorState,
+  get: () => EditorState
+): void {
+  const isOpen = openTabFor(get().groups, path) !== undefined;
+
+  set({
+    mtimes: { ...get().mtimes, [path]: mtimeMs },
+    // El modelo de Monaco lo sincroniza el editor al consumir `pendingFile`,
+    // igual que en una recarga externa. Un archivo que no está abierto no
+    // tiene modelo que actualizar y sólo necesita el `mtime` al día.
+    ...(isOpen ? { pendingFile: { path, content } } : {}),
   });
 }
 

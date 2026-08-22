@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { t } from '../../i18n/index.js';
 import { useAiStore } from '../../stores/ai-store.js';
 
+import { AiModePicker } from './AiModePicker.js';
 import { MessageList } from './MessageList.js';
 import { ModelPicker } from './ModelPicker.js';
 
@@ -44,6 +45,7 @@ export function AiPanel(): React.JSX.Element {
   return (
     <div className="ai-panel">
       <div className="ai-panel__toolbar">
+        <AiModePicker />
         <ModelPicker />
         <button
           type="button"
@@ -57,7 +59,36 @@ export function AiPanel(): React.JSX.Element {
       </div>
 
       <MessageList />
+      <RevertAllBar />
       <Composer />
+    </div>
+  );
+}
+
+/**
+ * El "revertir todo" del turno, que sólo aparece si hay algo que revertir.
+ *
+ * Va afuera de la lista de mensajes y pegado al composer a propósito: es una
+ * acción sobre **todo** lo que el asistente escribió, no sobre un cambio, y
+ * mezclarla entre las tarjetas la haría parecer una más.
+ */
+function RevertAllBar(): React.JSX.Element | null {
+  const count = useAiStore((state) => state.applied.length);
+  const revertAll = useAiStore((state) => state.revertAll);
+
+  if (count === 0) return null;
+
+  return (
+    <div className="ai-panel__revert-all">
+      <button
+        type="button"
+        data-testid="ai-revert-all"
+        onClick={() => {
+          void revertAll();
+        }}
+      >
+        {t('ai.revertAll')}
+      </button>
     </div>
   );
 }
