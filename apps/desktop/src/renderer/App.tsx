@@ -2,6 +2,7 @@ import { allOpenPaths } from '@pastecode/core';
 import { useEffect } from 'react';
 
 import { ActivityBar } from './components/ActivityBar.js';
+import { AuxView } from './components/AuxView.js';
 import { BottomPanel } from './components/BottomPanel.js';
 import { SideView } from './components/SideView.js';
 import { StatusBar } from './components/StatusBar.js';
@@ -37,7 +38,8 @@ import { useWorkspaceStore } from './stores/workspace-store.js';
 
 /**
  * Cascarón de la aplicación: toolbar, rail de vistas, barra lateral, área de
- * edición con su panel inferior, y barra de estado.
+ * edición con su panel inferior, panel auxiliar a la derecha y barra de
+ * estado.
  */
 export function App(): React.JSX.Element {
   const restore = useWorkspaceStore((state) => state.restore);
@@ -88,6 +90,8 @@ export function App(): React.JSX.Element {
         <EditorArea />
         <BottomPanel />
       </main>
+
+      <AuxView />
 
       <StatusBar />
       <ConflictDialog />

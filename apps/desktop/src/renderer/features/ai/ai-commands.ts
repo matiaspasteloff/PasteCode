@@ -24,7 +24,7 @@ export function aiCommands(): readonly Command[] {
       id: 'ai.toggle',
       title: 'command.aiToggle',
       handler: () => {
-        useViewStore.getState().toggleSide('ai');
+        useViewStore.getState().toggleAux('ai');
       },
     },
     {
@@ -38,13 +38,20 @@ export function aiCommands(): readonly Command[] {
         // pintando sobre un chat vacío.
         void ai.cancel();
         ai.newChat();
-        view.showSide('ai');
+        view.showAux('ai');
       },
     },
     {
       id: 'ai.explainSelection',
       title: 'command.aiExplainSelection',
       handler: explainSelection,
+    },
+    {
+      id: 'ai.revertAll',
+      title: 'command.aiRevertAll',
+      handler: () => {
+        void useAiStore.getState().revertAll();
+      },
     },
   ];
 }
@@ -69,7 +76,7 @@ function explainSelection(): void {
 
   if (selected.trim() === '') return;
 
-  useViewStore.getState().showSide('ai');
+  useViewStore.getState().showAux('ai');
 
   const language = model.getLanguageId();
 

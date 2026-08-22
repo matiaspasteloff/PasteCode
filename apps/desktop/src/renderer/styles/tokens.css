@@ -142,6 +142,9 @@
   /* --- Geometría del cascarón -------------------------------------------- */
   --activity-bar-width: 3rem;
   --sidebar-width: 16rem;
+  /* El panel del asistente, a la derecha. Más ancho que la barra lateral: lo
+     que vive adentro es prosa y diffs, no una lista de nombres de archivo. */
+  --ai-panel-width: 22rem;
   --toolbar-height: 2.25rem;
   --status-bar-height: 1.5rem;
   --bottom-panel-height: 18rem;
