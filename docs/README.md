@@ -10,7 +10,7 @@ docs/
 ├── 00-guia-paso-a-paso.md             Orden de trabajo, etapa por etapa
 ├── 01-vision-y-alcance.md             Objetivos, usuarios, alcance, éxito
 ├── 02-arquitectura.md                 Procesos, monorepo, IPC
-├── 03-requerimientos-funcionales.md   RF-001 a RF-911
+├── 03-requerimientos-funcionales.md   RF-001 a RF-1014
 ├── 04-requerimientos-no-funcionales.md RNF-01 a RNF-29
 ├── 05-modelo-de-datos.md              Contratos y schemas
 ├── 06-roadmap-y-riesgos.md            Fases y riesgos

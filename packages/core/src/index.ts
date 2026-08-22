@@ -31,8 +31,19 @@ export type { AiModel } from './ai/models.js';
 export { consumeSse } from './ai/sse.js';
 export type { SseParseResult } from './ai/sse.js';
 export {
+  AI_CHAT_MODES,
+  AiChatModeSchema,
+  canWriteInMode,
+  maxTurnsForMode,
+  modeInstructions,
+  toolsForMode,
+} from './ai/modes.js';
+export type { AiChatMode } from './ai/modes.js';
+export { AI_TOOLS } from './ai/tool-definitions.js';
+export type { AiToolDefinition } from './ai/tool-definitions.js';
+export {
   AI_TOOL_NAMES,
-  AI_TOOLS,
+  applyExactEdit,
   isReadOnlyTool,
   isToolName,
   parseToolArguments,
@@ -40,9 +51,10 @@ export {
 } from './ai/tools.js';
 export type {
   AiToolArguments,
-  AiToolDefinition,
   AiToolName,
+  ExactEditResult,
   ReadOnlyToolName,
+  WriteToolName,
 } from './ai/tools.js';
 export { BUILT_IN_THEMES, builtInTheme } from './theme/built-in-themes.js';
 export { blend, contrastRatio, parseHex, relativeLuminance } from './theme/contrast.js';
@@ -193,6 +205,7 @@ export {
   EDITOR_LAYOUTS,
   focusGroup,
   groupsFromTabs,
+  isPathDirty,
   MAX_GROUPS,
   PRIMARY_GROUP_ID,
   SECONDARY_GROUP_ID,

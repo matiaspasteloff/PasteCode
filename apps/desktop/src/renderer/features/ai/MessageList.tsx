@@ -19,9 +19,10 @@ export function MessageList(): React.JSX.Element {
   const messages = useAiStore((state) => state.messages);
   const streamingText = useAiStore((state) => state.streamingText);
   const pending = useAiStore((state) => state.pending);
+  const applied = useAiStore((state) => state.applied);
   const error = useAiStore((state) => state.error);
   const bottomRef = useAutoScroll(
-    `${String(messages.length)}:${String(streamingText.length)}:${String(pending.length)}`
+    [messages.length, streamingText.length, pending.length, applied.length].join(':')
   );
 
   return (
@@ -39,6 +40,11 @@ export function MessageList(): React.JSX.Element {
       {streamingText !== '' && (
         <Message message={{ role: 'assistant', content: streamingText }} isStreaming />
       )}
+
+      {/* Primero lo que ya está en el disco: pasó antes. */}
+      {applied.map((call) => (
+        <ToolCallCard key={call.toolCallId} call={call} isApplied />
+      ))}
 
       {pending.map((call) => (
         <ToolCallCard key={call.toolCallId} call={call} />

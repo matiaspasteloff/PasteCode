@@ -8,7 +8,7 @@ import { create } from 'zustand';
  * la unión sale del array, así que la lista de vistas es un dato que se puede
  * recorrer y no un tipo que sólo existe en tiempo de compilación.
  */
-export const SIDE_VIEWS = ['explorer', 'search', 'git', 'ai'] as const;
+export const SIDE_VIEWS = ['explorer', 'search', 'git'] as const;
 
 export type SideView = (typeof SIDE_VIEWS)[number];
 
@@ -17,11 +17,28 @@ export const PANEL_VIEWS = ['terminal', 'problems', 'debug'] as const;
 
 export type PanelView = (typeof PANEL_VIEWS)[number];
 
+/**
+ * Las vistas del panel **auxiliar**, el de la derecha. Mismo criterio de array
+ * `as const` que las otras dos.
+ *
+ * Hoy hay una sola, y aun así es una lista: el asistente vivía como cuarta
+ * entrada de `SIDE_VIEWS` y competía por la misma columna que el explorador,
+ * la búsqueda y Git, que son las tres cosas que uno quiere ver **mientras** le
+ * habla al asistente. Un eje propio a la derecha es lo que las deja convivir,
+ * y modelarlo como lista desde el principio evita que la segunda entrada
+ * obligue a rehacerlo. Ver [ADR-0032](../../../../../docs/adr/0032-modos-del-asistente-y-edicion-directa.md).
+ */
+export const AUX_VIEWS = ['ai'] as const;
+
+export type AuxView = (typeof AUX_VIEWS)[number];
+
 interface ViewState {
   /** La vista lateral visible, o `null` si la barra está colapsada. */
   sideView: SideView | null;
   /** La pestaña del panel inferior visible, o `null` si el panel está cerrado. */
   panelView: PanelView | null;
+  /** La vista auxiliar visible a la derecha, o `null` si la columna está colapsada. */
+  auxView: AuxView | null;
   /** Muestra una vista. Si ya estaba visible, no hace nada. */
   showSide: (view: SideView) => void;
   /**
@@ -37,6 +54,10 @@ interface ViewState {
   togglePanel: (view: PanelView) => void;
   /** Cierra el panel inferior. Lo que hay adentro sigue vivo. */
   closePanel: () => void;
+  /** Muestra una vista auxiliar. Si ya estaba visible, no hace nada. */
+  showAux: (view: AuxView) => void;
+  /** Muestra la vista auxiliar, o colapsa la columna si ya estaba visible. */
+  toggleAux: (view: AuxView) => void;
 }
 
 /**
@@ -60,6 +81,9 @@ export const useViewStore = create<ViewState>((set, get) => ({
   // El panel inferior arranca cerrado: ocupa 18rem de alto y lo que se quiere
   // ver al abrir una carpeta es el código.
   panelView: null,
+  // El asistente arranca cerrado, igual que el panel inferior y por lo mismo:
+  // se angosta el editor y no es lo primero que alguien quiere ver.
+  auxView: null,
 
   showSide: (view) => {
     set({ sideView: view });
@@ -79,5 +103,13 @@ export const useViewStore = create<ViewState>((set, get) => ({
 
   closePanel: () => {
     set({ panelView: null });
+  },
+
+  showAux: (view) => {
+    set({ auxView: view });
+  },
+
+  toggleAux: (view) => {
+    set({ auxView: get().auxView === view ? null : view });
   },
 }));

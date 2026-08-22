@@ -1,8 +1,7 @@
-import type { AiModel, CompletionState } from '@pastecode/core';
+import type { AiModel, AiToolDefinition, CompletionState } from '@pastecode/core';
 import {
   AiCancelledError,
   AiRequestError,
-  AI_TOOLS,
   applyCompletionChunk,
   consumeSse,
   EMPTY_COMPLETION,
@@ -59,6 +58,15 @@ export interface WireMessage {
 export interface CompletionRequest {
   model: string;
   messages: readonly WireMessage[];
+  /**
+   * Las herramientas que se le declaran al modelo, ya filtradas por el modo.
+   *
+   * Es un parámetro y no la constante `AI_TOOLS` porque **es la barrera de
+   * verdad de los modos**: un modelo no puede llamar a una herramienta que no
+   * está en la request, así que lo que decide que `ask` no escriba no es el
+   * prompt sino esta lista. Ver `toolsForMode` en `@pastecode/core`.
+   */
+  tools: readonly AiToolDefinition[];
   /** Se llama con cada trozo de texto, a medida que llega. */
   onDelta: (text: string) => void;
   /** Corta el `fetch`. Lo provee el agente, uno por `requestId`. */
@@ -176,7 +184,7 @@ async function post(request: CompletionRequest): Promise<Response> {
       model: request.model,
       messages: request.messages,
       stream: true,
-      tools: AI_TOOLS,
+      tools: request.tools,
     }),
   });
 }

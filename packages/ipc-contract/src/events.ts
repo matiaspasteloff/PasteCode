@@ -271,7 +271,13 @@ export interface AiDeltaEvent {
  * resuelven enteras en el main; ver `READ_ONLY_TOOLS` en `@pastecode/core`.
  *
  * `previousContent` es `null` cuando el archivo no existe todavía: es lo que
- * le dice al diff que muestre una creación y no un reemplazo.
+ * le dice al diff que muestre una creación y no un reemplazo, y lo que hace
+ * posible el checkpoint de `autoApply`.
+ *
+ * **Las tres herramientas de escritura llegan con la misma forma.** El main
+ * resuelve `apply_edit` contra el contenido actual antes de emitir, así que la
+ * tarjeta, el diff, el checkpoint y el camino de escritura no distinguen entre
+ * un reemplazo de fragmento y uno de archivo entero.
  */
 export interface AiToolCallEvent {
   requestId: string;
@@ -284,6 +290,16 @@ export interface AiToolCallEvent {
   nextContent: string;
   /** Lo que hay hoy, o `null` si el archivo no existe. */
   previousContent: string | null;
+  /**
+   * Si el renderer tiene que escribir sin preguntarle a nadie.
+   *
+   * **Lo decide el main** con `canWriteInMode(mode)`, y por eso viaja en el
+   * evento en vez de que el renderer lo deduzca del modo que él mismo eligió:
+   * la política vive de un solo lado. En `false` —modos `ask` y `plan`— el
+   * renderer encola la propuesta y muestra el diff con sus dos botones, que es
+   * el camino de [ADR-0029](../../../docs/adr/0029-asistente-de-ia-en-el-main.md).
+   */
+  autoApply: boolean;
 }
 
 /**

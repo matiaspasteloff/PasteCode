@@ -6,7 +6,7 @@ import { SourceControlPanel } from '../features/git/SourceControlPanel.js';
 import { SearchPanel } from '../features/search/SearchPanel.js';
 import type { TranslationKey } from '../i18n/index.js';
 import { selectActiveTabs, useEditorStore } from '../stores/editor-store.js';
-import type { SideView } from '../stores/view-store.js';
+import type { AuxView, SideView } from '../stores/view-store.js';
 
 import type { IconProps } from './icons/Icon.js';
 import { IconAi } from './icons/IconAi.js';
@@ -14,9 +14,16 @@ import { IconExplorer } from './icons/IconExplorer.js';
 import { IconGit } from './icons/IconGit.js';
 import { IconSearch } from './icons/IconSearch.js';
 
-/** Todo lo que el cascarón necesita saber de una vista lateral. */
-export interface SideViewDescriptor {
-  readonly id: SideView;
+/**
+ * Todo lo que el cascarón necesita saber de una vista.
+ *
+ * Sirve para las dos columnas —la lateral y la auxiliar de la derecha— y por
+ * eso el nombre no dice de cuál: los dos contenedores hacen exactamente lo
+ * mismo con el descriptor, y darle una copia propia a cada uno sería tener dos
+ * definiciones que se desincronizan.
+ */
+export interface ViewDescriptor {
+  readonly id: SideView | AuxView;
   /** Cómo se llama, para el `aria-label` del rail y el título del panel. */
   readonly labelKey: TranslationKey;
   /** Qué comando la muestra. El rail no llama acciones, dispara comandos. */
@@ -63,7 +70,7 @@ function ExplorerView(): React.JSX.Element {
  * @example
  * for (const view of SIDE_VIEW_REGISTRY) renderButton(view);
  */
-export const SIDE_VIEW_REGISTRY: readonly SideViewDescriptor[] = [
+export const SIDE_VIEW_REGISTRY: readonly ViewDescriptor[] = [
   {
     id: 'explorer',
     labelKey: 'view.explorer',
@@ -85,9 +92,26 @@ export const SIDE_VIEW_REGISTRY: readonly SideViewDescriptor[] = [
     Icon: IconGit,
     render: () => <SourceControlPanel />,
   },
-  // El asistente de la etapa experimental entró como una entrada más, sin
-  // tocar el cascarón. Es la segunda prueba de que este registro anda, después
-  // de Git, y la que además deja que sacarlo sea borrar estas seis líneas.
+];
+
+/**
+ * Las vistas del panel auxiliar, el de la derecha.
+ *
+ * El asistente estaba en `SIDE_VIEW_REGISTRY` y se mudó acá **sin cambiar una
+ * línea de su descriptor**: mismo id, misma clave de i18n, mismo comando,
+ * mismo `render`. Que mover una vista de columna sea mover cinco líneas de un
+ * array a otro es la tercera prueba de que el registro de
+ * [ADR-0022](../../../../../docs/adr/0022-cascaron-con-barra-de-actividades.md)
+ * aguanta, después de Git y del propio asistente.
+ *
+ * Lo que sí cambia es que **deja de estar en el rail de actividades**: el rail
+ * se dibuja recorriendo `SIDE_VIEW_REGISTRY`, así que sacarlo de ahí es
+ * exactamente lo que significa moverlo. Se abre desde la barra de título.
+ *
+ * @example
+ * const descriptor = AUX_VIEW_REGISTRY.find((view) => view.id === auxView);
+ */
+export const AUX_VIEW_REGISTRY: readonly ViewDescriptor[] = [
   {
     id: 'ai',
     labelKey: 'view.ai',

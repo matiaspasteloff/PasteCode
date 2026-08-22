@@ -30,10 +30,15 @@ body {
  * Con `grid-column` en cada uno, el área de edición se queda siempre en la 3 y
  * la 2 colapsa sola al no tener contenido, que es justamente para lo que sirve
  * una pista `auto`.
+ *
+ * La cuarta columna es el panel del asistente y sigue exactamente el mismo
+ * patrón: `auto`, con la vista devolviendo `null` cuando está cerrada. La
+ * barra de título y la de estado ya usan `grid-column: 1 / -1`, así que se
+ * estiran solas sobre la columna nueva sin tocarlas.
  */
 .app {
   display: grid;
-  grid-template-columns: var(--activity-bar-width) auto 1fr;
+  grid-template-columns: var(--activity-bar-width) auto 1fr auto;
   grid-template-rows: var(--toolbar-height) 1fr auto;
   height: 100vh;
 }
@@ -48,6 +53,28 @@ body {
 
 .editor-area {
   grid-column: 3;
+}
+
+.aux-view {
+  display: flex;
+  width: var(--ai-panel-width);
+  min-height: 0;
+  flex-direction: column;
+  grid-column: 4;
+  overflow: hidden;
+  border-left: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+/* Mismo bloque que `.sidebar__title` y a propósito: es el mismo objeto —el
+   nombre de lo que hay en la columna— del otro lado de la pantalla. */
+.aux-view__title {
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 /*
@@ -209,10 +236,41 @@ body {
  * El fallback importa igual —en un sistema sin esa fuente, los caracteres
  * caen en la monoespaciada y se ven como cuadraditos, no como nada—.
  */
+/* El botón del asistente y los de ventana forman el bloque de la derecha, y el
+   `margin-left: auto` que los empuja allá vive en el primero de los dos. Está
+   acá y no en `.window-controls` justo para no sumar un cuarto margen `auto` a
+   la fila: con tres —los dos de la caja de comandos y éste— el reparto del
+   espacio libre es el mismo de antes y la caja no se corre de lugar. */
+.title-toolbar__ai {
+  display: flex;
+  width: 2.4rem;
+  height: var(--toolbar-height);
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.title-toolbar__ai:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+}
+
+.title-toolbar__ai[data-active='true'] {
+  color: var(--color-accent);
+}
+
+.title-toolbar__ai:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
 .window-controls {
   display: flex;
   height: var(--toolbar-height);
-  margin-left: auto;
   font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets', var(--font-mono);
 }
 
@@ -1778,6 +1836,9 @@ body {
   gap: var(--space-2);
 }
 
+/* El modo y el modelo comparten fila. El modo va primero y más angosto: es
+   tres opciones contra treinta, y es lo que se cambia más seguido. */
+.ai-panel__mode,
 .ai-panel__model {
   min-width: 0;
   flex: 1;
@@ -1788,6 +1849,10 @@ body {
   color: var(--color-foreground);
   font: inherit;
   font-size: 0.75rem;
+}
+
+.ai-panel__mode {
+  flex: 0 0 auto;
 }
 
 .ai-panel__key {
@@ -1917,9 +1982,10 @@ body {
   overflow: auto;
 }
 
-/* La tarjeta de confirmación es el único punto donde alguien ve qué se va a
-   escribir antes de que se escriba (RF-1006), así que se distingue del resto
-   de la conversación con el borde de acento. */
+/* La tarjeta pendiente es el único punto donde alguien ve qué se va a escribir
+   antes de que se escriba, así que se distingue del resto de la conversación
+   con el borde de acento. La ya aplicada baja a un borde normal: el cambio ya
+   pasó y lo que queda es poder deshacerlo, no una decisión que tomar. */
 .ai-tool-call {
   display: flex;
   flex-direction: column;
@@ -1927,6 +1993,10 @@ body {
   border-radius: var(--radius-md);
   background: var(--color-surface);
   overflow: hidden;
+}
+
+.ai-tool-call[data-applied='true'] {
+  border-color: var(--color-border);
 }
 
 .ai-tool-call__header {
@@ -1956,9 +2026,35 @@ body {
 
 .ai-tool-call__actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   padding: var(--space-2);
   gap: var(--space-2);
+}
+
+.ai-tool-call__badge {
+  margin-right: auto;
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ai-panel__revert-all {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 var(--space-2);
+}
+
+.ai-panel__revert-all button {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
 }
 
 .ai-tool-call__actions button {

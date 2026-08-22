@@ -1,4 +1,4 @@
-import type { CompletionState } from '@pastecode/core';
+import type { AiChatMode, AiToolDefinition, CompletionState } from '@pastecode/core';
 import { AiCancelledError, EMPTY_COMPLETION } from '@pastecode/core';
 import type { Request } from '@pastecode/ipc-contract';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,9 +16,15 @@ import type { WireMessage } from './openrouter.js';
  * qué se le cuenta al modelo—, y para eso la respuesta es la entrada.
  */
 const client = vi.hoisted(
-  (): { turns: CompletionState[]; sent: WireMessage[][]; contextLength: number } => ({
+  (): {
+    turns: CompletionState[];
+    sent: WireMessage[][];
+    declared: AiToolDefinition[][];
+    contextLength: number;
+  } => ({
     turns: [],
     sent: [],
+    declared: [],
     contextLength: 8192,
   })
 );
@@ -27,10 +33,12 @@ vi.mock('./openrouter.js', () => ({
   assertFreeModel: () => Promise.resolve(client.contextLength),
   streamCompletion: (request: {
     messages: WireMessage[];
+    tools: AiToolDefinition[];
     onDelta: (text: string) => void;
     signal: AbortSignal;
   }) => {
     client.sent.push([...request.messages]);
+    client.declared.push([...request.tools]);
 
     const turn = client.turns.shift() ?? EMPTY_COMPLETION;
 
@@ -96,13 +104,19 @@ function toolTurn(name: string, args = '{}', id = 'call_1'): CompletionState {
   };
 }
 
-/** El payload de `ai:chat` de un test. */
-function chat(requestId = 'req-1'): Request<'ai:chat'> {
+/** El payload de `ai:chat` de un test. Modo agente salvo que se diga otro. */
+function chat(requestId = 'req-1', mode: AiChatMode = 'agent'): Request<'ai:chat'> {
   return {
     requestId,
     model: 'free/one:free',
+    mode,
     messages: [{ role: 'user', content: 'hola' }],
   };
+}
+
+/** Los nombres de herramienta que se le declararon al modelo en un turno. */
+function declaredIn(turn: number): string[] {
+  return (client.declared[turn] ?? []).map((tool) => tool.function.name);
 }
 
 /** Los eventos de un canal, en orden. */
@@ -132,6 +146,7 @@ function textField(value: unknown, name: string): string {
 beforeEach(() => {
   client.turns = [];
   client.sent = [];
+  client.declared = [];
   client.contextLength = 8192;
   tools.readResult = 'contenido del archivo';
   tools.readError = null;
@@ -177,8 +192,9 @@ describe('runAgent', () => {
     expect(result?.content).toBe('contenido del archivo');
   });
 
-  it('no escribe: emite ai:toolCall con el diff y espera', async () => {
-    // Es RF-1006. Mientras nadie conteste, el loop no avanza.
+  it('el main no escribe: emite ai:toolCall y espera al renderer', async () => {
+    // Vale en los tres modos. Lo que cambia con el modo es `autoApply`, no
+    // quién escribe: la escritura sigue siendo del renderer por `fs:*`.
     const emitted: Emitted[] = [];
     client.turns = [toolTurn('write_file', '{"path":"a.ts","content":"lo nuevo"}')];
 
@@ -194,6 +210,7 @@ describe('runAgent', () => {
       path: 'C:\\ws\\a.ts',
       nextContent: 'lo nuevo',
       previousContent: 'lo que hay hoy',
+      autoApply: true,
     });
     expect(only(emitted, 'ai:done')).toEqual([]);
 
@@ -243,6 +260,7 @@ describe('runAgent', () => {
 
     expect(only(emitted, 'ai:toolCall')).toEqual([]);
     expect(client.sent[1]?.at(-1)?.content).toContain('ya existe');
+    expect(client.sent[1]?.at(-1)?.content).toContain('apply_edit');
   });
 
   it('le cuenta al modelo cuando la herramienta falla, en vez de cortar', async () => {
@@ -301,5 +319,79 @@ describe('runAgent', () => {
       'demasiadas herramientas'
     );
     expect(only(emitted, 'ai:done')).toEqual([{ requestId: 'req-1', error: null }]);
+  });
+});
+
+describe('runAgent · modos', () => {
+  it('en ask le declara al modelo sólo las tres de lectura', async () => {
+    // **Es la barrera de verdad.** Un modelo no puede llamar a una herramienta
+    // que no está en la request: sin esto, el prompt sería lo único que separa
+    // "sólo respondeme" de una escritura.
+    client.turns = [textTurn('ok')];
+
+    await runAgent(chat('req-1', 'ask'), fakeWindow([]));
+
+    expect(declaredIn(0)).toEqual(['list_files', 'read_file', 'search_workspace']);
+  });
+
+  it('en plan le declara exactamente las mismas que en ask', async () => {
+    client.turns = [textTurn('ok')];
+    await runAgent(chat('req-1', 'plan'), fakeWindow([]));
+    const inPlan = declaredIn(0);
+
+    client.turns = [textTurn('ok')];
+    await runAgent(chat('req-2', 'ask'), fakeWindow([]));
+
+    expect(inPlan).toEqual(declaredIn(1));
+  });
+
+  it('en agent le declara también las tres de escritura', async () => {
+    client.turns = [textTurn('ok')];
+
+    await runAgent(chat('req-1', 'agent'), fakeWindow([]));
+
+    expect(declaredIn(0)).toContain('apply_edit');
+    expect(declaredIn(0)).toContain('write_file');
+    expect(declaredIn(0)).toContain('create_file');
+  });
+
+  it('le cambia el prompt de sistema según el modo', async () => {
+    client.turns = [textTurn('ok')];
+    await runAgent(chat('req-1', 'plan'), fakeWindow([]));
+
+    client.turns = [textTurn('ok')];
+    await runAgent(chat('req-2', 'agent'), fakeWindow([]));
+
+    expect(client.sent[0]?.[0]?.content).not.toBe(client.sent[1]?.[0]?.content);
+    expect(client.sent[1]?.[0]?.content).toContain('escriben de verdad');
+  });
+
+  it('se niega a escribir en ask aunque el modelo se invente la llamada', async () => {
+    // Un modelo puede pedir una herramienta que no estaba declarada. Que no
+    // llegue al disco lo garantiza `canWriteInMode`, no el prompt.
+    const emitted: Emitted[] = [];
+    client.turns = [
+      toolTurn('write_file', '{"path":"a.ts","content":"x"}'),
+      textTurn('perdón'),
+    ];
+
+    await runAgent(chat('req-1', 'ask'), fakeWindow(emitted));
+
+    expect(only(emitted, 'ai:toolCall')).toEqual([]);
+    expect(client.sent[1]?.at(-1)?.content).toContain('no está disponible en el modo actual');
+  });
+
+  it('le corta antes las vueltas a ask que a agent', async () => {
+    // El tope es un límite de cuota, no de capacidad: responder una pregunta
+    // son unas lecturas, y un modelo en bucle ahí no está por llegar a nada.
+    client.turns = Array.from({ length: 30 }, () => toolTurn('read_file', '{"path":"a.ts"}'));
+    await runAgent(chat('req-1', 'ask'), fakeWindow([]));
+    const inAsk = client.declared.length;
+
+    client.declared = [];
+    client.turns = Array.from({ length: 30 }, () => toolTurn('read_file', '{"path":"a.ts"}'));
+    await runAgent(chat('req-2', 'agent'), fakeWindow([]));
+
+    expect(inAsk).toBeLessThan(client.declared.length);
   });
 });

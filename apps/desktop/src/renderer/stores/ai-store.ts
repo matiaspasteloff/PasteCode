@@ -1,6 +1,11 @@
-import type { AiMessage, AiModel } from '@pastecode/core';
+import type { AiChatMode, AiMessage, AiModel } from '@pastecode/core';
 import type { AiToolCallEvent, SerializedError } from '@pastecode/ipc-contract';
 import { create } from 'zustand';
+
+import { reportToolOutcome } from '../features/ai/apply-proposal.js';
+
+import type { AiEditActions, AiEditsData } from './ai-edits.js';
+import { editActions } from './ai-edits.js';
 
 /** Una propuesta de escritura esperando que alguien la mire. */
 export type PendingToolCall = AiToolCallEvent;
@@ -14,6 +19,17 @@ interface AiData {
   models: readonly AiModel[];
   /** El elegido, o `null` si todavía no se cargó la lista. */
   modelId: string | null;
+  /**
+   * En qué modo se pregunta. Arranca en `agent`.
+   *
+   * Es el modo con el que el asistente es más útil, y el que la persona
+   * eligió al instalar un IDE con asistente: arrancar en `ask` obligaría a
+   * cambiarlo antes de cada pedido real. Lo que lo hace defendible es el
+   * checkpoint —cada escritura se puede revertir desde la conversación—, no la
+   * confianza en el modelo. Ver
+   * [ADR-0032](../../../../../docs/adr/0032-modos-del-asistente-y-edicion-directa.md).
+   */
+  mode: AiChatMode;
   /** La conversación **cerrada**: lo que ya terminó de escribirse. */
   messages: readonly AiMessage[];
   /**
@@ -26,8 +42,6 @@ interface AiData {
   streamingText: string;
   /** La pregunta en curso, o `null`. Es el `requestId` del contrato. */
   requestId: string | null;
-  /** Las propuestas de escritura sin responder. */
-  pending: readonly PendingToolCall[];
   hasKey: boolean;
   /** Si este sistema puede guardar la clave cifrada. */
   canPersist: boolean;
@@ -44,6 +58,8 @@ interface AiCredentialActions {
   closeKeyDialog: () => void;
   loadModels: () => Promise<void>;
   selectModel: (modelId: string) => void;
+  /** Cambia el modo. Se aplica a partir de la próxima pregunta. */
+  setMode: (mode: AiChatMode) => void;
 }
 
 /** Lo que la persona hace con la conversación. */
@@ -72,20 +88,33 @@ interface AiStreamActions {
   finish: (requestId: string, error: SerializedError | null) => void;
 }
 
-type AiState = AiData & AiCredentialActions & AiConversationActions & AiStreamActions;
+type AiState = AiData &
+  AiEditsData &
+  AiCredentialActions &
+  AiConversationActions &
+  AiStreamActions &
+  AiEditActions;
 
 /** El `set` de Zustand, con la forma mínima que usan las fábricas de abajo. */
 type SetAi = (partial: Partial<AiState> | ((state: AiState) => Partial<AiState>)) => void;
 
 type GetAi = () => AiState;
 
-/** El estado del que se parte, y al que vuelve una conversación nueva. */
+/**
+ * El estado del que se parte, y al que vuelve una conversación nueva.
+ *
+ * `applied` está acá y **no** en lo que limpia `finish`: los checkpoints
+ * sobreviven al final del turno —hacen falta justamente después, cuando la
+ * persona lee lo que el asistente contó y decide— y se tiran recién al empezar
+ * una conversación nueva.
+ */
 const EMPTY_CONVERSATION = {
   messages: [],
   streamingText: '',
   pending: [],
+  applied: [],
   error: null,
-} satisfies Partial<AiData>;
+} satisfies Partial<AiData & AiEditsData>;
 
 /**
  * Store del asistente.
@@ -107,6 +136,7 @@ const EMPTY_CONVERSATION = {
 export const useAiStore = create<AiState>((set, get) => ({
   models: [],
   modelId: null,
+  mode: 'agent',
   requestId: null,
   hasKey: false,
   canPersist: false,
@@ -115,6 +145,7 @@ export const useAiStore = create<AiState>((set, get) => ({
   ...credentialActions(set, get),
   ...conversationActions(set, get),
   ...streamActions(set, get),
+  ...editActions(set, get),
 }));
 
 /** Las acciones de la clave y del catálogo de modelos. */
@@ -175,6 +206,10 @@ function credentialActions(set: SetAi, get: GetAi): AiCredentialActions {
     selectModel: (modelId) => {
       set({ modelId });
     },
+
+    setMode: (mode) => {
+      set({ mode });
+    },
   };
 }
 
@@ -182,7 +217,7 @@ function credentialActions(set: SetAi, get: GetAi): AiCredentialActions {
 function conversationActions(set: SetAi, get: GetAi): AiConversationActions {
   return {
     send: async (text) => {
-      const { modelId, messages, requestId } = get();
+      const { modelId, mode, messages, requestId } = get();
 
       // Sin modelo no hay a quién preguntarle, y con una respuesta en curso
       // mandar otra dejaría dos streams pintando sobre el mismo lugar.
@@ -196,6 +231,7 @@ function conversationActions(set: SetAi, get: GetAi): AiConversationActions {
       const result = await window.pastecode.invoke('ai:chat', {
         requestId: id,
         model: modelId,
+        mode,
         messages: next,
       });
 
@@ -225,12 +261,7 @@ function conversationActions(set: SetAi, get: GetAi): AiConversationActions {
         pending: state.pending.filter((candidate) => candidate.toolCallId !== toolCallId),
       }));
 
-      await window.pastecode.invoke('ai:toolResult', {
-        requestId: call.requestId,
-        toolCallId,
-        outcome,
-        detail,
-      });
+      await reportToolOutcome(call, outcome, detail);
     },
   };
 }
@@ -248,6 +279,14 @@ function streamActions(set: SetAi, get: GetAi): AiStreamActions {
 
     addPending: (call) => {
       if (get().requestId !== call.requestId) return;
+
+      // En modo agente el main ya decidió que esto se escribe: encolarlo para
+      // que alguien apriete un botón sería pedir la confirmación que el modo
+      // justamente saca. El permiso viene en el evento y no se deduce acá.
+      if (call.autoApply) {
+        void get().applyCall(call);
+        return;
+      }
 
       set((state) => ({ pending: [...state.pending, call] }));
     },

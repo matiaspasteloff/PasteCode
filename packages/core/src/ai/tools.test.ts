@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { InvalidToolCallError } from '../errors/ai-errors.js';
 
-import { AI_TOOLS, isReadOnlyTool, isToolName, parseToolArguments } from './tools.js';
+import { applyExactEdit, isReadOnlyTool, isToolName, parseToolArguments } from './tools.js';
 
 describe('isToolName', () => {
   it('reconoce las herramientas que existen', () => {
@@ -25,26 +25,13 @@ describe('isReadOnlyTool', () => {
     expect(isReadOnlyTool('search_workspace')).toBe(true);
   });
 
-  it('marca como escritura las dos que necesitan confirmación', () => {
+  it('marca como escritura las tres que tocan el disco', () => {
     expect(isReadOnlyTool('write_file')).toBe(false);
     expect(isReadOnlyTool('create_file')).toBe(false);
-  });
-});
-
-describe('AI_TOOLS', () => {
-  it('declara una definición por herramienta, sin repetir nombres', () => {
-    const names = AI_TOOLS.map((tool) => tool.function.name);
-
-    expect(new Set(names).size).toBe(names.length);
-    expect(names).toContain('write_file');
-  });
-
-  it('le explica al modelo que las de escritura no escriben', () => {
-    // Es la única forma de decírselo: si la descripción no lo dice, el modelo
-    // asume que write_file escribió y sigue como si el archivo ya estuviera.
-    const write = AI_TOOLS.find((tool) => tool.function.name === 'write_file');
-
-    expect(write?.function.description).toContain('NO escribe');
+    // `apply_edit` no se agregó a `READ_ONLY_TOOLS`, así que cae de este lado
+    // sin que haya que tocar el predicado. Ésa es la mitad del valor de que la
+    // partición sea un dato y no un `switch`.
+    expect(isReadOnlyTool('apply_edit')).toBe(false);
   });
 });
 
@@ -97,5 +84,77 @@ describe('parseToolArguments', () => {
       path: 'a.ts',
       content: '',
     });
+  });
+});
+
+describe('parseToolArguments · apply_edit', () => {
+  it('acepta un reemplazo exacto y le pone el default a replaceAll', () => {
+    expect(
+      parseToolArguments('apply_edit', '{"path":"a.ts","oldText":"uno","newText":"dos"}')
+    ).toEqual({ path: 'a.ts', oldText: 'uno', newText: 'dos', replaceAll: false });
+  });
+
+  it('acepta newText vacío: borrar un fragmento es una edición válida', () => {
+    expect(
+      parseToolArguments('apply_edit', '{"path":"a.ts","oldText":"uno","newText":""}')
+    ).toMatchObject({ newText: '' });
+  });
+
+  it('rechaza un oldText vacío', () => {
+    // Coincide entre cada par de caracteres del archivo: no tiene ninguna
+    // lectura útil, así que se corta en el schema y no más adelante.
+    expect(() =>
+      parseToolArguments('apply_edit', '{"path":"a.ts","oldText":"","newText":"x"}')
+    ).toThrow(InvalidToolCallError);
+  });
+});
+
+describe('applyExactEdit', () => {
+  it('reemplaza la única aparición', () => {
+    expect(
+      applyExactEdit('const a = 1;', { oldText: '1', newText: '2', replaceAll: false })
+    ).toEqual({ ok: true, content: 'const a = 2;', replacements: 1 });
+  });
+
+  it('avisa cuando el fragmento no aparece, en vez de escribir cualquier cosa', () => {
+    expect(
+      applyExactEdit('hola', { oldText: 'chau', newText: 'x', replaceAll: false })
+    ).toEqual({ ok: false, reason: 'not-found', occurrences: 0 });
+  });
+
+  it('falla ante una coincidencia ambigua en vez de elegir la primera', () => {
+    // Dos apariciones iguales significan que el modelo no miró suficiente
+    // contexto, y elegir por él es elegir mal la mitad de las veces.
+    expect(applyExactEdit('a b a', { oldText: 'a', newText: 'c', replaceAll: false })).toEqual({
+      ok: false,
+      reason: 'ambiguous',
+      occurrences: 2,
+    });
+  });
+
+  it('reemplaza todas cuando se lo piden explícitamente', () => {
+    expect(applyExactEdit('a b a', { oldText: 'a', newText: 'c', replaceAll: true })).toEqual({
+      ok: true,
+      content: 'c b c',
+      replacements: 2,
+    });
+  });
+
+  it('compara literal y no como expresión regular', () => {
+    // `oldText` viene del modelo: un `.` o un `(` tratados como metacaracteres
+    // harían que el reemplazo toque un lugar que nadie pidió.
+    expect(
+      applyExactEdit('a.b acb', { oldText: 'a.b', newText: 'ok', replaceAll: false })
+    ).toEqual({ ok: true, content: 'ok acb', replacements: 1 });
+  });
+
+  it('conserva los saltos de línea del fragmento', () => {
+    expect(
+      applyExactEdit('uno\ndos\ntres', {
+        oldText: 'dos\ntres',
+        newText: 'DOS',
+        replaceAll: false,
+      })
+    ).toMatchObject({ ok: true, content: 'uno\nDOS' });
   });
 });

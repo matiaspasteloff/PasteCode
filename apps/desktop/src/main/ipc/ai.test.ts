@@ -81,6 +81,7 @@ function invoke(channel: string, payload: unknown = {}): Promise<unknown> {
 const CHAT = {
   requestId: 'req-1',
   model: 'x:free',
+  mode: 'agent',
   messages: [{ role: 'user', content: 'hola' }],
 };
 

@@ -10,6 +10,7 @@
  * para que agregar una no sea una decisión.
  */
 export const es = {
+  'ai.applied': 'Editado',
   'ai.apply': 'Aplicar',
   'ai.ask': 'Preguntarle al asistente',
   'ai.assistant': 'Asistente',
@@ -17,9 +18,11 @@ export const es = {
   'ai.code': 'código',
   'ai.configureKey': 'Configurar la clave',
   'ai.copy': 'Copiar',
+  'ai.dirtyBuffer':
+    'No lo edité: ese archivo tiene una pestaña abierta con cambios sin guardar y escribirlo los pisaría. Pedile a la persona que guarde o descarte, y volvé a intentar.',
   'ai.discard': 'Descartar',
   'ai.empty':
-    'Preguntale algo sobre el proyecto. Puede leer archivos, buscar en el workspace y proponer cambios.',
+    'Preguntale algo sobre el proyecto. Puede leer archivos, buscar en el workspace y —en modo agente— editarlos.',
   'ai.insert': 'Insertar en el cursor',
   'ai.keyCancel': 'Cancelar',
   'ai.keyClear': 'Borrar la clave',
@@ -30,18 +33,30 @@ export const es = {
     'Este sistema no ofrece almacenamiento cifrado, así que la clave no se va a guardar: vas a tener que pegarla de nuevo en la próxima sesión.',
   'ai.keySave': 'Guardar',
   'ai.keyTitle': 'Clave del asistente',
+  'ai.mode': 'Modo del asistente',
+  'ai.modeAgent': 'Agente',
+  'ai.modeAgentHint':
+    'Lee, edita y crea archivos por su cuenta. Cada cambio se puede revertir.',
+  'ai.modeAsk': 'Preguntar',
+  'ai.modeAskHint': 'Sólo responde. No tiene herramientas para escribir.',
+  'ai.modePlan': 'Planificar',
+  'ai.modePlanHint': 'Devuelve un plan escrito. Tampoco escribe nada.',
   'ai.model': 'Modelo',
   'ai.needsKey':
     'El asistente necesita una clave de OpenRouter para funcionar. Es gratis y sólo se ofrecen modelos sin costo.',
   'ai.noModels': 'No hay modelos disponibles',
   'ai.placeholder': 'Preguntá algo… (Enter para enviar, Shift+Enter para un salto de línea)',
   'ai.replace': 'Reemplazar la selección',
+  'ai.revert': 'Revertir',
+  'ai.revertAll': 'Revertir todo',
   'ai.send': 'Enviar',
   'ai.willCreate': 'Va a crear',
+  'ai.willEdit': 'Editó',
   'ai.willWrite': 'Va a reescribir',
   'ai.you': 'Vos',
   'command.aiExplainSelection': 'Explicar la selección con el asistente',
   'command.aiNewChat': 'Empezar una conversación nueva con el asistente',
+  'command.aiRevertAll': 'Revertir todos los cambios del asistente',
   'command.aiToggle': 'Mostrar u ocultar el asistente',
   'command.debugTogglePanel': 'Mostrar u ocultar el panel de depuración',
   'command.editorFocusFirstGroup': 'Ir al primer grupo de edición',

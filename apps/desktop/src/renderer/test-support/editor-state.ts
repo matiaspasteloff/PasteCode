@@ -59,3 +59,22 @@ function tabsWith(paths: readonly string[], activeTabIndex = 0): TabsState {
 export function groupsWith(paths: readonly string[], activeTabIndex = 0): GroupsState {
   return groupsFromTabs(tabsWith(paths, activeTabIndex));
 }
+
+/**
+ * Lo mismo, pero con las pestañas **sucias**.
+ *
+ * Es el estado que activa la guarda de buffer sucio del asistente y el
+ * `ConflictDialog` de los cambios externos: los dos casos donde lo que importa
+ * es que haya trabajo sin guardar que no se puede pisar.
+ *
+ * @param paths Rutas de las pestañas abiertas.
+ * @returns El estado de grupos, con todas marcadas como sucias.
+ * @example
+ * useEditorStore.setState({ groups: dirtyGroupsWith(['C:\p\a.ts']) });
+ */
+export function dirtyGroupsWith(paths: readonly string[]): GroupsState {
+  return groupsFromTabs({
+    tabs: paths.map((path) => ({ path, isDirty: true, isPinned: false })),
+    activeTabIndex: 0,
+  });
+}
