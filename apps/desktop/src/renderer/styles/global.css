@@ -779,6 +779,12 @@ body {
 /* El diálogo de confirmar eliminado comparte la caja del de conflicto: son el
    mismo objeto —un modal chico que corta el paso y ofrece dos salidas— y
    duplicar las reglas sólo garantiza que se separen con el tiempo. */
+/* La caja de los cuatro diálogos chicos: conflicto, recuperación, eliminar y
+   la clave del asistente. Son el mismo objeto —un modal que corta el paso y
+   ofrece unas pocas salidas— y duplicar las reglas sólo garantiza que se
+   separen con el tiempo. Los cuatro son `<dialog>` nativos abiertos con
+   `showModal`, así que la top layer, el centrado y el `::backdrop` los pone el
+   navegador: no hay `position` acá y no tiene que haberla. */
 .confirm {
   max-width: 26rem;
   padding: 1rem;
@@ -803,7 +809,7 @@ body {
   overflow: hidden;
   margin: 0 0 0.35rem;
   font-family: var(--font-mono);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1745,58 +1751,6 @@ body {
   color: var(--color-warning);
 }
 
-/* El diálogo de recuperación comparte la caja del de conflicto: son el mismo
-   objeto —un modal chico que corta el paso y ofrece dos salidas— y duplicar las
-   reglas sólo garantiza que se separen con el tiempo. */
-.confirm {
-  max-width: 26rem;
-  padding: 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.4rem;
-  background: var(--color-background);
-  color: var(--color-foreground);
-}
-
-.confirm::backdrop {
-  background: rgb(0 0 0 / 45%);
-}
-
-.confirm__title {
-  margin: 0 0 0.5rem;
-  font-size: 1rem;
-}
-
-.confirm__name {
-  overflow: hidden;
-  margin: 0 0 0.35rem;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.confirm__message {
-  margin: 0 0 1rem;
-  color: var(--color-muted);
-  font-size: 0.85rem;
-}
-
-.confirm__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-.confirm__actions button {
-  padding: 0.35rem 0.7rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.25rem;
-  background: var(--color-surface);
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-}
-
 /* La lista de archivos recuperables. Sin viñetas: son rutas, no una
    enumeración, y el bullet compite con el separador de directorios. */
 .confirm__list {
@@ -2116,8 +2070,7 @@ body {
   font-size: 0.75rem;
 }
 
-.ai-panel--empty button,
-.ai-key__input {
+.ai-panel--empty button {
   padding: var(--space-1) var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -2126,6 +2079,25 @@ body {
   cursor: pointer;
   font: inherit;
   font-size: 0.75rem;
+}
+
+/* El único `.confirm` con un campo adentro, así que el único que necesita un
+   ancho propio: a los otros tres se lo da su texto, y sin esto el diálogo se
+   encoge hasta el ancho del botón más largo. */
+.ai-key__form {
+  display: flex;
+  width: 24rem;
+  max-width: 100%;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* El `gap` del formulario ya separa; los márgenes de la caja compartida
+   sumarían encima y dejarían el diálogo con el doble de aire del que tiene el
+   de eliminar. */
+.ai-key__form .confirm__title,
+.ai-key__form .confirm__message {
+  margin: 0;
 }
 
 .ai-key__label {
@@ -2137,6 +2109,24 @@ body {
 
 .ai-key__input {
   width: 100%;
-  cursor: text;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  /* Monoespaciada: una clave es una tira de caracteres que se revisa carácter
+     por carácter cuando OpenRouter la rechaza. */
   font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.ai-key__input:focus-visible {
+  border-color: var(--color-focus-ring);
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -1px;
+}
+
+.confirm__actions button:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
