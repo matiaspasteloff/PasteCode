@@ -2,11 +2,11 @@
 
 > **Proyecto:** `PasteCode`
 > **Tipo:** IDE de escritorio multiplataforma
-> **Estado:** Fase 4 — Extensibilidad y debugging (por empezar) · Fases 0 a 3 cerradas, falta la primera corrida del CI en GitHub
+> **Estado:** Etapa Experimental 1 — asistente de IA, barra de título propia y temas · Fases 0 a 3 cerradas, Fase 4 cerrada salvo RF-508, Fase 5 (lanzamiento) pendiente
 > **Autor:** Matías Pasteloff
 > **Licencia:** MIT
-> **Versión de la documentación:** 1.1
-> **Última actualización:** 2026-08-15
+> **Versión de la documentación:** 1.2
+> **Última actualización:** 2026-08-22
 
 Este archivo es el punto de entrada. Cada documento vive por separado en [`docs/`](./docs/).
 
@@ -28,7 +28,7 @@ Construido con **Electron + TypeScript + React**, distribuido como `.exe` firmad
 | --------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | [**Guía paso a paso**](./docs/00-guia-paso-a-paso.md)                       | **Por dónde empezar y en qué orden seguir. Empezá acá.**             |
 | [Visión y alcance](./docs/01-vision-y-alcance.md)                           | Objetivos, usuarios, qué entra y qué no, criterios de éxito          |
-| [Requerimientos funcionales](./docs/03-requerimientos-funcionales.md)       | RF-001 a RF-911 con prioridad MoSCoW y criterios de aceptación       |
+| [Requerimientos funcionales](./docs/03-requerimientos-funcionales.md)       | RF-001 a RF-1014 con prioridad MoSCoW y criterios de aceptación      |
 | [Requerimientos no funcionales](./docs/04-requerimientos-no-funcionales.md) | Presupuestos de performance, confiabilidad, seguridad, accesibilidad |
 | [Roadmap y riesgos](./docs/06-roadmap-y-riesgos.md)                         | Las 6 fases, sus entregables y los riesgos identificados             |
 

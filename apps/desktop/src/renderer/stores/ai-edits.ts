@@ -14,7 +14,7 @@ import { useEditorStore } from './editor-store.js';
  * "deshacer" no existe para un archivo que no estaba abierto en el editor—: el
  * contenido anterior no sale del editor, sale del disco y en el momento justo.
  */
-export type AppliedEdit = AiToolCallEvent;
+type AppliedEdit = AiToolCallEvent;
 
 /** Lo que este slice del store del asistente sabe. */
 export interface AiEditsData {

@@ -218,7 +218,7 @@ _~4 semanas_
 
 _~2 semanas_
 
-**Numeración propia (E1.1 … E1.7), no 44 en adelante.** Los pasos 1-43 son el roadmap de la v1 y su numeración es una referencia estable: `docs/06-roadmap-y-riesgos.md`, los ADRs y los cierres de etapa apuntan a números concretos. Esta etapa va **al lado** del contrato de alcance y no adentro (ver [Alcance experimental](./01-vision-y-alcance.md#alcance-experimental)), así que numerarla como continuación diría lo contrario de lo que es.
+**Numeración propia (E1.1 … E1.11), no 44 en adelante.** Los pasos 1-43 son el roadmap de la v1 y su numeración es una referencia estable: `docs/06-roadmap-y-riesgos.md`, los ADRs y los cierres de etapa apuntan a números concretos. Esta etapa va **al lado** del contrato de alcance y no adentro (ver [Alcance experimental](./01-vision-y-alcance.md#alcance-experimental)), así que numerarla como continuación diría lo contrario de lo que es.
 
 **E1.1. Documentación primero.** El módulo RF-10xx, la sección de alcance experimental, y los ADR-0029, 0030 y 0031 antes de una línea de código. Es la misma regla que la Etapa 5: si la decisión no se puede escribir, no está tomada.
 
@@ -236,6 +236,16 @@ _~2 semanas_
 
 > **Checkpoint:** el IDE se usa para escribir el IDE, y esta etapa salió entera de esa costumbre. Los tres bugs no los encontró ningún test.
 
+**E1.8. Los modos, en `core` y en el main.** `ask` / `plan` / `agent` como cuatro funciones puras en `packages/core/src/ai/modes.ts`, y el main usándolas para decidir qué herramientas declara, cuántas vueltas permite y si el `ai:toolCall` sale con `autoApply`. **La barrera es la lista de herramientas, no el prompt**: un modelo no puede llamar a algo que no está en la request. Va junto con `apply_edit`, que baja el costo de una edición chica de "el archivo entero" a "el fragmento" — con modelos gratuitos, ésa es la diferencia entre que acierte y que no.
+
+**E1.9. La edición directa y su red.** El renderer escribe sin confirmación cuando el evento lo autoriza, y **cada escritura deja un checkpoint** con el contenido anterior, que ya viajaba adentro del evento. Acá viven los dos peligros que el modo agente convierte de raros en constantes: no pisar una pestaña con cambios sin guardar, y adoptar en el editor lo que se escribió —porque `noteOwnWrite` hace que el watcher no avise—.
+
+**E1.10. El panel a la derecha.** Un eje propio (`AUX_VIEWS`) y una cuarta columna en la grilla. El descriptor del asistente se mudó de un registro al otro **sin cambiar una línea**, que es la tercera prueba de que el registro de ADR-0022 aguanta. El botón nuevo de la barra de título dispara el comando y no la acción del store, y de paso `TitleToolbar` estrena los tests que no tenía.
+
+**E1.11. La documentación de todo eso.** [ADR-0032](./adr/0032-modos-del-asistente-y-edicion-directa.md), la supersesión parcial de ADR-0029, y RF-1011 a RF-1014.
+
+> **Checkpoint:** el asistente pasó de proponer a hacer, y lo que lo hace defendible no es confiar en el modelo: es que todo lo que escribe se puede deshacer desde la misma conversación.
+
 ### Lo que salió distinto de lo previsto
 
 **El bug del hueco era CSS, no React.** La sospecha era que `SideView` devolvía `null` y algo quedaba montado. La causa real es que ninguno de los tres hijos de la fila 2 declaraba su columna: caían por auto-placement, y con la barra colapsada el área de edición se corría a la columna 2 —que es `auto`— dejando la 3 (`1fr`) vacía. Tres declaraciones de `grid-column` lo cerraron.
@@ -247,6 +257,12 @@ _~2 semanas_
 **El E2E del tema se cayó por una razón que vale anotar.** El matcher de la paleta es difuso, y con un segundo comando que habla de temas la palabra "tema" dejó de identificar a ninguno: apretar Enter abría el selector nuevo en vez de rotar claro/oscuro. El test no estaba mal escrito cuando se escribió; envejeció. La lección es que un aserto sobre "el primero que coincide" en una lista difusa es una dependencia oculta del catálogo entero.
 
 **`-webkit-app-region` es el error clásico de la barra de título.** Un botón sin `no-drag` no se puede clickear, y el síntoma —"el botón no anda"— no se parece a la causa. Va como regla en `global.css` sobre **todos** los hijos interactivos de la barra, no caso por caso.
+
+**La objeción de un ADR viejo puede ser la especificación del arreglo.** ADR-0029 descartó escribir directo con un argumento concreto: "deshacer" no existe para un archivo que no estaba abierto en el editor. Revisarlo no fue ignorar el argumento sino leerlo como un requisito — y ahí se vio que `previousContent` **ya viajaba** adentro de `ai:toolCall`, porque lo necesitaba el diff. El deshacer que faltaba estaba a un `useState` de distancia. La lección es que un ADR bien escrito sigue sirviendo cuando se lo deroga: dice exactamente qué hay que resolver para poder hacerlo.
+
+**Que un modo no pueda escribir no se pide, se construye.** El diseño más chico de los modos era un prompt distinto por modo, y no alcanza: mientras la herramienta esté declarada en la request, que el modelo no la llame depende de que obedezca. Filtrar la lista por modo lo vuelve imposible en vez de improbable, y deja al prompt haciendo lo que un prompt sabe hacer — explicar por qué—. La misma idea aparece dos veces más en el repo: el filtro de modelos gratuitos y la allow-list de eventos del preload también existen del lado que no se puede convencer.
+
+**Un cambio de una línea en el CSS puede mover la barra de título entera.** El botón nuevo iba a llevar `margin-left: auto` para pegarse a los controles de ventana, pero la fila ya tenía tres márgenes `auto` —los dos de la caja de comandos y el de `.window-controls`—, y flexbox reparte el espacio libre entre todos. Sumar un cuarto habría corrido la caja de comandos de lugar. La solución fue **mover** el `auto` que ya existía al botón nuevo en vez de agregar uno: mismo reparto, un elemento más.
 
 ---
 
