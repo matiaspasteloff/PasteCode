@@ -10,6 +10,7 @@ function resetStore(): void {
   useAiStore.setState({
     models: [],
     modelId: null,
+    mode: 'agent',
     messages: [],
     streamingText: '',
     requestId: null,
@@ -21,15 +22,19 @@ function resetStore(): void {
   });
 }
 
+/** La ruta de las propuestas de los tests. */
+const PATH = 'C:\\ws\\a.ts';
+
 /** Una propuesta de escritura como la que emite el main. */
 function proposal(requestId = 'req-1', toolCallId = 'call_1'): PendingToolCall {
   return {
     requestId,
     toolCallId,
     tool: 'write_file',
-    path: 'C:\\ws\\a.ts',
+    path: PATH,
     nextContent: 'lo nuevo',
     previousContent: 'lo viejo',
+    autoApply: false,
   };
 }
 
@@ -51,6 +56,7 @@ describe('send', () => {
     expect(invoke).toHaveBeenCalledWith('ai:chat', {
       requestId: state.requestId,
       model: 'x:free',
+      mode: 'agent',
       messages: [{ role: 'user', content: 'hola' }],
     });
   });

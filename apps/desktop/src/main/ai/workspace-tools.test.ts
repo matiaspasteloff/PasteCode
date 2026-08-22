@@ -170,7 +170,10 @@ describe('search_workspace', () => {
 describe('resolveWriteProposal', () => {
   it('devuelve la ruta ya validada y lo que hay hoy en el archivo', async () => {
     await withWorkspace(async (root) => {
-      const proposal = await resolveWriteProposal('{"path":"uno.ts","content":"nuevo"}');
+      const proposal = await resolveWriteProposal(
+        'write_file',
+        '{"path":"uno.ts","content":"nuevo"}'
+      );
 
       expect(proposal.path.toLowerCase()).toContain(join(root, 'uno.ts').toLowerCase());
       expect(proposal.nextContent).toBe('nuevo');
@@ -181,16 +184,86 @@ describe('resolveWriteProposal', () => {
   it('devuelve null como contenido anterior si el archivo no existe', async () => {
     // Es lo que le dice al diff que muestre una creación y no un reemplazo.
     await withWorkspace(async () => {
-      const proposal = await resolveWriteProposal('{"path":"nuevo.ts","content":"x"}');
+      const proposal = await resolveWriteProposal(
+        'create_file',
+        '{"path":"nuevo.ts","content":"x"}'
+      );
 
       expect(proposal.previousContent).toBeNull();
     });
   });
 
   it('rechaza una propuesta que apunta fuera del workspace', async () => {
+    // Vale igual con `autoApply`: la frontera de seguridad sigue acá, en el
+    // main, y no se movió con ADR-0032.
     await withWorkspace(async () => {
       await expect(
-        resolveWriteProposal('{"path":"../fuera.ts","content":"x"}')
+        resolveWriteProposal('write_file', '{"path":"../fuera.ts","content":"x"}')
+      ).rejects.toThrow();
+    });
+  });
+});
+
+describe('resolveWriteProposal · apply_edit', () => {
+  it('resuelve el reemplazo exacto al mismo shape que las otras dos', async () => {
+    // Es la clave del diseño: el evento, la tarjeta, el checkpoint y el camino
+    // de escritura no cambian para la herramienta nueva.
+    await withWorkspace(async () => {
+      const proposal = await resolveWriteProposal(
+        'apply_edit',
+        '{"path":"uno.ts","oldText":"const uno = 1;","newText":"const uno = 42;"}'
+      );
+
+      expect(proposal.nextContent).toBe('const uno = 42;\nconst dos = 2;\n');
+      expect(proposal.previousContent).toBe('const uno = 1;\nconst dos = 2;\n');
+    });
+  });
+
+  it('le explica al modelo qué hacer cuando el fragmento no aparece', async () => {
+    await withWorkspace(async () => {
+      await expect(
+        resolveWriteProposal(
+          'apply_edit',
+          '{"path":"uno.ts","oldText":"no existe","newText":"x"}'
+        )
+      ).rejects.toThrow(/copiá el fragmento exacto/);
+    });
+  });
+
+  it('se niega ante una coincidencia ambigua en vez de elegir la primera', async () => {
+    await withWorkspace(async () => {
+      await expect(
+        resolveWriteProposal(
+          'apply_edit',
+          '{"path":"uno.ts","oldText":"const","newText":"let"}'
+        )
+      ).rejects.toThrow(/más de una vez/);
+    });
+  });
+
+  it('reemplaza todas cuando se lo piden explícitamente', async () => {
+    await withWorkspace(async () => {
+      const proposal = await resolveWriteProposal(
+        'apply_edit',
+        '{"path":"uno.ts","oldText":"const","newText":"let","replaceAll":true}'
+      );
+
+      expect(proposal.nextContent).toBe('let uno = 1;\nlet dos = 2;\n');
+    });
+  });
+
+  it('manda a create_file cuando el archivo no existe', async () => {
+    await withWorkspace(async () => {
+      await expect(
+        resolveWriteProposal('apply_edit', '{"path":"no.ts","oldText":"a","newText":"b"}')
+      ).rejects.toThrow(/create_file/);
+    });
+  });
+
+  it('rechaza una edición que apunta fuera del workspace', async () => {
+    await withWorkspace(async () => {
+      await expect(
+        resolveWriteProposal('apply_edit', '{"path":"../fuera.ts","oldText":"a","newText":"b"}')
       ).rejects.toThrow();
     });
   });

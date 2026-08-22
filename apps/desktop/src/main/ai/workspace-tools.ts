@@ -1,5 +1,5 @@
-import type { ReadOnlyToolName, SearchMatch } from '@pastecode/core';
-import { parseToolArguments } from '@pastecode/core';
+import type { ReadOnlyToolName, SearchMatch, WriteToolName } from '@pastecode/core';
+import { applyExactEdit, InvalidToolCallError, parseToolArguments } from '@pastecode/core';
 
 import { readDirectoryLevel, readTextFile } from '../services/file-system.js';
 import { resolveInsideWorkspace } from '../services/path-guard.js';
@@ -56,25 +56,52 @@ export async function runReadOnlyTool(
 }
 
 /**
- * Resuelve la ruta de una propuesta de escritura y lee lo que hay hoy.
+ * Lo que el evento `ai:toolCall` necesita para que el renderer escriba.
  *
- * Es lo que el evento `ai:toolCall` necesita para que el renderer arme el
- * diff: la ruta **ya validada** y el contenido anterior, o `null` si el
- * archivo no existe. Que la validación pase por acá y no por el renderer es lo
- * que hace que "Aplicar" no pueda escribir fuera del workspace ni aunque el
- * modelo lo pida.
+ * Las tres herramientas de escritura se resuelven a **esta misma forma**, y
+ * eso es lo que hace que agregar `apply_edit` no toque ni el evento, ni la
+ * tarjeta de diff, ni el checkpoint, ni el camino de escritura.
+ */
+export interface WriteProposal {
+  /** Ruta absoluta, ya validada contra el workspace. */
+  path: string;
+  /** El contenido final que va a quedar en el archivo. */
+  nextContent: string;
+  /** Lo que hay hoy, o `null` si el archivo no existe. */
+  previousContent: string | null;
+}
+
+/**
+ * Resuelve una escritura del modelo contra el disco, sin escribir nada.
  *
- * @param rawArguments El JSON de argumentos de `write_file` o `create_file`.
+ * Es lo que el evento `ai:toolCall` necesita: la ruta **ya validada** y el
+ * contenido anterior, o `null` si el archivo no existe. Que la validación pase
+ * por acá y no por el renderer es lo que hace que una escritura del asistente
+ * no pueda salirse del workspace ni aunque el modelo lo pida — y eso vale
+ * igual con `autoApply`, porque la frontera de seguridad **no se movió**: lo
+ * que cambió con [ADR-0032](../../../../../docs/adr/0032-modos-del-asistente-y-edicion-directa.md)
+ * es quién aprieta el botón, no quién resuelve la ruta.
+ *
+ * `apply_edit` se resuelve acá contra el contenido actual y sale con la misma
+ * forma que las otras dos. Un fragmento que no aparece —o que aparece dos
+ * veces sin `replaceAll`— es un `InvalidToolCallError`, que `executeCall`
+ * convierte en texto para que el modelo reintente con más contexto.
+ *
+ * @param tool Cuál de las tres, ya verificada como de escritura.
+ * @param rawArguments El JSON de argumentos, tal como vino del modelo.
  * @returns Ruta absoluta validada, contenido propuesto y contenido actual.
- * @throws {InvalidToolCallError} Si los argumentos no validan.
+ * @throws {InvalidToolCallError} Si los argumentos no validan o el fragmento no se puede aplicar.
  * @throws {PathOutsideWorkspaceError} Si la ruta escapa del workspace.
  * @example
- * const proposal = await resolveWriteProposal('{"path":"a.ts","content":"x"}');
+ * const proposal = await resolveWriteProposal('write_file', '{"path":"a.ts","content":"x"}');
  */
 export async function resolveWriteProposal(
+  tool: WriteToolName,
   rawArguments: string
-): Promise<{ path: string; nextContent: string; previousContent: string | null }> {
-  const { path, content } = parseToolArguments('write_file', rawArguments);
+): Promise<WriteProposal> {
+  if (tool === 'apply_edit') return resolveExactEdit(rawArguments);
+
+  const { path, content } = parseToolArguments(tool, rawArguments);
   const resolved = await resolveInsideWorkspace(path, requireWorkspaceRoot());
   const current = await readTextFile(resolved).catch(() => null);
 
@@ -83,6 +110,35 @@ export async function resolveWriteProposal(
     nextContent: content,
     previousContent: current?.content ?? null,
   };
+}
+
+/** `apply_edit`, resuelto contra lo que el archivo dice ahora mismo. */
+async function resolveExactEdit(rawArguments: string): Promise<WriteProposal> {
+  const { path, oldText, newText, replaceAll } = parseToolArguments('apply_edit', rawArguments);
+  const resolved = await resolveInsideWorkspace(path, requireWorkspaceRoot());
+  const current = await readTextFile(resolved).catch(() => null);
+
+  if (current === null) {
+    throw new InvalidToolCallError(
+      'apply_edit',
+      `el archivo ${path} no existe o no es de texto; para uno nuevo usá create_file`
+    );
+  }
+
+  const edited = applyExactEdit(current.content, { oldText, newText, replaceAll });
+
+  if (!edited.ok) throw new InvalidToolCallError('apply_edit', describeFailure(edited.reason));
+
+  return { path: resolved, nextContent: edited.content, previousContent: current.content };
+}
+
+/** Por qué no se pudo aplicar el fragmento, en algo que el modelo pueda usar. */
+function describeFailure(reason: 'not-found' | 'ambiguous'): string {
+  // El destinatario es el modelo, así que cada mensaje termina en qué hacer
+  // distinto la próxima vez. "No se pudo" a secas produce el mismo reintento.
+  return reason === 'not-found'
+    ? 'el "oldText" no aparece en el archivo tal cual lo mandaste; volvé a leerlo y copiá el fragmento exacto, con sus espacios y saltos de línea'
+    : 'el "oldText" aparece más de una vez; agregá contexto alrededor para que sea único, o mandá replaceAll en true si de verdad querés cambiarlas todas';
 }
 
 /** Un nivel del árbol, con las mismas exclusiones que ve el explorador. */

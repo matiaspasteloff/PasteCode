@@ -1,4 +1,9 @@
-import { AiCancelledError, AiRequestError, MissingApiKeyError } from '@pastecode/core';
+import {
+  AiCancelledError,
+  AiRequestError,
+  MissingApiKeyError,
+  toolsForMode,
+} from '@pastecode/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -150,6 +155,7 @@ describe('streamCompletion', () => {
     return {
       model: 'free/one:free',
       messages: [{ role: 'user' as const, content: 'hola' }],
+      tools: toolsForMode('agent'),
       onDelta: (text: string) => deltas.push(text),
       signal,
     };

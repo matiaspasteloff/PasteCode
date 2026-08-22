@@ -8,6 +8,7 @@ import {
   closeGroup,
   focusGroup,
   groupsFromTabs,
+  isPathDirty,
   PRIMARY_GROUP_ID,
   SECONDARY_GROUP_ID,
   SINGLE_EMPTY_GROUPS,
@@ -15,7 +16,7 @@ import {
   updateActiveGroup,
   updateGroup,
 } from './groups.js';
-import { closeTab, openTab } from './tabs.js';
+import { closeTab, openTab, setTabDirty } from './tabs.js';
 
 const A = 'C:\\p\\a.ts';
 const B = 'C:\\p\\b.ts';
@@ -154,5 +155,31 @@ describe('groupsFromTabs', () => {
     expect(restored.layout).toBe('single');
     expect(restored.groups).toHaveLength(1);
     expect(activeTabs(restored).tabs.map((tab) => tab.path)).toEqual([A]);
+  });
+});
+
+describe('isPathDirty', () => {
+  it('dice que no cuando la pestaña está limpia', () => {
+    expect(isPathDirty(withTabs(A), A)).toBe(false);
+  });
+
+  it('dice que no cuando el archivo ni siquiera está abierto', () => {
+    expect(isPathDirty(withTabs(A), B)).toBe(false);
+  });
+
+  it('dice que sí cuando la pestaña tiene cambios sin guardar', () => {
+    const dirty = updateActiveGroup(withTabs(A), (tabs) => setTabDirty(tabs, A, true));
+
+    expect(isPathDirty(dirty, A)).toBe(true);
+  });
+
+  it('mira todos los grupos y no sólo el enfocado', () => {
+    // Un archivo abierto en el otro panel está igual de abierto: escribirle
+    // encima pisa lo mismo.
+    const split = splitGroups(withTabs(A), 'horizontal');
+    const dirty = updateGroup(split, PRIMARY_GROUP_ID, (tabs) => setTabDirty(tabs, A, true));
+    const focused = focusGroup(dirty, SECONDARY_GROUP_ID);
+
+    expect(isPathDirty(focused, A)).toBe(true);
   });
 });

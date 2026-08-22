@@ -1,4 +1,4 @@
-import type { AiMessage, AiModel } from '@pastecode/core';
+import type { AiChatMode, AiMessage, AiModel } from '@pastecode/core';
 import type { AiToolCallEvent, SerializedError } from '@pastecode/ipc-contract';
 import { create } from 'zustand';
 
@@ -14,6 +14,17 @@ interface AiData {
   models: readonly AiModel[];
   /** El elegido, o `null` si todavía no se cargó la lista. */
   modelId: string | null;
+  /**
+   * En qué modo se pregunta. Arranca en `agent`.
+   *
+   * Es el modo con el que el asistente es más útil, y el que la persona
+   * eligió al instalar un IDE con asistente: arrancar en `ask` obligaría a
+   * cambiarlo antes de cada pedido real. Lo que lo hace defendible es el
+   * checkpoint —cada escritura se puede revertir desde la conversación—, no la
+   * confianza en el modelo. Ver
+   * [ADR-0032](../../../../../docs/adr/0032-modos-del-asistente-y-edicion-directa.md).
+   */
+  mode: AiChatMode;
   /** La conversación **cerrada**: lo que ya terminó de escribirse. */
   messages: readonly AiMessage[];
   /**
@@ -44,6 +55,8 @@ interface AiCredentialActions {
   closeKeyDialog: () => void;
   loadModels: () => Promise<void>;
   selectModel: (modelId: string) => void;
+  /** Cambia el modo. Se aplica a partir de la próxima pregunta. */
+  setMode: (mode: AiChatMode) => void;
 }
 
 /** Lo que la persona hace con la conversación. */
@@ -107,6 +120,7 @@ const EMPTY_CONVERSATION = {
 export const useAiStore = create<AiState>((set, get) => ({
   models: [],
   modelId: null,
+  mode: 'agent',
   requestId: null,
   hasKey: false,
   canPersist: false,
@@ -175,6 +189,10 @@ function credentialActions(set: SetAi, get: GetAi): AiCredentialActions {
     selectModel: (modelId) => {
       set({ modelId });
     },
+
+    setMode: (mode) => {
+      set({ mode });
+    },
   };
 }
 
@@ -182,7 +200,7 @@ function credentialActions(set: SetAi, get: GetAi): AiCredentialActions {
 function conversationActions(set: SetAi, get: GetAi): AiConversationActions {
   return {
     send: async (text) => {
-      const { modelId, messages, requestId } = get();
+      const { modelId, mode, messages, requestId } = get();
 
       // Sin modelo no hay a quién preguntarle, y con una respuesta en curso
       // mandar otra dejaría dos streams pintando sobre el mismo lugar.
@@ -196,6 +214,7 @@ function conversationActions(set: SetAi, get: GetAi): AiConversationActions {
       const result = await window.pastecode.invoke('ai:chat', {
         requestId: id,
         model: modelId,
+        mode,
         messages: next,
       });
 

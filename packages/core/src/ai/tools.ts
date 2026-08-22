@@ -13,6 +13,7 @@ export const AI_TOOL_NAMES = [
   'list_files',
   'read_file',
   'search_workspace',
+  'apply_edit',
   'write_file',
   'create_file',
 ] as const;
@@ -29,6 +30,15 @@ export type AiToolName = (typeof AI_TOOL_NAMES)[number];
 export const READ_ONLY_TOOLS = ['list_files', 'read_file', 'search_workspace'] as const;
 
 export type ReadOnlyToolName = (typeof READ_ONLY_TOOLS)[number];
+
+/**
+ * Las que sí tocan el disco. Es el complemento exacto de `ReadOnlyToolName`.
+ *
+ * Sale por `Exclude` y no de una segunda lista a propósito: dos listas que
+ * tienen que sumar el total son dos listas que se desincronizan, y la que
+ * decide de qué lado cae una herramienta nueva ya es `READ_ONLY_TOOLS`.
+ */
+export type WriteToolName = Exclude<AiToolName, ReadOnlyToolName>;
 
 /**
  * Si una herramienta se puede resolver sin confirmación de una persona.
@@ -69,6 +79,21 @@ const WriteFileArgumentsSchema = z.strictObject({
 });
 
 /**
+ * Los argumentos de `apply_edit`: reemplazo exacto de un fragmento.
+ *
+ * `oldText` pide al menos un carácter porque un `oldText` vacío coincide entre
+ * cada par de caracteres del archivo: con `replaceAll` eso inyectaría el texto
+ * nuevo en todas partes, y sin él siempre sería "ambiguo". Es un argumento que
+ * no tiene ninguna lectura útil, así que se rechaza en el schema.
+ */
+const ApplyEditArgumentsSchema = z.strictObject({
+  path: z.string().min(1),
+  oldText: z.string().min(1),
+  newText: z.string(),
+  replaceAll: z.boolean().default(false),
+});
+
+/**
  * El schema de cada herramienta, por nombre.
  *
  * `write_file` y `create_file` comparten forma a propósito: la diferencia no
@@ -79,138 +104,13 @@ const ARGUMENT_SCHEMAS = {
   list_files: ListFilesArgumentsSchema,
   read_file: ReadFileArgumentsSchema,
   search_workspace: SearchWorkspaceArgumentsSchema,
+  apply_edit: ApplyEditArgumentsSchema,
   write_file: WriteFileArgumentsSchema,
   create_file: WriteFileArgumentsSchema,
 } as const satisfies Record<AiToolName, z.ZodType>;
 
 /** Los argumentos ya validados de una herramienta, según cuál sea. */
 export type AiToolArguments<N extends AiToolName> = z.infer<(typeof ARGUMENT_SCHEMAS)[N]>;
-
-/**
- * Una herramienta tal como se la declara en la request de OpenRouter.
- *
- * Es el formato de function calling de la API de OpenAI, que es el que
- * OpenRouter expone para todos sus modelos.
- */
-export interface AiToolDefinition {
-  type: 'function';
-  function: {
-    name: AiToolName;
-    description: string;
-    parameters: Record<string, unknown>;
-  };
-}
-
-/**
- * Las definiciones que viajan en la request.
- *
- * El JSON Schema se escribe a mano y no se deriva de los schemas Zod de
- * arriba. Suena a duplicación y hay una razón: `z.toJSONSchema` produce un
- * documento con `$schema`, `additionalProperties` y `$ref` que varios modelos
- * gratuitos no digieren, y lo que le llega al modelo tiene que ser lo más
- * chato posible o inventa argumentos. Lo que Zod valida es la **respuesta**
- * del modelo, que es entrada no confiable; esto es la **pregunta**, que es
- * documentación para un lector estadístico. Son dos cosas distintas y por eso
- * no se generan una de la otra.
- *
- * Las descripciones son largas a propósito: es literalmente el único lugar
- * donde se le explica al modelo qué puede y qué no puede hacer.
- */
-export const AI_TOOLS: readonly AiToolDefinition[] = [
-  {
-    type: 'function',
-    function: {
-      name: 'list_files',
-      description:
-        'Lista los archivos y carpetas de un directorio del workspace. Usalo antes de leer, para saber qué hay. La ruta es relativa a la raíz del workspace; omitila para listar la raíz.',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: {
-            type: 'string',
-            description: 'Ruta relativa a la raíz del workspace. Vacía para la raíz.',
-          },
-        },
-        required: [],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'read_file',
-      description:
-        'Lee el contenido completo de un archivo de texto del workspace. Leé siempre antes de proponer una edición: si no leíste el archivo, no sabés qué estás por reemplazar.',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: {
-            type: 'string',
-            description: 'Ruta del archivo, relativa a la raíz del workspace.',
-          },
-        },
-        required: ['path'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'search_workspace',
-      description:
-        'Busca un texto en todos los archivos del workspace y devuelve las coincidencias con su archivo y su línea. Es mucho más barato que leer archivos al azar buscando algo.',
-      parameters: {
-        type: 'object',
-        properties: {
-          query: { type: 'string', description: 'El texto o patrón a buscar.' },
-          isRegex: {
-            type: 'boolean',
-            description: 'Si la consulta es una expresión regular.',
-          },
-        },
-        required: ['query'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'write_file',
-      description:
-        'Propone reemplazar el contenido completo de un archivo que ya existe. NO escribe: la propuesta se le muestra a la persona como un diff y sólo se aplica si la acepta. Mandá el contenido final completo, no un fragmento ni un diff.',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: {
-            type: 'string',
-            description: 'Ruta del archivo, relativa a la raíz del workspace.',
-          },
-          content: { type: 'string', description: 'El contenido final completo.' },
-        },
-        required: ['path', 'content'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'create_file',
-      description:
-        'Propone crear un archivo nuevo. NO escribe: igual que write_file, la propuesta pasa por la confirmación de la persona. Falla si el archivo ya existe; para ése usá write_file.',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: {
-            type: 'string',
-            description: 'Ruta del archivo nuevo, relativa a la raíz del workspace.',
-          },
-          content: { type: 'string', description: 'El contenido del archivo.' },
-        },
-        required: ['path', 'content'],
-      },
-    },
-  },
-];
 
 /**
  * Si un string cualquiera nombra una herramienta que existe.
@@ -268,6 +168,56 @@ export function parseToolArguments<N extends AiToolName>(
   // mismo `N` sobre el mismo objeto.
   // eslint-disable-next-line no-restricted-syntax
   return parsed.data as AiToolArguments<N>;
+}
+
+/**
+ * Cómo salió un reemplazo exacto de `apply_edit`.
+ *
+ * Es un resultado devuelto y no una excepción ([regla 3 de codigo.md](../../../../docs/convenciones/codigo.md#3-los-errores-esperables-se-devuelven-no-se-lanzan)):
+ * que el fragmento no aparezca es el caso **esperable** cuando un modelo copia
+ * a ojo, no una falla del programa. Quien llama lo traduce a un texto que el
+ * modelo pueda leer para reintentar.
+ */
+export type ExactEditResult =
+  | { ok: true; content: string; replacements: number }
+  | { ok: false; reason: 'not-found' | 'ambiguous'; occurrences: number };
+
+/**
+ * Reemplaza un fragmento exacto dentro de un texto.
+ *
+ * **Comparación literal, sin expresiones regulares.** `oldText` viene del
+ * modelo y puede traer cualquier carácter; pasarlo por `RegExp` convertiría un
+ * `.` o un `(` en un metacarácter y haría que el reemplazo tocara un lugar que
+ * nadie pidió. Con `split`/`join` lo que se busca es exactamente lo que se
+ * mandó.
+ *
+ * Que una coincidencia ambigua **falle** en vez de tomar la primera es la
+ * decisión que hace que esta herramienta sea segura: dos apariciones iguales
+ * significan que el modelo no miró suficiente contexto, y elegir por él es
+ * elegir mal la mitad de las veces.
+ *
+ * @param content El contenido actual del archivo.
+ * @param edit El fragmento a reemplazar, el nuevo, y si van todas.
+ * @returns El contenido nuevo, o por qué no se pudo.
+ * @example
+ * applyExactEdit('a b a', { oldText: 'b', newText: 'c', replaceAll: false });
+ */
+export function applyExactEdit(
+  content: string,
+  edit: { oldText: string; newText: string; replaceAll: boolean }
+): ExactEditResult {
+  const parts = content.split(edit.oldText);
+  const occurrences = parts.length - 1;
+
+  if (occurrences === 0) return { ok: false, reason: 'not-found', occurrences: 0 };
+
+  if (occurrences > 1 && !edit.replaceAll) {
+    return { ok: false, reason: 'ambiguous', occurrences };
+  }
+
+  // Llegado acá, o hay una sola aparición o se pidieron todas: en los dos
+  // casos el `join` de todas las partes es exactamente lo que corresponde.
+  return { ok: true, content: parts.join(edit.newText), replacements: occurrences };
 }
 
 /** Parsea el JSON, traduciendo el fallo al error del proyecto. */

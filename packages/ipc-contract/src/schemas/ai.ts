@@ -1,4 +1,9 @@
-import { AiMessageSchema, AiModelSchema, AI_TOOL_NAMES } from '@pastecode/core';
+import {
+  AiChatModeSchema,
+  AiMessageSchema,
+  AiModelSchema,
+  AI_TOOL_NAMES,
+} from '@pastecode/core';
 import { z } from 'zod';
 
 /**
@@ -45,6 +50,21 @@ export const AiChatRequestSchema = z.strictObject({
   requestId: z.string().min(1),
   /** El id del modelo. Se verifica contra la lista de gratuitos en el main. */
   model: z.string().min(1),
+  /**
+   * En qué modo se pregunta: `ask`, `plan` o `agent`.
+   *
+   * Viaja en cada mensaje y no se guarda en el main, igual que la
+   * conversación: el renderer es dueño de con qué se pregunta y el main es
+   * dueño de la conexión. Con el modo guardado del lado del main habría un
+   * estado más que puede desincronizarse entre procesos, y encima uno que
+   * decide si se escribe o no en el disco.
+   *
+   * Lo que el modo decide lo decide **el main**, con `toolsForMode` y
+   * `canWriteInMode`: qué herramientas ve el modelo, cuántas vueltas tiene y
+   * si el `ai:toolCall` sale con `autoApply`. Ver
+   * [ADR-0032](../../../../docs/adr/0032-modos-del-asistente-y-edicion-directa.md).
+   */
+  mode: AiChatModeSchema,
   messages: z.array(AiMessageSchema).min(1),
 });
 

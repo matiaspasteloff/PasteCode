@@ -222,6 +222,29 @@ export function allOpenPaths(state: GroupsState): string[] {
 }
 
 /**
+ * Si un archivo está abierto **y con cambios sin guardar** en algún grupo.
+ *
+ * Existe para la guarda del asistente en modo agente: escribir en el disco un
+ * archivo que tiene una pestaña sucia pisa lo que la persona escribió, y el
+ * `Ctrl+S` posterior vuelve a pisar lo que escribió el asistente. El único
+ * final bueno de esa carrera es no correrla.
+ *
+ * Mira **todos** los grupos y no sólo el enfocado, por lo mismo que
+ * `allOpenPaths`: un archivo abierto en el otro panel está igual de abierto.
+ *
+ * @param state Estado actual.
+ * @param path Ruta absoluta del archivo.
+ * @returns `true` si alguna pestaña de ese archivo está sucia.
+ * @example
+ * if (isPathDirty(groups, call.path)) return refuseWrite();
+ */
+export function isPathDirty(state: GroupsState, path: string): boolean {
+  return state.groups.some((group) =>
+    group.tabs.tabs.some((tab) => tab.path === path && tab.isDirty)
+  );
+}
+
+/**
  * Un solo grupo con estas pestañas.
  *
  * Es lo que se usa al restaurar una sesión escrita por una versión anterior,
