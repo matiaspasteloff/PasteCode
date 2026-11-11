@@ -24,13 +24,18 @@ docs/
 │   ├── 0006-electron-vite-como-build.md
 │   ├── 0009-pinear-typescript-y-vite.md
 │   └── 0010-import-x-no-cycle.md
-└── convenciones/                      Cómo se trabaja en este repo
-    ├── codigo.md
-    ├── git.md
-    ├── testing.md
-    ├── seguridad.md
-    ├── build-y-release.md
-    └── definition-of-done.md
+├── convenciones/                      Cómo se trabaja en este repo
+│   ├── codigo.md
+│   ├── git.md
+│   ├── testing.md
+│   ├── seguridad.md
+│   ├── build-y-release.md
+│   └── definition-of-done.md
+├── informes/                          Auditorías del repositorio, fechadas
+│   └── 2026-11-auditoria.md
+└── planes/                            Planes de ejecución, uno por etapa
+    ├── README.md                      Índice y reglas comunes
+    └── PROGRESO.md                    Estado de cada etapa
 ```
 
 ## Orden de lectura sugerido
