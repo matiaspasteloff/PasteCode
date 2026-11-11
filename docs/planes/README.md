@@ -29,15 +29,17 @@ Van **en secuencia**: tocan los mismos archivos (`main/index.ts`, el contrato de
 
 `…` es `claude/ide-exponential-improvements-mh7gtv`. La rama de la etapa N nace de la punta de la rama de la etapa N−1, y su PR apunta a esa rama: así cada PR muestra sólo lo suyo.
 
-**Los planes viven en la rama de la etapa 0.** Si tu rama no trae el archivo de tu etapa, leelo desde ahí sin copiarlo a tu rama:
+**Los planes viven en la rama de la etapa 0**, que se sigue actualizando mientras las etapas corren. Traelos a tu rama **al empezar, y otra vez antes de terminar**:
 
 ```bash
 git fetch origin claude/ide-exponential-improvements-mh7gtv
 ```
 
 ```bash
-git show origin/claude/ide-exponential-improvements-mh7gtv:docs/planes/etapa-02-instalador.md
+git merge --no-edit origin/claude/ide-exponential-improvements-mh7gtv
 ```
+
+Es un merge de documentación y de `.claude/settings.json`: no toca código, así que no debería dar conflictos. El de antes de terminar importa tanto como el primero, porque la sesión de la etapa siguiente nace de tu punta y lee `.claude/settings.json` al arrancar.
 
 ---
 
@@ -56,7 +58,7 @@ No se vuelven a discutir en cada etapa. Las tomó el autor del proyecto:
 
 ## Protocolo de una etapa
 
-1. **Leé**, en este orden: [`CLAUDE.md`](../../CLAUDE.md), este archivo, el plan de tu etapa, y los documentos que ese plan cite. Mirá [`PROGRESO.md`](./PROGRESO.md): la sección _Entorno_ dice qué comandos corren en tu contenedor, y las notas de las etapas anteriores dicen qué salió distinto de lo previsto.
+1. **Traé los planes** con el merge de arriba, y **leé**, en este orden: [`CLAUDE.md`](../../CLAUDE.md), este archivo, el plan de tu etapa, y los documentos que ese plan cite. Mirá [`PROGRESO.md`](./PROGRESO.md): la sección _Entorno_ dice qué comandos corren en tu contenedor, y las notas de las etapas anteriores dicen qué salió distinto de lo previsto.
 2. **Instalá**: `pnpm install --frozen-lockfile`. Si falla, anotá el error exacto en `PROGRESO.md` antes de intentar otra cosa.
 3. **Corré la línea base antes de tocar nada**: `pnpm check`. Si algo ya falla, anotalo: no es tuyo, pero tenés que saber distinguirlo de lo que rompas.
 4. **Trabajá tarea por tarea**, en el orden del plan. Un commit por tarea, que deje el proyecto compilando.
@@ -64,7 +66,8 @@ No se vuelven a discutir en cada etapa. Las tomó el autor del proyecto:
 6. **Abrí el PR en borrador** contra la rama de la etapa anterior, con la [plantilla del repo](../../.github/pull_request_template.md).
 7. **Mirá el CI y arreglá lo que falle.** El E2E y los presupuestos de performance sólo corren ahí, en Windows.
 8. **Actualizá [`PROGRESO.md`](./PROGRESO.md)**: el estado de tu etapa y tu sección de notas.
-9. **Avisá que terminaste** como diga el mensaje con el que se te lanzó.
+9. **Repetí el merge de los planes** y empujá.
+10. **Avisá que terminaste** como diga el mensaje con el que se te lanzó.
 
 ### Qué es "terminado"
 
