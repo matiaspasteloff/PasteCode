@@ -28,6 +28,24 @@ Para el E2E: Electron necesita un display. Probá `xvfb-run -a pnpm test:e2e` si
 
 Commit: `docs: registrar qué corre en el entorno de la nube`.
 
+### T0b — Dejar `pnpm audit` en verde
+
+**Va antes que todo lo demás: sin esto ningún PR de la pila puede tener el CI en verde.**
+
+El job _Calidad_ corre `pnpm audit --audit-level=high` (RNF-15) y hoy falla sobre el mismo `pnpm-lock.yaml` que tiene `main`: 105 avisos, 44 altos y 1 crítico, publicados después del último merge. No los introdujo ningún cambio; son dependencias transitivas de desarrollo. El que más se repite es `undici` —[GHSA-qrxm-fqhp-jwvm](https://github.com/advisories/GHSA-qrxm-fqhp-jwvm)—, que entra por `electron` → `@electron/get`, por `electron-builder` → `node-gyp`, y por `vitest` → `jsdom`.
+
+Cómo arreglarlo, en este orden de preferencia:
+
+1. **Subir la dependencia directa** que arrastra la vulnerable, a una versión que ya traiga el parche (`electron` dentro de su major, `electron-builder`, `jsdom`, `vitest`). Respetá los dos pines de [ADR-0009](../adr/0009-pinear-typescript-y-vite.md): `typescript` 6.0.3 y `vite` 7.3.6 no se mueven.
+2. **`overrides` de pnpm** para una transitiva cuando la directa todavía no publicó el arreglo. Cada override lleva un comentario con el aviso que cierra, para que se pueda sacar el día que deje de hacer falta.
+3. Lo que no tenga parche publicado **no se silencia en bloque**. Si hay que ignorar un aviso puntual, va con su identificador, el motivo y por qué no es explotable acá —una dependencia de desarrollo que nunca llega al instalador no es lo mismo que una de runtime—.
+
+Corré `pnpm audit --audit-level=high` hasta que salga limpio, y después `pnpm check` y `pnpm build`: subir Electron o Vitest puede romper algo que el audit no ve. `minimumReleaseAge` de pnpm retiene las versiones publicadas hace muy poco; si el parche es demasiado nuevo, usá `minimumReleaseAgeExclude` con la versión exacta, como ya hace `pnpm-workspace.yaml` con Turbo.
+
+Subir una versión de algo que ya está no es "agregar una dependencia", así que la regla 4 no pide justificarlo una por una; sí pide decir en el PR qué se subió y por qué.
+
+Commit: `fix(build): actualizar las dependencias con avisos de seguridad altos`.
+
 ### T1 — Scope `security`
 
 Agregá `security` a la lista cerrada de `commitlint.config.js` y a `docs/convenciones/git.md`, con una frase que diga qué cubre: el hardening del main y la política de la app empaquetada. Los dos archivos se tocan juntos.
