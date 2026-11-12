@@ -26,6 +26,7 @@ import { useBackupDirectory } from './services/backups.js';
 import { useSessionDirectory } from './services/session.js';
 import { disposeAll } from './services/shutdown.js';
 import { APP_ORIGIN, registerAppScheme, serveRendererFrom } from './windows/app-protocol.js';
+import { applyApplicationMenu } from './windows/application-menu.js';
 import { createMainWindow } from './windows/create-window.js';
 
 // Antes que nada: Electron exige que los privilegios del esquema se declaren
@@ -100,6 +101,10 @@ void app.whenReady().then(async () => {
   // En desarrollo el renderer lo sirve Vite con su HMR; el esquema propio sólo
   // hace falta para el build empaquetado.
   if (!isDevelopment) serveRendererFrom(join(__dirname, '../renderer'));
+
+  // Antes de la ventana, para que no herede ni un instante el menú por
+  // omisión de Electron, con su recargar y sus DevTools.
+  applyApplicationMenu(process.platform, isDevelopment);
 
   createMainWindow();
 
