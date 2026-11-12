@@ -27,6 +27,9 @@ export default {
         'search',
         'session',
         'perf',
+        // Hardening del main y política de la app empaquetada: CSP, permisos,
+        // navegación, menú, instancia única y fuses.
+        'security',
         'build',
         'ci',
       ],

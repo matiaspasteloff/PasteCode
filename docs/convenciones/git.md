@@ -59,9 +59,11 @@ main ─────●──────●──────●─────
 [footer opcional: BREAKING CHANGE, Closes #42]
 ```
 
-**Scopes válidos:** `ai`, `editor`, `terminal`, `lsp`, `dap`, `git`, `fs`, `ext-host`, `ui`, `core`, `ipc`, `settings`, `search`, `session`, `perf`, `build`, `ci`
+**Scopes válidos:** `ai`, `editor`, `terminal`, `lsp`, `dap`, `git`, `fs`, `ext-host`, `ui`, `core`, `ipc`, `settings`, `search`, `session`, `perf`, `security`, `build`, `ci`
 
 `ai` cubre el asistente de la [etapa experimental](../01-vision-y-alcance.md#alcance-experimental): el contrato de sus canales, su lógica en `core`, su servicio en el main y su vista. Que tenga scope propio y no caiga en `ui` es lo que deja el historial legible el día que la etapa experimental se saque o se promueva.
+
+`security` cubre el hardening del proceso main y la política de la app empaquetada: CSP, permisos de Chromium, la guarda de navegación y de ventanas, el menú de aplicación, la instancia única y los fuses de Electron. Un arreglo de seguridad dentro de otra área —un `fs` que valida mal una ruta— lleva el scope de esa área; `security` es para lo que protege a la app entera.
 
 La lista es cerrada y vive por duplicado en [`commitlint.config.js`](../../commitlint.config.js), que es quien la hace cumplir en el hook `commit-msg`. Agregar un scope acá sin agregarlo allá no cambia nada; los dos se tocan juntos.
 
