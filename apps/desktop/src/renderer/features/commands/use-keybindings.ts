@@ -54,7 +54,7 @@ export function useKeybindings(): void {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
-      const combination = toKeyCombination(event);
+      const combination = toKeyCombination(event, window.pastecode.platform);
       if (combination === undefined) return;
 
       // Los del usuario van **después** de los de fábrica: ante la misma

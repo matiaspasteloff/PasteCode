@@ -95,6 +95,10 @@ export function resolveSettings(user: SettingsFile, workspace: SettingsFile): Se
       // no pueda ganar, sin depender de que alguien se acuerde de borrarlo.
       shell: user.terminal?.shell ?? DEFAULT_SETTINGS.terminal.shell,
     },
+    // Sólo del usuario, el grupo entero: el workspace ni se mira. Elegir el
+    // canal es elegir qué binarios se ofrecen para instalar, y apagar el
+    // chequeo es esconder un arreglo de seguridad (ver schema.ts).
+    update: Object.assign({}, DEFAULT_SETTINGS.update, user.update),
     window: Object.assign({}, DEFAULT_SETTINGS.window, user.window, workspace.window),
   };
 }

@@ -2,21 +2,16 @@ import { useEffect, useState } from 'react';
 
 import { t } from '../i18n/index.js';
 
+import { IconClose } from './icons/IconClose.js';
+import { IconMaximize } from './icons/IconMaximize.js';
+import { IconMinimize } from './icons/IconMinimize.js';
+import { IconRestore } from './icons/IconRestore.js';
+
 /**
- * Los glifos de los botones de ventana, en Segoe Fluent Icons / Segoe MDL2.
- *
- * Son **caracteres** de la fuente de iconos que Windows trae de fábrica y no
- * SVGs propios: son exactamente los mismos que dibuja el marco nativo, así que
- * la barra propia no se ve "casi igual" sino igual. En un sistema sin esa
- * fuente el fallback de `.window-controls` los reemplaza por los símbolos
- * Unicode equivalentes, que es lo mejor disponible.
+ * Tamaño de los glifos. Diez píxeles es lo que mide el glifo del marco nativo
+ * de Windows, que es al que estos botones tienen que parecerse.
  */
-const GLYPHS = {
-  minimize: '',
-  maximize: '',
-  restore: '',
-  close: '',
-} as const;
+const GLYPH_SIZE = 10;
 
 /**
  * Los tres botones de ventana de la barra de título.
@@ -26,6 +21,12 @@ const GLYPHS = {
  * maximiza sin que nadie apriete nada. De ahí el par pregunta/evento
  * (`window:isMaximized` + `window:maximizedChanged`), que es el mismo par de
  * `git:getStatus` / `git:changed`.
+ *
+ * Los glifos son SVG propios y no los caracteres de _Segoe Fluent Icons_ que
+ * dibuja el marco nativo: esa fuente sólo existe en Windows, y en Linux los
+ * botones salían como cajas vacías (hallazgo D5 de la auditoría). En macOS
+ * este componente no se dibuja: los botones son el semáforo nativo
+ * (`TitleToolbar`).
  *
  * Cada botón lleva `no-drag` por el CSS de `.title-toolbar *`, que es la regla
  * que evita el error clásico de esta feature: un control adentro de una región
@@ -45,7 +46,7 @@ export function WindowControls(): React.JSX.Element {
           void window.pastecode.invoke('window:minimize', {});
         }}
       >
-        {GLYPHS.minimize}
+        <IconMinimize size={GLYPH_SIZE} />
       </button>
 
       <button
@@ -57,7 +58,7 @@ export function WindowControls(): React.JSX.Element {
           void window.pastecode.invoke('window:toggleMaximize', {});
         }}
       >
-        {isMaximized ? GLYPHS.restore : GLYPHS.maximize}
+        {isMaximized ? <IconRestore size={GLYPH_SIZE} /> : <IconMaximize size={GLYPH_SIZE} />}
       </button>
 
       <button
@@ -70,7 +71,7 @@ export function WindowControls(): React.JSX.Element {
           void window.pastecode.invoke('window:close', {});
         }}
       >
-        {GLYPHS.close}
+        <IconClose size={GLYPH_SIZE} />
       </button>
     </div>
   );

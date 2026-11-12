@@ -1,4 +1,4 @@
-export type { PasteCodeApi } from './api.js';
+export type { PasteCodeApi, Platform } from './api.js';
 export type { ChannelName, IpcChannels, Request, RequestSchema, Response } from './channels.js';
 export {
   AI_TOOL_OUTCOMES,
@@ -28,6 +28,15 @@ export {
   ToggleMaximizeWindowRequestSchema,
   ToggleMaximizeWindowResponseSchema,
 } from './schemas/window.js';
+export {
+  CheckForUpdateRequestSchema,
+  DownloadUpdateRequestSchema,
+  GetUpdateStateRequestSchema,
+  InstallUpdateRequestSchema,
+  OpenReleasePageRequestSchema,
+  UpdateEmptyResponseSchema,
+  UpdateStateSchema,
+} from './schemas/update.js';
 export { EVENT_NAMES, isEventName } from './events.js';
 export type {
   AiDeltaEvent,

@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 
 import type { AiChannels } from './channels-ai.js';
+import type { UpdateChannels } from './channels-update.js';
 import type { WindowChannels } from './channels-window.js';
 import type { GetVersionRequestSchema, GetVersionResponseSchema } from './schemas/app.js';
 import type {
@@ -156,7 +157,7 @@ import type {
  * `extends` mantiene un solo `ChannelName` con todos los canales, así que un
  * canal sin handler sigue siendo un error de compilación.
  */
-export interface IpcChannels extends AiChannels, WindowChannels {
+export interface IpcChannels extends AiChannels, UpdateChannels, WindowChannels {
   'app:getVersion': {
     request: z.infer<typeof GetVersionRequestSchema>;
     response: z.infer<typeof GetVersionResponseSchema>;

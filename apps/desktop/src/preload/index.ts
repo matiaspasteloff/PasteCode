@@ -4,6 +4,7 @@ import type {
   EventPayload,
   IpcResult,
   PasteCodeApi,
+  Platform,
   Request,
   Response,
 } from '@pastecode/ipc-contract';
@@ -20,6 +21,8 @@ import { contextBridge, ipcRenderer } from 'electron';
  * lo que el contextBridge existe para evitar.
  */
 const api: PasteCodeApi = {
+  platform: toPlatform(process.platform),
+
   invoke: <C extends ChannelName>(
     channel: C,
     payload: Request<C>
@@ -76,5 +79,16 @@ const api: PasteCodeApi = {
     };
   },
 };
+
+/**
+ * Reduce `process.platform` a los tres sistemas que la app soporta.
+ *
+ * El preload sandboxeado sí tiene `process.platform`: es parte del `process`
+ * recortado que Electron le da a todo preload con `sandbox: true`.
+ */
+function toPlatform(platform: string): Platform {
+  if (platform === 'win32' || platform === 'darwin') return platform;
+  return 'linux';
+}
 
 contextBridge.exposeInMainWorld('pastecode', api);

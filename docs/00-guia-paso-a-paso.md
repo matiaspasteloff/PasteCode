@@ -202,6 +202,8 @@ _~4 semanas_
 
 **38. Auto-update.** `electron-updater` + GitHub Releases. Con consentimiento explícito, nunca silencioso.
 
+> **Estado (etapa 2 del plan de mejora):** el código está —`update:*` en el contrato, `core/update`, el servicio del main sobre electron-updater con la descarga y la instalación automáticas apagadas, el aviso en la status bar— y los instaladores salen de `package.yml` en cada PR. **Falta su verificación con un release real**: publicar una versión, publicar otra y comprobar que la primera se actualiza. Ver [ADR-0034](./adr/0034-distribucion-multiplataforma-y-auto-update.md).
+
 **39. Pasada de accesibilidad.** Navegación completa por teclado, contraste, ARIA. Probalo con un lector de pantalla al menos una vez.
 
 **40. Pasada de errores.** Revisá cada mensaje visible al usuario: ¿dice qué pasó y qué hacer? Ningún stack trace crudo.

@@ -6,6 +6,16 @@ directories:
   output: release
   buildResources: build
 
+# Un nombre por artefacto, igual en todas las plataformas, para que el release
+# se lea de un vistazo y los scripts del CI lo encuentren sin adivinar.
+# `${os}` es `win`, `mac` o `linux`. `${arch}` lo traduce cada destino a su
+# convención: `x64`/`arm64` en Windows y macOS, `x86_64` en el AppImage y
+# `amd64` en el `.deb`, que es lo que espera quien los baja. La arquitectura no
+# está en ningún lado de este archivo: la elige la línea de comandos de cada
+# job del CI (`--x64`, `--arm64`), que corre en un runner nativo de esa
+# arquitectura (ver docs/adr/0034-distribucion-multiplataforma-y-auto-update.md).
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+
 files:
   - out/**
   - package.json
@@ -36,6 +46,50 @@ files:
   - node_modules/typescript-language-server/**
   # 1,3MB de sourcemap de un servidor que no depuramos nosotros.
   - '!node_modules/typescript-language-server/**/*.map'
+
+# Las extensiones de ejemplo viajan **fuera** del asar, en
+# `resources/extensions/`, que es donde `main/extensions/directories.ts` las
+# busca en la app instalada: el host las carga con un `import()` dinámico, y
+# `import()` no sabe leer de un asar (ADR-0027). Se copia sólo lo que el host
+# lee —el manifest y lo que el manifest nombra—, no las fuentes ni el README.
+extraResources:
+  - from: ../../extensions/theme-nord
+    to: extensions/theme-nord
+    filter:
+      - package.json
+      - themes/**
+  # `dist/` lo genera el `build` de la extensión, y `turbo.json` lo pone como
+  # dependencia del `package` de este paquete: en un checkout limpio nadie más
+  # garantiza que exista. El `.js` emitido no tiene imports de runtime
+  # —`@pastecode/extension-api` se importa sólo como tipos—, lo que importa
+  # porque en la app instalada no hay `node_modules` para resolverlos.
+  - from: ../../extensions/word-count
+    to: extensions/word-count
+    filter:
+      - package.json
+      - dist/**
+      - '!dist/**/*.map'
+  # El ícono de la ventana en Linux (`create-window.ts`). En Windows y macOS
+  # lo lleva el ejecutable o el bundle, pero en Linux el binario no tiene
+  # dónde guardarlo y la ventana necesita un archivo.
+  - from: build/icon.png
+    to: icon.png
+
+# Un solo PNG de 1024×1024, generado desde `build/icon.svg` con `pnpm icon`.
+# electron-builder deriva de él el `.ico` de Windows (instalador, desinstalador
+# y ejecutable), el `.icns` de macOS y los tamaños de Linux: la conversión la
+# hace su `iconConverter`, así que no se versionan los derivados.
+icon: build/icon.png
+
+# De dónde lee electron-updater las versiones nuevas: se graba en
+# `resources/app-update.yml` al empaquetar. **No publica nada**: todos los
+# empaquetados corren con `--publish never`, y el release lo arma `release.yml`
+# en borrador. Los tags llevan `v` delante, que es lo que espera el proveedor
+# de GitHub. Ver ADR-0034.
+publish:
+  provider: github
+  owner: matiaspasteloff
+  repo: PasteCode
 
 # Los fuses se graban en el binario de Electron al empaquetar y no se pueden
 # cambiar en runtime: son la política de la app instalada, no de quien la
@@ -81,17 +135,60 @@ asarUnpack:
 # en el README. Es la decisión provisional de convenciones/build-y-release.md;
 # cuando se compre un certificado se registra como ADR.
 win:
+  # El portable existe para quien no puede o no quiere instalar nada. El job de
+  # arm64 construye sólo `nsis` (`--win nsis`): un portable por arquitectura no
+  # le suma nada a nadie y alarga el job.
   target:
-    - target: nsis
-      arch:
-        - x64
+    - nsis
+    - portable
 
 nsis:
+  # Un click, sin asistente: la fricción de instalar un .exe sin firmar ya la
+  # pone SmartScreen, y un asistente de cinco pantallas encima no agrega
+  # ninguna decisión que valga la pena. `allowToChangeInstallationDirectory`
+  # no existe en este modo (es sólo del asistente), así que no está.
+  oneClick: true
   # Instalación per-user: no pide elevación, que es lo que build-y-release.md
-  # pide para bajar la fricción de instalar un .exe sin firmar.
-  oneClick: false
+  # pide, y es la que electron-updater sabe actualizar sin UAC.
   perMachine: false
-  allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: PasteCode
+  artifactName: ${productName}-${version}-${os}-${arch}-setup.${ext}
+
+portable:
+  artifactName: ${productName}-${version}-${os}-${arch}-portable.${ext}
+
+mac:
+  # `dmg` para instalar y `zip` porque es lo que lee el actualizador de macOS
+  # (Squirrel.Mac). Hoy la app de macOS sólo avisa de versiones nuevas —sin
+  # firma, Squirrel.Mac no instala—, pero el `zip` cuesta poco y deja la puerta
+  # abierta para el día que haya certificado.
+  target:
+    - dmg
+    - zip
+  category: public.app-category.developer-tools
+  # **Firma ad-hoc, no firma.** Sin identidad, electron-builder no firma nada
+  # (no hay ad-hoc automático), y Apple Silicon se niega a ejecutar código
+  # nativo sin al menos una firma ad-hoc: el binario arm64 moriría al abrirlo.
+  # `-` es esa firma mínima, sin certificado ni Team ID. No sirve para
+  # Gatekeeper —el README explica cómo abrirla igual— ni para notarizar.
+  identity: '-'
+  # Con firma ad-hoc, el hardened runtime activa la validación de librerías y
+  # rechaza los frameworks de Electron, que vienen firmados por otro equipo:
+  # la app no arrancaría. Se enciende el día que haya un certificado de verdad.
+  hardenedRuntime: false
+  notarize: false
+
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Development
+  # Sin esto el ejecutable se llama `@pastecodedesktop`: electron-builder lo
+  # deriva del `name` del package.json, que es un paquete con scope.
+  executableName: pastecode
+  synopsis: IDE de escritorio liviano y extensible
+  # `deb` exige un mantenedor con email. Es la dirección sin respuesta que
+  # GitHub da a cada cuenta: no publica un email personal. Ver PROGRESO.md.
+  maintainer: Matías Pasteloff <matiaspasteloff@users.noreply.github.com>

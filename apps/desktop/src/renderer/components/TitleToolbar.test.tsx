@@ -35,6 +35,22 @@ describe('TitleToolbar', () => {
     expect(screen.getByTestId('window-minimize')).toBeDefined();
   });
 
+  it('dibuja los glifos de ventana como SVG, sin depender de una fuente de Windows', () => {
+    render(<TitleToolbar />);
+
+    expect(screen.getByTestId('window-minimize').querySelector('svg')).not.toBeNull();
+    expect(screen.getByTestId('window-close').querySelector('svg')).not.toBeNull();
+  });
+
+  it('en macOS no dibuja los botones de ventana: quedan los del sistema', () => {
+    installFakeApi({}, 'darwin');
+
+    render(<TitleToolbar />);
+
+    expect(screen.queryByTestId('window-minimize')).toBeNull();
+    expect(screen.getByRole('banner').classList.contains('title-toolbar--mac')).toBe(true);
+  });
+
   it('abre la paleta al clickear la caja de comandos', async () => {
     render(<TitleToolbar />);
 

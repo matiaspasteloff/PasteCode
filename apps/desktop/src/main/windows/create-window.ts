@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 
-import { BrowserWindow } from 'electron';
+import type { BrowserWindowConstructorOptions } from 'electron';
+import { app, BrowserWindow } from 'electron';
 
 import { devServerOrigin, devServerUrl } from '../environment.js';
 import { watchMaximizedState } from '../ipc/window.js';
@@ -31,11 +32,12 @@ export function createMainWindow(): BrowserWindow {
     // decoración de la ventana, no un permiso del renderer, así que la regla 1
     // de CLAUDE.md ni se roza. El arrastre y el doble click para maximizar
     // salen de `-webkit-app-region` en el CSS, sin una línea de JavaScript.
-    frame: false,
+    ...frameOptions(),
     // El mínimo existe porque sin marco no hay quien impida achicar la ventana
     // hasta que la barra de menús se coma la caja de comandos.
     minWidth: 680,
     minHeight: 420,
+    ...windowIcon(),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -76,4 +78,41 @@ export function createMainWindow(): BrowserWindow {
   void window.loadURL(devServerUrl ?? `${APP_ORIGIN}/index.html`);
 
   return window;
+}
+
+/**
+ * El marco de la ventana según el sistema.
+ *
+ * En Windows y Linux, `frame: false`: la barra propia dibuja también los
+ * botones de ventana. En macOS eso dejaría la ventana sin semáforo, que es
+ * donde cualquiera busca cerrar y achicar; `titleBarStyle: 'hidden'` esconde la
+ * barra pero conserva el semáforo nativo, y `trafficLightPosition` lo centra
+ * en los 36px de la barra propia (`--toolbar-height`): 12px de semáforo, 12 de
+ * margen arriba y abajo. El renderer le deja lugar con `.title-toolbar--mac`.
+ */
+function frameOptions(): Pick<
+  BrowserWindowConstructorOptions,
+  'frame' | 'titleBarStyle' | 'trafficLightPosition'
+> {
+  if (process.platform !== 'darwin') return { frame: false };
+  return { titleBarStyle: 'hidden', trafficLightPosition: { x: 12, y: 12 } };
+}
+
+/**
+ * El ícono de la ventana, sólo en Linux.
+ *
+ * En Windows la ventana toma el del `.exe` y en macOS el del bundle, que
+ * electron-builder graba desde `build/icon.png`. En Linux el ejecutable no
+ * lleva ícono: el escritorio lo saca del `.desktop` del instalador, y la
+ * ventana, si no se le da uno, muestra el genérico. El PNG viaja a
+ * `resources/` por `extraResources` (electron-builder.yml).
+ */
+function windowIcon(): { icon?: string } {
+  if (process.platform !== 'linux') return {};
+  return {
+    icon: app.isPackaged
+      ? join(process.resourcesPath, 'icon.png')
+      : // `out/main/` → `apps/desktop/build/`.
+        join(__dirname, '..', '..', 'build', 'icon.png'),
+  };
 }

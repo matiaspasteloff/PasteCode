@@ -97,6 +97,13 @@ body {
   -webkit-app-region: drag;
 }
 
+/* El semáforo de macOS se dibuja encima de la barra, arriba a la izquierda
+   (`trafficLightPosition` en create-window.ts). Este padding es su lugar: tres
+   botones de 12px con su separación y un margen a cada lado. */
+.title-toolbar--mac {
+  padding-left: 5rem;
+}
+
 /*
  * **La regla que evita el error clásico de esta feature.** Un control adentro
  * de una región de arrastre no recibe clicks: el sistema operativo se queda
@@ -271,7 +278,6 @@ body {
 .window-controls {
   display: flex;
   height: var(--toolbar-height);
-  font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets', var(--font-mono);
 }
 
 .window-controls button {

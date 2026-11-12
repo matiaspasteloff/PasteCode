@@ -14,7 +14,7 @@
 | RNF-02 | Latencia de input en el editor               | < 16ms (p99)                                                                                                                         | `e2e/perf/input-latency.perf.ts`: delta entre `keydown` y el `requestAnimationFrame` siguiente, 120 pulsaciones               |
 | RNF-03 | Apertura de archivo grande                   | Archivo de 10MB / 200k líneas abre en < 2s sin congelar la UI                                                                        | `e2e/tests/performance.spec.ts`, con archivo generado                                                                         |
 | RNF-04 | Consumo de RAM en reposo                     | **< 400MB sin servidores de lenguaje** y **< 700MB con TypeScript activo**, con un workspace de 1.000 archivos y 3 pestañas abiertas | `e2e/perf/memory.perf.ts`: suma de `privateBytes` de **todos** los procesos, vía `app.getAppMetrics()`, en los dos escenarios |
-| RNF-05 | Tamaño del instalador                        | < 120MB para Windows x64                                                                                                             | Job `build` del CI, sobre el `.exe` recién generado; falla el build si excede                                                 |
+| RNF-05 | Tamaño del instalador                        | < 120MB para Windows x64 y arm64. macOS y Linux: se miden, sin techo todavía (ver nota)                                              | `scripts/check-installer-size.mjs` en cada fila de la matriz de empaquetado; falla el build si un `.exe` excede               |
 | RNF-06 | La UI nunca se bloquea                       | Ninguna operación en el hilo del renderer excede 50ms                                                                                | Long Task API; cualquier violación se loguea en desarrollo                                                                    |
 
 **Regla de performance: los presupuestos son absolutos y no relativos.** El job `perf-budget` del CI mide en cada PR y falla si un número supera su presupuesto, sin comparar contra `main`. Los valores quedan en el resumen del job y en un comentario del PR.
@@ -32,6 +32,8 @@
 > **La decisión que S2 tenía que tomar era si forkearlo perezosamente, y la respuesta es que no alcanza.** El fork perezoso sólo ahorra en instalaciones sin ninguna extensión con código, y la instalación por omisión trae `word-count`, que sí tiene. Lo que la medición sí obliga es a decidir, antes de la Etapa 6, entre partir RNF-04 como se partió por `tsserver` ([ADR-0021](./adr/0021-presupuesto-de-ram-partido.md)) o bajar de verdad lo que ocupa la aplicación. Queda abierto **a propósito**: es una decisión de producto, no de implementación.
 >
 > La mitigación es parte del presupuesto y no un extra: `lsp.idleShutdownMinutes` apaga a los 5 minutos un servidor que nadie usa.
+
+> **RNF-05 fuera de Windows (etapa 2 del plan de mejora).** El techo de 120MB se escribió para el `.exe` de NSIS, que comprime con LZMA. Un AppImage (squashfs) y un `.dmg` comprimen distinto, así que se miden y se reportan en el resumen del job sin hacerlos fallar. Primera medición, en el CI con la versión 0.3.1: **`.dmg` 121,2MB (arm64) y 125,2MB (Intel)**, **AppImage 127,5MB** y **`.deb` 100,5MB**; en Windows, el `setup.exe` x64 mide 110,4MB y el de arm64 105,8MB, así que **el margen real de RNF-05 es de 9,6MB**. La tabla completa está en [PROGRESO.md](./planes/PROGRESO.md). Propuesta: fijar para Linux y macOS un techo de 140MB con la primera medición de un release real.
 
 > RNF-04 y RNF-05 existen porque son la crítica obvia a Electron. Medirlos y defenderlos activamente es parte del valor de portfolio. Ver [ADR-0001](./adr/0001-electron-typescript.md).
 
@@ -90,12 +92,12 @@
 
 ## Compatibilidad
 
-| ID     | Requerimiento                                                                                                           |
-| ------ | ----------------------------------------------------------------------------------------------------------------------- |
-| RNF-26 | Windows 10 (1809+) y 11, x64 y arm64 — **plataforma primaria**                                                          |
-| RNF-27 | macOS 12+ (Intel y Apple Silicon) — soportada                                                                           |
-| RNF-28 | Linux: Ubuntu 22.04+ y derivadas, vía AppImage y `.deb` — best effort                                                   |
-| RNF-29 | Toda la arquitectura soporta i18n desde el día 1 (sin strings hardcodeados en la UI), aunque sólo se envíen `en` y `es` |
+| ID     | Requerimiento                                                                                                                  |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| RNF-26 | Windows 10 (1809+) y 11, x64 y arm64 — **plataforma primaria**. Instalador NSIS en las dos; E2E completo en x64                |
+| RNF-27 | macOS 12+ (Intel y Apple Silicon) — soportada. Un `.dmg` por arquitectura; smoke del E2E en el CI; sin auto-update (sin firma) |
+| RNF-28 | Linux: Ubuntu 22.04+ y derivadas, vía AppImage y `.deb` — best effort. Smoke del E2E en el CI                                  |
+| RNF-29 | Toda la arquitectura soporta i18n desde el día 1 (sin strings hardcodeados en la UI), aunque sólo se envíen `en` y `es`        |
 
 ---
 

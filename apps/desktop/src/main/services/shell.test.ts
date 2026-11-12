@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { isAbsolute, join } from 'node:path';
 
 import { TerminalSpawnError } from '@pastecode/core';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resolveShell, sanitizedEnvironment } from './shell.js';
 
@@ -26,6 +26,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   await rm(root, { recursive: true, force: true });
 });
 
@@ -39,6 +40,29 @@ describe('resolveShell', () => {
     // repositorio clonado.
     expect(isAbsolute(shell.file)).toBe(true);
   });
+
+  // `$SHELL` sólo se consulta fuera de Windows: allá el shell por omisión es
+  // PowerShell, por ruta absoluta.
+  it.runIf(process.platform !== 'win32')(
+    'usa `$SHELL` cuando es absoluto y ejecutable',
+    async () => {
+      const shell = await fakeExecutable('zsh');
+      vi.stubEnv('SHELL', shell);
+
+      expect(resolveShell(null)).toEqual({ file: shell, args: [] });
+    }
+  );
+
+  it.runIf(process.platform !== 'win32')(
+    'cae a /bin/sh si `$SHELL` es relativo, no existe o falta',
+    () => {
+      for (const value of ['zsh', join(root, 'no-existe'), undefined]) {
+        vi.stubEnv('SHELL', value);
+
+        expect(resolveShell(null)).toEqual({ file: '/bin/sh', args: [] });
+      }
+    }
+  );
 
   it('usa el shell configurado si existe', async () => {
     const configured = await fakeExecutable('pwsh');

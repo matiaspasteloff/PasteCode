@@ -79,19 +79,28 @@ test('la CSP de producción bloquea scripts inline', async () => {
   expect(result.violations).toContain('script-src-elem');
 });
 
-test('el preload expone invoke y subscribe, y nada más', async () => {
+test('el preload expone platform, invoke y subscribe, y nada más', async () => {
   const window = await app.firstWindow();
 
-  const apiKeys = await window.evaluate(() => {
+  const surface = await window.evaluate((): { apiKeys: string[]; platform: string } => {
     // El callback corre en el renderer, donde el tipo de `window.pastecode`
     // no está declarado: para este test el objeto es justamente lo que hay
     // que inspeccionar, no algo que se pueda dar por tipado.
     const api: unknown = Reflect.get(globalThis, 'pastecode');
-    return typeof api === 'object' && api !== null ? Object.keys(api) : [];
+    if (typeof api !== 'object' || api === null) return { apiKeys: [], platform: '' };
+    const platform: unknown = Reflect.get(api, 'platform');
+    return { apiKeys: Object.keys(api), platform: String(platform) };
   });
+  const { apiKeys, platform } = surface;
 
   // La lista es exacta a propósito: es la superficie entera que el renderer
   // puede tocar, y que crezca sin que nadie lo decida es justo lo que el
-  // contextBridge existe para impedir. Ver ADR-0013.
-  expect(apiKeys).toEqual(['invoke', 'subscribe']);
+  // contextBridge existe para impedir. Ver ADR-0013. `platform` es un dato y no
+  // una capacidad: el renderer lo necesita antes del primer render.
+  expect(apiKeys).toEqual(['platform', 'invoke', 'subscribe']);
+  // Que el preload sandboxeado de verdad vea `process.platform`, y que lo
+  // reduzca a uno de los tres sistemas que la app conoce.
+  expect(platform).toBe(
+    process.platform === 'win32' || process.platform === 'darwin' ? process.platform : 'linux'
+  );
 });

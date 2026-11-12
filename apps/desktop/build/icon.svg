@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!--
+    Fuente del ícono de PasteCode. `icon.png` se genera desde acá con
+    `pnpm --filter @pastecode/desktop icon`; electron-builder deriva de ese PNG
+    el .ico de Windows, el .icns de macOS y los tamaños de Linux.
+
+    Colores del tema oscuro (tokens.css): el acento #b4a0ff de fondo y
+    #0f1117 para el glifo. Trazos gruesos y separados a propósito: a 16px un
+    trazo de 96/1024 es un píxel y medio, y entre trazo y trazo queda un píxel
+    de aire; más finos o más juntos, el glifo se vuelve una mancha.
+  -->
+  <rect width="1024" height="1024" rx="208" fill="#b4a0ff" />
+  <g fill="none" stroke="#0f1117" stroke-width="96" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M310 300 L130 512 L310 724" />
+    <path d="M714 300 L894 512 L714 724" />
+    <path d="M560 290 L464 734" />
+  </g>
+</svg>

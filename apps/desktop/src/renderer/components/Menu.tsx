@@ -70,7 +70,7 @@ export function Menu({
           >
             <span>{commandTitle(item.command)}</span>
             <span className="menu-bar__shortcut">
-              {shortcutLabel(item.command.id, userBindings)}
+              {shortcutLabel(item.command.id, userBindings, window.pastecode.platform)}
             </span>
           </button>
         )

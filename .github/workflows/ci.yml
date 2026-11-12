@@ -154,9 +154,17 @@ jobs:
           path: e2e/playwright-report/
           retention-days: 7
 
-  build:
-    name: Instalador
-    runs-on: windows-latest
+  smoke:
+    name: Smoke (${{ matrix.os }})
+    # RNF-27 y RNF-28: macOS soportada y Linux best effort. El E2E completo
+    # asume PowerShell y corre sólo en Windows; esto verifica lo mínimo en los
+    # otros dos: que la app arranca, que el preload y la CSP están en su lugar
+    # y que el renderer no tiene Node.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
 
@@ -169,30 +177,46 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Generar el .exe
-        run: pnpm package
+      - name: Build
+        run: pnpm build
 
-      # RNF-05: el instalador no puede pasar de 120MB. Es un presupuesto
-      # absoluto y se verifica acá, donde el .exe ya existe, en vez de en el
-      # job de performance: volver a empaquetar sólo para medirlo costaría
-      # varios minutos por PR.
-      - name: RNF-05, tamaño del instalador
-        shell: pwsh
+      - name: Permitir el sandbox de Chromium
+        # Ubuntu 24.04 restringe los user namespaces sin privilegios por
+        # AppArmor, que es lo que usa el sandbox de Chromium cuando
+        # `chrome-sandbox` no es SUID —y en node_modules no lo es—. Sin esto
+        # Electron no arranca. Se habilita lo que el sandbox necesita en vez de
+        # lanzar con `--no-sandbox`: la regla 1 de CLAUDE.md vale también acá.
+        # La clave no existe en kernels sin esa restricción: ahí no hay nada que
+        # habilitar.
+        if: runner.os == 'Linux'
         run: |
-          $budget = 120
-          $exe = Get-ChildItem apps/desktop/release/*.exe | Select-Object -First 1
-          $size = [math]::Round($exe.Length / 1MB, 1)
-          "| RNF-05 | tamaño del instalador | ${size}MB | ${budget}MB | 1 | $(if ($size -le $budget) { '✅' } else { '❌' }) |" |
-            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          Write-Host "RNF-05 instalador: ${size}MB (presupuesto ${budget}MB)"
-          if ($size -gt $budget) { throw "El instalador pesa ${size}MB y el presupuesto es ${budget}MB" }
+          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
 
-      - name: Subir el instalador
+      - name: Smoke en Linux
+        if: runner.os == 'Linux'
+        # Sin pantalla en el runner: xvfb le da a Electron un servidor X.
+        run: xvfb-run -a pnpm --filter @pastecode/e2e exec playwright test tests/smoke.spec.ts
+
+      - name: Smoke en macOS
+        if: runner.os == 'macOS'
+        run: pnpm --filter @pastecode/e2e exec playwright test tests/smoke.spec.ts
+
+      - name: Subir el reporte si falló
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: pastecode-windows-x64
-          path: apps/desktop/release/*.exe
-          retention-days: 14
+          name: playwright-report-smoke-${{ matrix.os }}
+          path: e2e/playwright-report/
+          retention-days: 7
+
+  build:
+    name: Instalador
+    # La matriz de las cinco plataformas, con la verificación del contenido del
+    # paquete y el tamaño de cada instalador (RNF-05). Es el mismo workflow que
+    # corre `release.yml` con cada tag: lo que pasa acá es lo que se publica.
+    uses: ./.github/workflows/package.yml
 
   perf-budget:
     name: Presupuestos de performance

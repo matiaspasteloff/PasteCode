@@ -1,0 +1,126 @@
+name: Empaquetado
+
+# Reutilizable: lo llaman `ci.yml` en cada PR y `release.yml` con cada tag.
+# Construye los instaladores de las tres plataformas, los verifica y los sube
+# como artefactos. **No publica nada**: `--publish never` en todos los jobs, y
+# el release lo arma `release.yml` con lo que esto deja.
+#
+# Sin `concurrency` a propósito: un workflow reutilizable que declara el mismo
+# grupo que quien lo llama se bloquea a sí mismo. La cancelación la decide el
+# workflow de arriba.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '24'
+
+jobs:
+  package:
+    name: Instalador (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    strategy:
+      # Que falle macOS no cancela Windows: cada fila es un instalador distinto,
+      # y querés ver cuáles salen y cuáles no.
+      fail-fast: false
+      matrix:
+        # **Un runner nativo por arquitectura**, a propósito: node-pty y
+        # ripgrep llegan como binarios precompilados en `optionalDependencies`,
+        # y pnpm instala los de la máquina en la que corre. Construir cada
+        # arquitectura donde corresponde evita toda la compilación cruzada; lo
+        # verifica `verify-package.mjs` leyendo la cabecera de cada binario.
+        # Etiquetas verificadas contra actions/runner-images (noviembre 2026).
+        include:
+          - name: windows-x64
+            runner: windows-latest
+            platform: win32
+            builder: --win nsis portable --x64
+            unpacked: win-unpacked
+            arch: x64
+          # Sólo NSIS: un portable por arquitectura no le suma nada a nadie.
+          - name: windows-arm64
+            runner: windows-11-arm
+            platform: win32
+            builder: --win nsis --arm64
+            unpacked: win-arm64-unpacked
+            arch: arm64
+          - name: macos-arm64
+            runner: macos-latest
+            platform: darwin
+            builder: --mac dmg zip --arm64
+            unpacked: mac-arm64
+            arch: arm64
+          # `macos-26-intel` es el runner Intel estándar; `macos-13` ya no
+          # existe y `macos-14` se retiró el 2 de noviembre de 2026.
+          - name: macos-x64
+            runner: macos-26-intel
+            platform: darwin
+            builder: --mac dmg zip --x64
+            unpacked: mac
+            arch: x64
+          - name: linux-x64
+            runner: ubuntu-latest
+            platform: linux
+            builder: --linux AppImage deb --x64
+            unpacked: linux-unpacked
+            arch: x64
+    defaults:
+      run:
+        # bash también en Windows: los pasos son los mismos en las cinco filas.
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Cachear el binario de Electron
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/Library/Caches/electron
+            ~/AppData/Local/electron/Cache
+          key: electron-${{ matrix.name }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        # Incluye el `dist/` de word-count, que viaja en el instalador.
+        run: pnpm build
+
+      - name: Empaquetar
+        working-directory: apps/desktop
+        run: pnpm exec electron-builder ${{ matrix.builder }} --config electron-builder.yml --publish never
+
+      - name: Verificar el contenido del paquete
+        run: node scripts/verify-package.mjs apps/desktop/release/${{ matrix.unpacked }} ${{ matrix.platform }} ${{ matrix.arch }}
+
+      - name: RNF-05, tamaño de los instaladores
+        run: node scripts/check-installer-size.mjs apps/desktop/release ${{ matrix.platform }} ${{ matrix.arch }}
+
+      - name: Subir los instaladores
+        uses: actions/upload-artifact@v4
+        with:
+          name: pastecode-${{ matrix.name }}
+          # Los instaladores, los `latest*.yml` que lee electron-updater y los
+          # `.blockmap` de las descargas diferenciales. No los
+          # `builder-*.yml`, que son la configuración efectiva y no un artefacto.
+          path: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*.zip
+            apps/desktop/release/*.AppImage
+            apps/desktop/release/*.deb
+            apps/desktop/release/latest*.yml
+            apps/desktop/release/*.blockmap
+          if-no-files-found: error
+          retention-days: 14

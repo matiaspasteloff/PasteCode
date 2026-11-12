@@ -3,6 +3,15 @@ import type { EventName, EventPayload } from './events.js';
 import type { IpcResult } from './result.js';
 
 /**
+ * El sistema operativo en el que corre la app, tal como lo nombra Node.
+ *
+ * Son los tres de RNF-26 a RNF-28 y ninguno más: cualquier otro Unix se
+ * reporta como `linux`, que es el que más se le parece en lo que al renderer
+ * le importa (botones de ventana propios, `Ctrl` como tecla de los atajos).
+ */
+export type Platform = 'win32' | 'darwin' | 'linux';
+
+/**
  * La única superficie que el preload expone al renderer.
  *
  * Vive en el contrato y no en `apps/desktop/src/preload` a propósito: si el
@@ -19,6 +28,15 @@ import type { IpcResult } from './result.js';
  * if (result.ok) console.warn(result.value.version);
  */
 export interface PasteCodeApi {
+  /**
+   * El sistema operativo. Es una propiedad y no un canal porque el renderer la
+   * necesita **antes del primer render**: con un `invoke`, la barra de título
+   * se dibujaría primero con los botones de Windows y después, ya en macOS,
+   * sin ellos. El valor no cambia mientras la app corre, así que no hay nada
+   * que preguntar dos veces.
+   */
+  readonly platform: Platform;
+
   invoke<C extends ChannelName>(
     channel: C,
     payload: Request<C>

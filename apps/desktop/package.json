@@ -5,6 +5,12 @@
   "description": "Aplicación Electron de PasteCode.",
   "license": "MIT",
   "author": "Matías Pasteloff",
+  "homepage": "https://github.com/matiaspasteloff/PasteCode",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matiaspasteloff/PasteCode.git",
+    "directory": "apps/desktop"
+  },
   "main": "./out/main/index.js",
   "scripts": {
     "postinstall": "node scripts/install-electron-binary.mjs",
@@ -13,8 +19,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
-    "package": "electron-vite build && electron-builder --win --config electron-builder.yml",
-    "package:unfused": "electron-vite build && electron-builder --win --config electron-builder.unfused.yml"
+    "package": "electron-vite build && electron-builder --config electron-builder.yml --publish never",
+    "icon": "electron scripts/render-icon.mjs",
+    "package:unfused": "electron-vite build && electron-builder --dir --config electron-builder.unfused.yml --publish never"
   },
   "devDependencies": {
     "@pastecode/core": "workspace:*",
@@ -47,6 +54,7 @@
     "@xterm/addon-fit": "0.11.0",
     "@xterm/xterm": "6.0.0",
     "chokidar": "4.0.3",
+    "electron-updater": "6.8.12",
     "monaco-editor": "0.56.0",
     "typescript-language-server": "5.0.0",
     "zustand": "5.0.15"

@@ -98,6 +98,11 @@ export const MENU_REGISTRY: readonly MenuDescriptor[] = [
   {
     id: 'help',
     labelKey: 'menu.help',
-    items: [{ commandId: 'ai.toggle' }, { commandId: 'ai.newChat' }],
+    items: [
+      { commandId: 'ai.toggle' },
+      { commandId: 'ai.newChat' },
+      { separator: true },
+      { commandId: 'app.checkForUpdates' },
+    ],
   },
 ];

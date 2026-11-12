@@ -4,39 +4,63 @@ import { shortcutLabel } from './shortcut-label.js';
 
 describe('shortcutLabel', () => {
   it('formatea un atajo de fábrica con mayúsculas y nombres legibles', () => {
-    expect(shortcutLabel('file.save', [])).toBe('Ctrl+S');
-    expect(shortcutLabel('palette.open', [])).toBe('Ctrl+Shift+P');
+    expect(shortcutLabel('file.save', [], 'win32')).toBe('Ctrl+S');
+    expect(shortcutLabel('palette.open', [], 'win32')).toBe('Ctrl+Shift+P');
   });
 
   it('devuelve vacío para un comando sin atajo', () => {
-    expect(shortcutLabel('workspace.open', [])).toBe('');
+    expect(shortcutLabel('workspace.open', [], 'win32')).toBe('');
   });
 
   it('deja que el atajo del usuario pise al de fábrica', () => {
     // Es la misma regla que aplica `resolveKeybinding` al resolver una tecla:
     // ante la misma especificidad gana el último declarado. Sin esto, el menú
     // mostraría un atajo que ya no dispara nada.
-    expect(shortcutLabel('file.save', [{ key: 'ctrl+alt+g', command: 'file.save' }])).toBe(
-      'Ctrl+Alt+G'
-    );
+    expect(
+      shortcutLabel('file.save', [{ key: 'ctrl+alt+g', command: 'file.save' }], 'win32')
+    ).toBe('Ctrl+Alt+G');
   });
 
   it('muestra un acorde con un espacio entre las dos combinaciones', () => {
     expect(
-      shortcutLabel('view.selectTheme', [{ key: 'ctrl+k ctrl+t', command: 'view.selectTheme' }])
+      shortcutLabel(
+        'view.selectTheme',
+        [{ key: 'ctrl+k ctrl+t', command: 'view.selectTheme' }],
+        'win32'
+      )
     ).toBe('Ctrl+K Ctrl+T');
   });
 
   it('traduce las teclas especiales en vez de mostrar su nombre crudo', () => {
-    expect(shortcutLabel('x', [{ key: 'escape', command: 'x' }])).toBe('Esc');
-    expect(shortcutLabel('x', [{ key: 'ctrl+arrowup', command: 'x' }])).toBe('Ctrl+↑');
+    expect(shortcutLabel('x', [{ key: 'escape', command: 'x' }], 'win32')).toBe('Esc');
+    expect(shortcutLabel('x', [{ key: 'ctrl+arrowup', command: 'x' }], 'win32')).toBe('Ctrl+↑');
   });
 
   it('deja pasar tal cual una tecla que no tiene nombre especial', () => {
-    expect(shortcutLabel('x', [{ key: 'f5', command: 'x' }])).toBe('f5');
+    expect(shortcutLabel('x', [{ key: 'f5', command: 'x' }], 'win32')).toBe('f5');
   });
 
   it('conserva el backtick, que es un carácter y no un nombre', () => {
-    expect(shortcutLabel('terminal.toggle', [])).toBe('Ctrl+`');
+    expect(shortcutLabel('terminal.toggle', [], 'win32')).toBe('Ctrl+`');
+  });
+
+  describe('en macOS', () => {
+    it('escribe Cmd como ⌘ y los modificadores pegados, en el orden del sistema', () => {
+      expect(shortcutLabel('file.save', [], 'darwin')).toBe('⌘S');
+      expect(shortcutLabel('palette.open', [], 'darwin')).toBe('⇧⌘P');
+      expect(shortcutLabel('x', [{ key: 'ctrl+shift+alt+n', command: 'x' }], 'darwin')).toBe(
+        '⌥⇧⌘N'
+      );
+    });
+
+    it('separa los acordes con un espacio, igual que en los otros sistemas', () => {
+      expect(shortcutLabel('x', [{ key: 'ctrl+k ctrl+t', command: 'x' }], 'darwin')).toBe(
+        '⌘K ⌘T'
+      );
+    });
+
+    it('sigue traduciendo las teclas especiales', () => {
+      expect(shortcutLabel('x', [{ key: 'ctrl+arrowup', command: 'x' }], 'darwin')).toBe('⌘↑');
+    });
   });
 });

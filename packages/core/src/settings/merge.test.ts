@@ -146,6 +146,26 @@ describe('resolveSettings', () => {
     expect(resolved.git.decorationsEnabled).toBe(false);
   });
 
+  it('deja que el usuario elija el canal y apague el chequeo de actualizaciones', () => {
+    const settings = resolveSettings(
+      { update: { channel: 'beta', checkOnStartup: false } },
+      {}
+    );
+
+    expect(settings.update).toEqual({ channel: 'beta', checkOnStartup: false });
+  });
+
+  it('ignora el grupo update entero cuando lo pide el workspace', () => {
+    // Un repositorio clonado no elige de qué canal se actualiza el IDE ni le
+    // apaga el aviso de una versión nueva.
+    const settings = resolveSettings(
+      { update: { channel: 'stable' } },
+      { update: { channel: 'beta', checkOnStartup: false } }
+    );
+
+    expect(settings.update).toEqual({ channel: 'stable', checkOnStartup: true });
+  });
+
   it('no muta los defaults', () => {
     resolveSettings({ files: { exclude: [] } }, {});
 

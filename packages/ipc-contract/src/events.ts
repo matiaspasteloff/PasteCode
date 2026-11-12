@@ -1,4 +1,10 @@
-import type { DocumentDiagnostics, Keybinding, SearchMatch, Settings } from '@pastecode/core';
+import type {
+  DocumentDiagnostics,
+  Keybinding,
+  SearchMatch,
+  Settings,
+  UpdateState,
+} from '@pastecode/core';
 import type { z } from 'zod';
 
 import type { SerializedError } from './result.js';
@@ -353,6 +359,8 @@ export interface IpcEvents {
   'ai:toolCall': AiToolCallEvent;
   'ai:done': AiDoneEvent;
   'window:maximizedChanged': WindowMaximizedChangedEvent;
+  /** El estado de las actualizaciones cambió. Ver `update:getState`. */
+  'update:stateChanged': UpdateState;
 }
 
 /**
@@ -419,6 +427,7 @@ export const EVENT_NAMES = [
   'ai:toolCall',
   'ai:done',
   'window:maximizedChanged',
+  'update:stateChanged',
 ] as const satisfies readonly EventName[];
 
 /**

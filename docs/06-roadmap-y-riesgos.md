@@ -124,7 +124,9 @@ Las tres sondas marcadas son nuevas de esta fase: `lsp-latency.perf.ts` y el seg
 
 **Entregable:** v1.0.0 pública.
 
-- [ ] Auto-update funcionando
+- [ ] Auto-update funcionando — **el código está; su verificación con un release real, no** (ver el paso 38 de la guía)
+- [x] Instaladores para Windows x64 y arm64, macOS arm64 y x64 y Linux, construidos y verificados en el CI ([ADR-0034](./adr/0034-distribucion-multiplataforma-y-auto-update.md))
+- [x] Workflow de release en borrador con checksums y attestation de procedencia — escrito, todavía sin ejecutar
 - [ ] Accesibilidad auditada (RNF-21 a RNF-25)
 - [ ] Todos los RNF verificados y documentados
 - [ ] README con capturas, GIF de demo y sección de arquitectura
