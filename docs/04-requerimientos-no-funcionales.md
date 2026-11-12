@@ -33,7 +33,7 @@
 >
 > La mitigación es parte del presupuesto y no un extra: `lsp.idleShutdownMinutes` apaga a los 5 minutos un servidor que nadie usa.
 
-> **RNF-05 fuera de Windows (etapa 2 del plan de mejora).** El techo de 120MB se escribió para el `.exe` de NSIS, que comprime con LZMA. Un AppImage (squashfs) y un `.dmg` comprimen distinto, así que se miden y se reportan en el resumen del job sin hacerlos fallar. Primera medición, en el contenedor de desarrollo con la versión 0.3.1: **AppImage 127,4MB** y **`.deb` 99,6MB**. Los números de Windows y macOS salen de la matriz del CI y están en [PROGRESO.md](./planes/PROGRESO.md). Propuesta: fijar para Linux y macOS un techo de 140MB con la primera medición de un release real.
+> **RNF-05 fuera de Windows (etapa 2 del plan de mejora).** El techo de 120MB se escribió para el `.exe` de NSIS, que comprime con LZMA. Un AppImage (squashfs) y un `.dmg` comprimen distinto, así que se miden y se reportan en el resumen del job sin hacerlos fallar. Primera medición, en el CI con la versión 0.3.1: **`.dmg` 121,2MB (arm64) y 125,2MB (Intel)**, **AppImage 127,5MB** y **`.deb` 100,5MB**; en Windows, el `setup.exe` x64 mide 110,4MB y el de arm64 105,8MB, así que **el margen real de RNF-05 es de 9,6MB**. La tabla completa está en [PROGRESO.md](./planes/PROGRESO.md). Propuesta: fijar para Linux y macOS un techo de 140MB con la primera medición de un release real.
 
 > RNF-04 y RNF-05 existen porque son la crítica obvia a Electron. Medirlos y defenderlos activamente es parte del valor de portfolio. Ver [ADR-0001](./adr/0001-electron-typescript.md).
 
