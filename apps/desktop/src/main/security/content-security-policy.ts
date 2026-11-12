@@ -7,6 +7,12 @@ import type { Session } from 'electron';
  * `style-src 'unsafe-inline'` es la única excepción del proyecto, aceptada
  * porque Monaco inyecta estilos dinámicamente. Está documentada en ADR-0002 y
  * registrada en RNF-13. No se agregan excepciones nuevas sin ADR.
+ *
+ * `form-action` y `frame-ancestors` están escritas aparte de `default-src` a
+ * propósito: son de las pocas directivas que **no** heredan de ella, así que
+ * sin declararlas quedaban abiertas aunque todo lo demás dijera `'self'`.
+ * `frame-ancestors` además sólo tiene efecto por header —un `<meta>` la
+ * ignora—, que es como se emite esta política.
  */
 const PRODUCTION_DIRECTIVES: Readonly<Record<string, readonly string[]>> = {
   'default-src': ["'self'"],
@@ -17,6 +23,8 @@ const PRODUCTION_DIRECTIVES: Readonly<Record<string, readonly string[]>> = {
   'font-src': ["'self'"],
   'object-src': ["'none'"],
   'base-uri': ["'none'"],
+  'form-action': ["'none'"],
+  'frame-ancestors': ["'none'"],
 };
 
 /**

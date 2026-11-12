@@ -39,19 +39,24 @@ Satisface [RNF-12](../04-requerimientos-no-funcionales.md#seguridad). **Sin exce
 
 ## Content Security Policy
 
-```html
-<meta
-  http-equiv="Content-Security-Policy"
-  content="default-src 'self';
-               script-src 'self';
-               style-src 'self' 'unsafe-inline';
-               img-src 'self' data:;
-               connect-src 'self';
-               font-src 'self';
-               object-src 'none';
-               base-uri 'none';"
-/>
+La CSP se emite **por header, desde el main**, y no con un `<meta>` en el HTML: un `<meta>` vive en el renderer, que es justamente la capa de la que la CSP tiene que defendernos. La política de producción, tal como la arma `apps/desktop/src/main/security/content-security-policy.ts`:
+
+```text
+default-src 'self';
+script-src 'self';
+style-src 'self' 'unsafe-inline';
+img-src 'self' data:;
+connect-src 'self';
+font-src 'self';
+object-src 'none';
+base-uri 'none';
+form-action 'none';
+frame-ancestors 'none'
 ```
+
+`form-action` y `frame-ancestors` **no heredan de `default-src`**: sin declararlas quedaban abiertas aunque el resto dijera `'self'`. `frame-ancestors`, además, sólo tiene efecto por header; un `<meta>` la ignora.
+
+En desarrollo se relajan `script-src` (`'unsafe-inline' 'unsafe-eval'`, para React Refresh y el HMR) y `connect-src` (el origen del dev server y su WebSocket). Nada más: el E2E corre sobre el build de producción, que es el que se distribuye.
 
 `unsafe-inline` en `style-src` es una concesión a Monaco, que inyecta estilos dinámicamente. Se documenta como **excepción conocida** y se revisa en cada actualización de Monaco. Ver [ADR-0002](../adr/0002-monaco-editor.md).
 
