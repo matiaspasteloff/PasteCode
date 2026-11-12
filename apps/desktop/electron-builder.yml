@@ -81,6 +81,16 @@ extraResources:
 # hace su `iconConverter`, así que no se versionan los derivados.
 icon: build/icon.png
 
+# De dónde lee electron-updater las versiones nuevas: se graba en
+# `resources/app-update.yml` al empaquetar. **No publica nada**: todos los
+# empaquetados corren con `--publish never`, y el release lo arma `release.yml`
+# en borrador. Los tags llevan `v` delante, que es lo que espera el proveedor
+# de GitHub. Ver ADR-0034.
+publish:
+  provider: github
+  owner: matiaspasteloff
+  repo: PasteCode
+
 # Los fuses se graban en el binario de Electron al empaquetar y no se pueden
 # cambiar en runtime: son la política de la app instalada, no de quien la
 # lanza. Sin ellos, el ejecutable distribuido obedece `NODE_OPTIONS` y

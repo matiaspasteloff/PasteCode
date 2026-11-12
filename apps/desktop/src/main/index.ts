@@ -15,16 +15,17 @@ import { registerGitIpcHandlers } from './ipc/git.js';
 import { registerKeybindingsIpcHandlers, startKeybindings } from './ipc/keybindings.js';
 import { registerLspIpcHandlers } from './ipc/lsp.js';
 import { registerSearchIpcHandlers } from './ipc/search.js';
-import { flushSession, registerSessionIpcHandlers } from './ipc/session.js';
+import { registerSessionIpcHandlers } from './ipc/session.js';
 import { registerSettingsIpcHandlers, startSettings } from './ipc/settings.js';
 import { registerTerminalIpcHandlers } from './ipc/terminal.js';
+import { registerUpdateIpcHandlers, scheduleStartupUpdateCheck } from './ipc/update.js';
 import { registerWatcherDisposer } from './ipc/watcher.js';
 import { registerWindowIpcHandlers } from './ipc/window.js';
 import { registerWorkspaceIpcHandlers } from './ipc/workspace.js';
 import { installWebContentsGuard } from './security/web-contents-guard.js';
 import { useBackupDirectory } from './services/backups.js';
+import { shutdownOnce } from './services/quit.js';
 import { useSessionDirectory } from './services/session.js';
-import { disposeAll } from './services/shutdown.js';
 import { APP_ORIGIN, registerAppScheme, serveRendererFrom } from './windows/app-protocol.js';
 import { applyApplicationMenu } from './windows/application-menu.js';
 import { createMainWindow } from './windows/create-window.js';
@@ -60,6 +61,7 @@ function registerBeforeReady(): void {
   registerLspIpcHandlers();
   registerGitIpcHandlers();
   registerWindowIpcHandlers();
+  registerUpdateIpcHandlers();
   registerWatcherDisposer();
 }
 
@@ -87,13 +89,12 @@ function registerLifecycle(): void {
     // (RF-707). Después, todos los subsistemas que registraron cómo apagarse,
     // en paralelo y contra una sola ventana de gracia. Acá no hay una lista de
     // subsistemas a propósito: la lista escrita a mano era lo que dejaba a
-    // ripgrep afuera.
-    void flushSession()
-      .catch(() => undefined)
-      .then(() => disposeAll())
-      .finally(() => {
-        app.quit();
-      });
+    // ripgrep afuera. `shutdownOnce` y no las dos llamadas sueltas: instalar
+    // una actualización apaga lo mismo antes de cerrar, y no tiene que pasar
+    // dos veces.
+    void shutdownOnce().finally(() => {
+      app.quit();
+    });
   });
 
   void app.whenReady().then(onReady);
@@ -127,6 +128,9 @@ async function onReady(): Promise<void> {
   applyApplicationMenu(process.platform, isDevelopment);
 
   createMainWindow();
+
+  // Diferido varios segundos adentro: no compite con el arranque (RNF-01).
+  scheduleStartupUpdateCheck();
 
   // **Después** de la ventana, y no antes. El host publica lo que cargó por
   // `extensions:changed`, y un evento emitido cuando todavía no hay ninguna

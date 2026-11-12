@@ -10,6 +10,7 @@ import { StatusKeybindings } from './status/StatusKeybindings.js';
 import { StatusLanguage } from './status/StatusLanguage.js';
 import { StatusPosition } from './status/StatusPosition.js';
 import { StatusProblems } from './status/StatusProblems.js';
+import { StatusUpdate } from './status/StatusUpdate.js';
 
 /** Umbral de RNF-24: por debajo de esto, avisar molesta más que informar. */
 const PROGRESS_DELAY_MS = 500;
@@ -50,6 +51,7 @@ export function StatusBar(): React.JSX.Element {
       </div>
 
       <div className="status-bar__group">
+        <StatusUpdate />
         <StatusExtensions />
         <StatusKeybindings />
         <StatusBranch />

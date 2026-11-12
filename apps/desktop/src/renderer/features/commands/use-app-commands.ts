@@ -11,6 +11,7 @@ import { fileCommands } from '../files/file-commands.js';
 import { gitCommands } from '../git/git-commands.js';
 import { searchCommands } from '../search/search-commands.js';
 import { terminalCommands } from '../terminal/terminal-commands.js';
+import { updateCommands } from '../update/update-commands.js';
 import { viewCommands } from '../workspace/view-commands.js';
 
 /**
@@ -108,5 +109,6 @@ function appCommands(): readonly Command[] {
     ...fileCommands(),
     ...treeCommands(),
     ...viewCommands(),
+    ...updateCommands(),
   ];
 }

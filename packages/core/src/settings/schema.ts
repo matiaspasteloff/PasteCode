@@ -131,6 +131,22 @@ const windowFields = {
 };
 
 /**
+ * Las actualizaciones de la app.
+ *
+ * **El grupo entero es sólo de usuario** (`merge.ts`): un repositorio clonado
+ * no puede elegir de qué canal se actualiza el IDE ni apagarle el aviso de
+ * una versión con un arreglo de seguridad. Ninguna de las dos claves descarga
+ * nada: buscar es preguntar, y descargar e instalar siempre los pide la
+ * persona (ADR-0034).
+ */
+const updateFields = {
+  /** Buscar una versión nueva unos segundos después de arrancar. */
+  checkOnStartup: z.boolean(),
+  /** `beta` también ofrece los prereleases (`v0.4.0-beta.1`). */
+  channel: z.enum(['stable', 'beta']),
+};
+
+/**
  * Las settings ya resueltas: todos los campos presentes, todos válidos.
  *
  * Es lo que ve el resto de la aplicación. Nadie aguas abajo tiene que
@@ -143,6 +159,7 @@ export const SettingsSchema = z.strictObject({
   git: z.strictObject(gitFields),
   lsp: z.strictObject(lspFields),
   terminal: z.strictObject(terminalFields),
+  update: z.strictObject(updateFields),
   window: z.strictObject(windowFields),
 });
 
@@ -165,6 +182,7 @@ export const SettingsFileSchema = z.strictObject({
   git: z.strictObject(gitFields).partial().optional(),
   lsp: z.strictObject(lspFields).partial().optional(),
   terminal: z.strictObject(terminalFields).partial().optional(),
+  update: z.strictObject(updateFields).partial().optional(),
   window: z.strictObject(windowFields).partial().optional(),
 });
 
@@ -214,6 +232,10 @@ export const DEFAULT_SETTINGS: Settings = {
   terminal: {
     shell: null,
     fontSize: 13,
+  },
+  update: {
+    checkOnStartup: true,
+    channel: 'stable',
   },
   window: {
     theme: 'system',

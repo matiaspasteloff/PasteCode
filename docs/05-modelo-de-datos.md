@@ -98,6 +98,7 @@ Los campos y sus rangos están en `packages/core/src/settings/schema.ts`, y los 
 | `git`      | `enabled`, `path` (`null` = resolvelo al arrancar), `decorationsEnabled`, `refreshIntervalMs` (`0` = nunca)    |
 | `lsp`      | `enabled`, `serverPaths`, `requestTimeoutMs`, `maxDiagnosticsPerFile`, `idleShutdownMinutes`                   |
 | `terminal` | `shell` (`null` = el del sistema operativo), `fontSize`                                                        |
+| `update`   | `checkOnStartup` (por omisión `true`), `channel` (`stable` o `beta`, por omisión `stable`). Sólo de usuario    |
 | `window`   | `theme`, `zoomLevel`                                                                                           |
 
 `lsp.serverPaths` es un mapa de `serverId` a ruta absoluta, con `null` para "usá el empaquetado". Es un `Record` y no un campo por lenguaje **a propósito**: la tabla de lenguajes crece con datos y no con código, así que agregar Python no puede obligar a tocar el schema.
@@ -130,6 +131,8 @@ export const SettingsSchema = z.strictObject({
 Los objetos se combinan **por grupo** y los arrays se **reemplazan enteros**. Poner `editor.fontSize` en el workspace no borra el `editor.tabSize` del usuario; poner `files.exclude` sí reemplaza la lista completa, porque si concatenara no habría forma de **quitar** una exclusión heredada.
 
 **Las claves que eligen un ejecutable son la excepción: el workspace no puede setearlas.** Son `terminal.shell`, `lsp.serverPaths` y `git.path`, y en las tres la precedencia queda invertida —gana el usuario— porque un `.pastecode/settings.json` viaja adentro de cualquier repositorio clonado, y clonar no puede ser lo mismo que aceptar ejecutar lo que el repositorio diga. Ver [Procesos hijo y binarios externos](./convenciones/seguridad.md#procesos-hijo-y-binarios-externos).
+
+**El grupo `update` entero tampoco lo puede escribir el workspace.** Elegir el canal es elegir qué binarios se le ofrecen a la persona para instalar, y apagar `checkOnStartup` es esconderle una versión que puede traer un arreglo de seguridad: ninguna de las dos decisiones le corresponde a un repositorio clonado. `resolveSettings` arma el grupo sólo con los defaults y la capa del usuario. Ninguna de las dos claves descarga nada: buscar es preguntar, y descargar e instalar los pide siempre la persona ([ADR-0034](./adr/0034-distribucion-multiplataforma-y-auto-update.md)).
 
 El campo `version` va desde el primer archivo escrito: [git.md](./convenciones/git.md#versionado) declara al formato como contrato público, y sin versión no hay forma de migrar un archivo viejo el día que cambie.
 

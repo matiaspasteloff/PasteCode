@@ -180,6 +180,10 @@ export {
 export type { Settings, SettingsFile } from './settings/schema.js';
 export { nextZoomLevel } from './settings/zoom.js';
 export type { ZoomDirection } from './settings/zoom.js';
+export { canInstallInApp } from './update/install-support.js';
+export type { InstallContext, InstallKind } from './update/install-support.js';
+export { initialUpdateState, reduceUpdateState, releasePageUrl } from './update/state.js';
+export type { UpdateEvent, UpdateState } from './update/state.js';
 export { clampDimensions } from './terminal/dimensions.js';
 export type { TerminalDimensions } from './terminal/dimensions.js';
 export { displayNameFor, nextSessionId } from './terminal/sessions.js';

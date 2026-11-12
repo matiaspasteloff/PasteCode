@@ -23,7 +23,12 @@ const WORKSPACE_PACKAGES = ['@pastecode/core', '@pastecode/ipc-contract'];
 // dependencia, ni a lo que `readdirp` sume mañana. Lo que **no** se puede
 // bundlear es node-pty, que es un binario nativo, ni ripgrep, que es un
 // ejecutable; ésos sí viajan como módulos y están declarados allá.
-const BUNDLED_DEPENDENCIES = ['chokidar'];
+//
+// `electron-updater` entra por lo mismo: es JS puro con sus dependencias
+// (`fs-extra`, `js-yaml`, `builder-util-runtime`…), y el main lo carga con un
+// `import()` diferido, así que Vite lo deja en un chunk aparte que recién se
+// lee en el primer chequeo de actualizaciones.
+const BUNDLED_DEPENDENCIES = ['chokidar', 'electron-updater'];
 
 export default defineConfig({
   main: {
