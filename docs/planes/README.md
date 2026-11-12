@@ -63,8 +63,8 @@ No se vuelven a discutir en cada etapa. Las tomó el autor del proyecto:
 3. **Corré la línea base antes de tocar nada**: `pnpm check`. Si algo ya falla, anotalo: no es tuyo, pero tenés que saber distinguirlo de lo que rompas.
 4. **Trabajá tarea por tarea**, en el orden del plan. Un commit por tarea, que deje el proyecto compilando.
 5. **Antes de cada push**, los cuatro: `pnpm check`, `pnpm format:check`, `pnpm knip`, `pnpm coverage`.
-6. **Abrí el PR en borrador** contra la rama de la etapa anterior, con la [plantilla del repo](../../.github/pull_request_template.md).
-7. **Mirá el CI y arreglá lo que falle.** El E2E y los presupuestos de performance sólo corren ahí, en Windows.
+6. **Empujá después de cada tarea**, no sólo al final. Una sesión se puede reiniciar en cualquier momento, y lo que no está empujado se pierde.
+7. **El PR va en borrador** contra la rama de la etapa anterior, con la [plantilla del repo](../../.github/pull_request_template.md). Si el mensaje con el que se te lanzó dice que el PR lo abre quien coordina, no lo abras: dejá el título y el cuerpo propuestos en tu informe final. Si lo abrís vos, **mirá el CI y arreglá lo que falle**: el E2E y los presupuestos de performance sólo corren ahí, en Windows.
 8. **Actualizá [`PROGRESO.md`](./PROGRESO.md)**: el estado de tu etapa y tu sección de notas.
 9. **Repetí el merge de los planes** y empujá.
 10. **Avisá que terminaste** como diga el mensaje con el que se te lanzó.
