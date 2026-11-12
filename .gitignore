@@ -36,3 +36,7 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Worktrees de los agentes que ejecutan los planes: cada uno es un checkout
+# entero del repo, con su propio node_modules
+.claude/worktrees/
