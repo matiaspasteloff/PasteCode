@@ -15,7 +15,7 @@ export const DESKTOP_ROOT = join(
 );
 
 /**
- * El `.exe` empaquetado **sin fuses de depuración**, o `undefined` si todavía
+ * El ejecutable empaquetado **sin fuses de depuración**, o `undefined` si todavía
  * no se corrió `pnpm package:unfused`.
  *
  * Existe para los tests que **tienen que** correr contra el build de verdad y
@@ -32,9 +32,26 @@ export const DESKTOP_ROOT = join(
 export const PACKAGED_APP: string | undefined = packagedApp();
 
 function packagedApp(): string | undefined {
-  const candidate = join(DESKTOP_ROOT, 'release-unfused', 'win-unpacked', 'PasteCode.exe');
+  const candidate = join(DESKTOP_ROOT, 'release-unfused', ...packagedExecutable());
 
   return existsSync(candidate) ? candidate : undefined;
+}
+
+/**
+ * Dónde deja electron-builder el ejecutable, relativo al directorio de salida,
+ * para el sistema y la arquitectura en los que corre el test. Los nombres de
+ * los directorios son los de electron-builder (`win-unpacked`, `mac-arm64`,
+ * `linux-unpacked`…): la arquitectura por omisión, x64, no lleva sufijo.
+ */
+function packagedExecutable(): string[] {
+  const suffix = process.arch === 'x64' ? '' : `-${process.arch}`;
+
+  if (process.platform === 'win32') return [`win${suffix}-unpacked`, 'PasteCode.exe'];
+  if (process.platform === 'darwin') {
+    return [`mac${suffix}`, 'PasteCode.app', 'Contents', 'MacOS', 'PasteCode'];
+  }
+  // `executableName: pastecode` en electron-builder.yml.
+  return [`linux${suffix}-unpacked`, 'pastecode'];
 }
 
 /**

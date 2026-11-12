@@ -213,43 +213,10 @@ jobs:
 
   build:
     name: Instalador
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Generar el .exe
-        run: pnpm package
-
-      # RNF-05: el instalador no puede pasar de 120MB. Es un presupuesto
-      # absoluto y se verifica acá, donde el .exe ya existe, en vez de en el
-      # job de performance: volver a empaquetar sólo para medirlo costaría
-      # varios minutos por PR.
-      - name: RNF-05, tamaño del instalador
-        shell: pwsh
-        run: |
-          $budget = 120
-          $exe = Get-ChildItem apps/desktop/release/*.exe | Select-Object -First 1
-          $size = [math]::Round($exe.Length / 1MB, 1)
-          "| RNF-05 | tamaño del instalador | ${size}MB | ${budget}MB | 1 | $(if ($size -le $budget) { '✅' } else { '❌' }) |" |
-            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          Write-Host "RNF-05 instalador: ${size}MB (presupuesto ${budget}MB)"
-          if ($size -gt $budget) { throw "El instalador pesa ${size}MB y el presupuesto es ${budget}MB" }
-
-      - name: Subir el instalador
-        uses: actions/upload-artifact@v4
-        with:
-          name: pastecode-windows-x64
-          path: apps/desktop/release/*.exe
-          retention-days: 14
+    # La matriz de las cinco plataformas, con la verificación del contenido del
+    # paquete y el tamaño de cada instalador (RNF-05). Es el mismo workflow que
+    # corre `release.yml` con cada tag: lo que pasa acá es lo que se publica.
+    uses: ./.github/workflows/package.yml
 
   perf-budget:
     name: Presupuestos de performance
