@@ -2,14 +2,12 @@
 
 Un IDE de escritorio liviano y extensible, construido con **Electron + TypeScript + React**.
 
-> **Estado: Etapa 2 cerrada — Editor mínimo.** La app abre una carpeta, muestra
-> su árbol de archivos, edita con resaltado de sintaxis en 81 lenguajes, guarda
-> de forma atómica y detecta cambios externos. Tiene pestañas con historial de
-> deshacer por archivo, paleta de comandos, atajos con cláusulas `when` y temas
-> claro y oscuro.
->
-> El checkpoint de la etapa es el dogfooding: abrir el código de PasteCode con
-> PasteCode y editarlo. Ya se puede.
+> **Estado: Etapa 6 de la guía en curso — Lanzamiento.** Las etapas 1 a 5 están
+> cerradas: editor, terminal, búsqueda, sesión, LSP de TypeScript, Git, split
+> view, extensiones con su host aislado y debugging por DAP, más el asistente
+> de IA como etapa experimental. Esta etapa suma los instaladores para Windows,
+> macOS y Linux, los releases con procedencia verificable y el auto-update con
+> consentimiento; falta probar un release real de punta a punta.
 >
 > El README que presenta el proyecto, con GIF y capturas, es el paso 41 de la
 > [guía](./docs/00-guia-paso-a-paso.md). Este es el README de trabajo.
@@ -68,25 +66,77 @@ está codificado como error de ESLint. Ver
 
 ---
 
-## Instalar el `.exe`
+## Instalar
 
-> **Windows SmartScreen va a mostrar una advertencia.** Es esperable y no indica
-> que haya algo malo con el archivo.
+Cada [release](https://github.com/matiaspasteloff/PasteCode/releases) trae un
+instalador por plataforma, `SHA256SUMS.txt` y una attestation de procedencia.
+
+| Sistema               | Archivo                                                                 |
+| --------------------- | ----------------------------------------------------------------------- |
+| Windows x64           | `PasteCode-<versión>-win-x64-setup.exe`, o `-portable.exe` sin instalar |
+| Windows arm64         | `PasteCode-<versión>-win-arm64-setup.exe`                               |
+| macOS (Apple Silicon) | `PasteCode-<versión>-mac-arm64.dmg`                                     |
+| macOS (Intel)         | `PasteCode-<versión>-mac-x64.dmg`                                       |
+| Linux x64             | `PasteCode-<versión>-linux-x86_64.AppImage` o `-linux-amd64.deb`        |
 
 PasteCode se distribuye **sin firma de código**. Un certificado cuesta entre USD
 200 y 600 por año, y la decisión —registrada en
 [build-y-release.md](./docs/convenciones/build-y-release.md#firma-de-código)— fue
-empezar sin firmar y evaluarlo si el proyecto gana tracción.
+empezar sin firmar y evaluarlo si el proyecto gana tracción. Por eso los
+sistemas avisan la primera vez.
 
-Sin firma, Windows muestra _"Windows protegió su PC"_ al ejecutar el instalador.
-Para continuar:
+### Windows
+
+> **Windows SmartScreen va a mostrar una advertencia.** Es esperable y no indica
+> que haya algo malo con el archivo.
+
+El instalador es de un click: no pregunta nada ni pide permisos de
+administrador. Sin firma, Windows muestra _"Windows protegió su PC"_. Para
+continuar:
 
 1. Hacé click en **Más información**.
 2. Hacé click en **Ejecutar de todas formas**.
 
-Si preferís verificar el archivo antes, cada release publica el `.exe` junto a su
-`.blockmap`, y el instalador se construye en el CI a partir del código de este
-repositorio: el log del job `build` muestra de qué commit salió.
+### macOS
+
+La app lleva firma ad-hoc pero no está notarizada, así que Gatekeeper avisa que
+no puede verificar al desarrollador. Arrastrá PasteCode a Aplicaciones y la
+primera vez abrila con **click derecho → Abrir → Abrir**. Si macOS dice que la
+app "está dañada", es la cuarentena de la descarga:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/PasteCode.app
+```
+
+### Linux
+
+El AppImage no se instala: se le da permiso de ejecución y se abre.
+
+```bash
+chmod +x PasteCode-*-linux-x86_64.AppImage
+./PasteCode-*-linux-x86_64.AppImage
+```
+
+El `.deb` se instala con `sudo apt install ./PasteCode-*-linux-amd64.deb`.
+
+### Verificar lo que bajaste
+
+```bash
+sha256sum --check --ignore-missing SHA256SUMS.txt
+gh attestation verify PasteCode-<versión>-win-x64-setup.exe --repo matiaspasteloff/PasteCode
+```
+
+La attestation prueba que el archivo salió del workflow de release de este
+repositorio, en el commit del tag.
+
+### Actualizaciones
+
+PasteCode busca versiones nuevas al arrancar (se apaga con
+`update.checkOnStartup: false` en `~/.pastecode/settings.json`) y **nunca
+descarga ni instala nada sin que lo pidas**. En Windows x64 y en el AppImage la
+actualización se descarga e instala desde la barra de estado; en macOS, en
+Windows arm64, en el portable y en el `.deb`, la app avisa y abre la página de
+la versión nueva.
 
 ---
 
