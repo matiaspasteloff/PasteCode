@@ -27,7 +27,7 @@
  *    y Mach-O de cada archivo— sea de otra arquitectura o de otro sistema.
  */
 import { existsSync, openSync, readdirSync, readSync, closeSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, sep } from 'node:path';
 
 const PLATFORMS = ['win32', 'darwin', 'linux'];
 const ARCHS = ['x64', 'arm64'];
@@ -122,14 +122,27 @@ function nativeBinary(path) {
   return machines === undefined ? undefined : { format: 'macho', machines };
 }
 
+/**
+ * Los binarios de otra arquitectura que están ahí a propósito, por ruta exacta
+ * relativa al paquete y con la arquitectura que se les acepta.
+ *
+ * `elevate.exe` es el ayudante de elevación que el NSIS de electron-builder
+ * copia en todo paquete de Windows. Viene sólo en x86, y Windows lo corre
+ * emulado en x64 y en arm64. La app no lo usa —la instalación es per-user y no
+ * eleva nunca—, pero electron-builder no tiene opción para no copiarlo.
+ */
+const EXPECTED_FOREIGN = { win32: { 'resources/elevate.exe': 'ia32' } };
+
 /** El problema de un binario nativo, o `undefined` si es del destino. */
-function foreignBinaryProblem(binary, platform, arch) {
+function foreignBinaryProblem(binary, platform, arch, path) {
   if (binary.format !== FORMAT_OF[platform]) {
     return `es ${binary.format.toUpperCase()} en un paquete de ${platform}`;
   }
   const archs = binary.machines.map(
     (machine) => MACHINE[binary.format][machine] ?? `0x${machine.toString(16)}`
   );
+  const expected = EXPECTED_FOREIGN[platform]?.[path];
+  if (expected !== undefined && archs.length === 1 && archs[0] === expected) return undefined;
   return archs.includes(arch)
     ? undefined
     : `es de ${archs.join('+')} y el paquete es de ${arch}`;
@@ -164,8 +177,9 @@ function problems(root, platform, arch) {
     const binary = nativeBinary(path);
     if (binary === undefined) continue;
     natives += 1;
-    const problem = foreignBinaryProblem(binary, platform, arch);
-    if (problem !== undefined) found.push(`${relative(root, path)} ${problem}`);
+    const where = relative(root, path).split(sep).join('/');
+    const problem = foreignBinaryProblem(binary, platform, arch, where);
+    if (problem !== undefined) found.push(`${where} ${problem}`);
   }
 
   // Si no se encontró ni el ejecutable de Electron, el lector de cabeceras está
