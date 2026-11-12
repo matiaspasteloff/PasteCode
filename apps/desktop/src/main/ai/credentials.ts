@@ -38,12 +38,22 @@ function credentialsPath(): string {
  * es peor que no poder guardarla, porque quien la guarda cree que está
  * protegida ([RF-1003](../../../../../docs/03-requerimientos-funcionales.md#asistente-de-ia-etapa-experimental)).
  *
+ * En Linux eso no alcanza. Cuando Chromium no reconoce el escritorio cae al
+ * backend `basic_text`, que cifra con una clave fija escrita en el propio
+ * binario —equivale a texto plano—, y aun así `isEncryptionAvailable()`
+ * devuelve `true`. Se pregunta el backend, y ése también cuenta como "no hay
+ * cifrado". `getSelectedStorageBackend()` existe sólo en Linux, por eso va
+ * detrás del chequeo de plataforma.
+ *
  * @returns Si `saveApiKey` puede persistir.
  * @example
  * if (!canPersistApiKey()) avisarQueNoSeVaAGuardar();
  */
 export function canPersistApiKey(): boolean {
-  return safeStorage.isEncryptionAvailable();
+  if (!safeStorage.isEncryptionAvailable()) return false;
+  if (process.platform !== 'linux') return true;
+
+  return safeStorage.getSelectedStorageBackend() !== 'basic_text';
 }
 
 /**
