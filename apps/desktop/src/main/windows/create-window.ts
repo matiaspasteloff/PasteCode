@@ -1,11 +1,10 @@
 import { join } from 'node:path';
 
-import { BrowserWindow, shell } from 'electron';
+import { BrowserWindow } from 'electron';
 
 import { devServerOrigin, devServerUrl } from '../environment.js';
 import { watchMaximizedState } from '../ipc/window.js';
 import { applyContentSecurityPolicy } from '../security/content-security-policy.js';
-import { isAllowedNavigation, isSafeExternalUrl } from '../security/navigation.js';
 import { applyPermissionPolicy } from '../security/permissions.js';
 
 import { APP_ORIGIN } from './app-protocol.js';
@@ -57,15 +56,10 @@ export function createMainWindow(): BrowserWindow {
     window.show();
   });
 
-  window.webContents.on('will-navigate', (event, url) => {
-    if (!isAllowedNavigation(url, APP_ORIGIN, devServerOrigin)) event.preventDefault();
-  });
-
-  // Los links externos abren en el navegador del sistema, nunca en la app.
-  window.webContents.setWindowOpenHandler(({ url }) => {
-    if (isSafeExternalUrl(url)) void shell.openExternal(url);
-    return { action: 'deny' };
-  });
+  // La navegación, las redirecciones, los `<webview>` y las ventanas nuevas
+  // no se controlan acá: los cubre la guarda global de
+  // `security/web-contents-guard.ts`, que se engancha a **todo** webContents
+  // que se cree y no sólo a éste.
 
   // En producción se carga por el esquema propio y no con `loadFile`: bajo
   // `file://` el origen es opaco, y con eso Chromium no deja construir web

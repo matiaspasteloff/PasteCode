@@ -2,7 +2,7 @@ import { join } from 'node:path';
 
 import { app, BrowserWindow } from 'electron';
 
-import { dataDirectoryOverride, isDevelopment } from './environment.js';
+import { dataDirectoryOverride, devServerOrigin, isDevelopment } from './environment.js';
 import { useExtensionsDirectory } from './extensions/directories.js';
 import { registerAiIpcHandlers } from './ipc/ai.js';
 import { registerAppIpcHandlers } from './ipc/app.js';
@@ -21,15 +21,21 @@ import { registerTerminalIpcHandlers } from './ipc/terminal.js';
 import { registerWatcherDisposer } from './ipc/watcher.js';
 import { registerWindowIpcHandlers } from './ipc/window.js';
 import { registerWorkspaceIpcHandlers } from './ipc/workspace.js';
+import { installWebContentsGuard } from './security/web-contents-guard.js';
 import { useBackupDirectory } from './services/backups.js';
 import { useSessionDirectory } from './services/session.js';
 import { disposeAll } from './services/shutdown.js';
-import { registerAppScheme, serveRendererFrom } from './windows/app-protocol.js';
+import { APP_ORIGIN, registerAppScheme, serveRendererFrom } from './windows/app-protocol.js';
 import { createMainWindow } from './windows/create-window.js';
 
 // Antes que nada: Electron exige que los privilegios del esquema se declaren
 // antes de que la app esté lista, y hacerlo tarde falla en silencio.
 registerAppScheme();
+
+// También antes de que la app esté lista: la guarda se engancha a
+// `web-contents-created`, y un webContents creado antes del listener nacería
+// sin reglas de navegación.
+installWebContentsGuard(APP_ORIGIN, devServerOrigin);
 
 registerAppIpcHandlers();
 registerAiIpcHandlers();
