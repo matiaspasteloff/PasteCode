@@ -71,6 +71,22 @@ vi.mock('./emitter.js', () => ({
   },
 }));
 
+/** Una ventana falsa que anota los zooms que le aplicaron. */
+function fakeWindow(destroyed = false): { zooms: number[] } & Record<string, unknown> {
+  const zooms: number[] = [];
+
+  return {
+    zooms,
+    isDestroyed: (): boolean => destroyed,
+    webContents: {
+      isDestroyed: (): boolean => destroyed,
+      setZoomLevel: (level: number): void => {
+        zooms.push(level);
+      },
+    },
+  };
+}
+
 /** Invoca un canal a través del listener que quedó registrado. */
 function invoke(channel: string, payload: unknown = {}): Promise<unknown> {
   return Promise.resolve(electron.handlers.get(channel)?.({}, payload));
@@ -133,6 +149,20 @@ describe('settings:update', () => {
     });
   });
 
+  it('aplica el zoom nuevo a las ventanas sin esperar al watcher', async () => {
+    const open = fakeWindow();
+    const closed = fakeWindow(true);
+    electron.windows = [open, closed];
+
+    await invoke('settings:update', {
+      scope: 'user',
+      settings: { window: { zoomLevel: 1.5 } },
+    });
+
+    expect(open.zooms).toEqual([1.5]);
+    expect(closed.zooms).toEqual([]);
+  });
+
   it('rechaza un scope que no está en el contrato', async () => {
     const result = await invoke('settings:update', {
       scope: 'global',
@@ -167,16 +197,25 @@ describe('startSettings', () => {
   });
 
   it('emite las settings a cada ventana abierta cuando el servicio avisa un cambio', async () => {
-    electron.windows = [{ id: 1 }, { id: 2 }];
+    const windows = [fakeWindow(), fakeWindow()];
+    electron.windows = windows;
     await startSettings();
 
     // El callback que recibió el servicio es el broadcast: dispararlo es lo
     // que ejercita la recarga en caliente de RF-704.
-    service.initialized[0]?.onChange({ fontSize: 20 });
+    service.initialized[0]?.onChange({ fontSize: 20, window: { zoomLevel: -1 } });
+
+    expect(windows.map((window) => window.zooms)).toEqual([[-1], [-1]]);
 
     expect(electron.sent).toEqual([
-      { channel: 'settings:changed', payload: { settings: { fontSize: 20 }, error: null } },
-      { channel: 'settings:changed', payload: { settings: { fontSize: 20 }, error: null } },
+      {
+        channel: 'settings:changed',
+        payload: { settings: { fontSize: 20, window: { zoomLevel: -1 } }, error: null },
+      },
+      {
+        channel: 'settings:changed',
+        payload: { settings: { fontSize: 20, window: { zoomLevel: -1 } }, error: null },
+      },
     ]);
   });
 });

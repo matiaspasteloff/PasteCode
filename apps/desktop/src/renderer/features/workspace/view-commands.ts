@@ -1,7 +1,8 @@
-import type { Command } from '@pastecode/core';
-import { PRIMARY_GROUP_ID, SECONDARY_GROUP_ID } from '@pastecode/core';
+import type { Command, ZoomDirection } from '@pastecode/core';
+import { nextZoomLevel, PRIMARY_GROUP_ID, SECONDARY_GROUP_ID } from '@pastecode/core';
 
 import { useEditorStore } from '../../stores/editor-store.js';
+import { useSettingsStore } from '../../stores/settings-store.js';
 import { useThemeStore } from '../../stores/theme-store.js';
 import { useViewStore } from '../../stores/view-store.js';
 
@@ -63,6 +64,35 @@ export function viewCommands(): readonly Command[] {
       },
     },
     ...panelCommands(),
+    ...zoomCommands(),
+  ];
+}
+
+/**
+ * Acercar, alejar y restablecer el zoom de la ventana.
+ *
+ * No tocan el `webContents`: escriben `window.zoomLevel` en las settings del
+ * usuario, y el main lo aplica al enterarse. Así el zoom sobrevive al reinicio
+ * —queda en `settings.json`— y hay un solo lugar que lo aplica, el mismo que
+ * reacciona cuando alguien edita el archivo a mano.
+ *
+ * @returns Los comandos, listos para registrar.
+ * @example
+ * for (const command of zoomCommands()) register(command);
+ */
+function zoomCommands(): readonly Command[] {
+  const zoom = (direction: ZoomDirection) => (): Promise<void> => {
+    const { settings, update } = useSettingsStore.getState();
+
+    return update('user', {
+      window: { zoomLevel: nextZoomLevel(settings.window.zoomLevel, direction) },
+    });
+  };
+
+  return [
+    { id: 'view.zoomIn', title: 'command.viewZoomIn', handler: zoom('in') },
+    { id: 'view.zoomOut', title: 'command.viewZoomOut', handler: zoom('out') },
+    { id: 'view.zoomReset', title: 'command.viewZoomReset', handler: zoom('reset') },
   ];
 }
 

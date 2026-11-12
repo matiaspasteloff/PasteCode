@@ -41,8 +41,30 @@ function payloadFor(settings: Settings): SettingsChangedEvent {
  * de fuente sin reiniciar nada.
  */
 function broadcast(settings: Settings): void {
+  applyZoomLevel(settings);
+
   for (const window of BrowserWindow.getAllWindows()) {
     emit(window, 'settings:changed', payloadFor(settings));
+  }
+}
+
+/**
+ * Aplica `window.zoomLevel` a todas las ventanas.
+ *
+ * El zoom lo aplica el main y no el renderer porque es del `webContents`, no
+ * del DOM: un `zoom` de CSS dejaría a Monaco midiendo mal las columnas. Corre
+ * en cada recarga —editar el archivo a mano también cambia el zoom— y después
+ * de cada `settings:update`, para que el comando se vea sin esperar al watcher.
+ *
+ * @param settings Las settings resueltas.
+ * @example
+ * applyZoomLevel(currentSettings());
+ */
+function applyZoomLevel(settings: Settings): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (window.isDestroyed() || window.webContents.isDestroyed()) continue;
+
+    window.webContents.setZoomLevel(settings.window.zoomLevel);
   }
 }
 
@@ -74,7 +96,11 @@ export function registerSettingsIpcHandlers(): void {
     payloadFor(currentSettings())
   );
 
-  registerHandler('settings:update', UpdateSettingsRequestSchema, async (payload) =>
-    payloadFor(await updateSettings(payload.scope, payload.settings))
-  );
+  registerHandler('settings:update', UpdateSettingsRequestSchema, async (payload) => {
+    const settings = await updateSettings(payload.scope, payload.settings);
+
+    applyZoomLevel(settings);
+
+    return payloadFor(settings);
+  });
 }

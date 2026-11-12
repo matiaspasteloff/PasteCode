@@ -6,6 +6,7 @@ import { devServerOrigin, devServerUrl } from '../environment.js';
 import { watchMaximizedState } from '../ipc/window.js';
 import { applyContentSecurityPolicy } from '../security/content-security-policy.js';
 import { applyPermissionPolicy } from '../security/permissions.js';
+import { currentSettings } from '../services/settings.js';
 
 import { APP_ORIGIN } from './app-protocol.js';
 
@@ -54,6 +55,14 @@ export function createMainWindow(): BrowserWindow {
 
   window.once('ready-to-show', () => {
     window.show();
+  });
+
+  // `window.zoomLevel` en cada carga y no una sola vez: Chromium guarda el
+  // zoom por origen y lo puede reponer al recargar, y el que manda es el de
+  // las settings. Los cambios posteriores los aplica el broadcast de
+  // `ipc/settings.ts`.
+  window.webContents.on('did-finish-load', () => {
+    window.webContents.setZoomLevel(currentSettings().window.zoomLevel);
   });
 
   // La navegación, las redirecciones, los `<webview>` y las ventanas nuevas
