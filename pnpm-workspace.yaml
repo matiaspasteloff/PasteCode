@@ -15,7 +15,7 @@ packages:
 nodeLinker: hoisted
 
 # Los conflictos de peers son errores, no advertencias. Es lo que convierte los
-# pines de TypeScript 6.0.3 y Vite 7.3.6 (ADR-0009) en una restricción
+# pines de TypeScript 6.0.3 y Vite 7.3.x (ADR-0009) en una restricción
 # verificada en cada install en vez de un comentario que alguien va a ignorar
 # dentro de seis meses.
 strictPeerDependencies: true
@@ -46,3 +46,14 @@ minimumReleaseAgeExclude:
   - '@turbo/windows-64@2.10.10'
   - '@turbo/windows-arm64@2.10.10'
   - turbo@2.10.10
+
+# Overrides de dependencias transitivas con avisos de seguridad que la
+# dependencia directa todavía no levantó. Cada uno dice qué aviso cierra: el
+# día que la directa publique una versión con el arreglo, se sube la directa y
+# se borra el override.
+overrides:
+  # GHSA-cg2g-xh64-v4q7 (crítico) y GHSA-mrv2-3pqr-j5jr (alto). monaco-editor
+  # fija `dompurify` a una versión exacta: 3.4.8 en la 0.56.0 que usamos, y
+  # 3.4.15 en la 0.57.0, la última publicada. Ninguna de las dos trae el
+  # arreglo. Es la única dependencia de esta lista que llega al instalador.
+  dompurify: 3.4.17

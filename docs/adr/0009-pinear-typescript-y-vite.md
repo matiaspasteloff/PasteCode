@@ -66,3 +66,7 @@ rangos, y hacer que violar los peers rompa el `install` en vez del runtime.
 - ⚠️ El proyecto queda una major atrás en dos herramientas, a propósito.
 - ⚠️ Hay que revisar la condición cuando `typescript-eslint` publique soporte para TypeScript 7 y cuando `electron-vite` acepte Vite 8. **Las dos son actualizaciones de una línea más una corrida de `pnpm check`**; lo caro sería no saber por qué estaban fijadas.
 - ❌ Se cierra el uso de features de TypeScript 7 y de Vite 8 hasta entonces. No hay ninguna que este proyecto necesite hoy.
+
+## Actualización 2026-11-12
+
+Vite pasa de `7.3.6` a **`7.3.7`** para cerrar [GHSA-587h-7wmj-h5pm](https://github.com/advisories/GHSA-587h-7wmj-h5pm), un aviso alto en el `launch-editor` que Vite trae adentro y que hacía fallar `pnpm audit --audit-level=high` en el CI (RNF-15). La decisión no cambia: el pin sigue siendo exacto y sigue en la major 7, que es lo que pide el peer de `electron-vite`. Lo que este ADR protege es ese peer, no el número de parche: un parche de seguridad dentro de la misma minor se toma.
