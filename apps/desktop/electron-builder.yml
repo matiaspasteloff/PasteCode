@@ -59,6 +59,17 @@ extraResources:
       - package.json
       - dist/**
       - '!dist/**/*.map'
+  # El ícono de la ventana en Linux (`create-window.ts`). En Windows y macOS
+  # lo lleva el ejecutable o el bundle, pero en Linux el binario no tiene
+  # dónde guardarlo y la ventana necesita un archivo.
+  - from: build/icon.png
+    to: icon.png
+
+# Un solo PNG de 1024×1024, generado desde `build/icon.svg` con `pnpm icon`.
+# electron-builder deriva de él el `.ico` de Windows (instalador, desinstalador
+# y ejecutable), el `.icns` de macOS y los tamaños de Linux: la conversión la
+# hace su `iconConverter`, así que no se versionan los derivados.
+icon: build/icon.png
 
 # Los fuses se graban en el binario de Electron al empaquetar y no se pueden
 # cambiar en runtime: son la política de la app instalada, no de quien la

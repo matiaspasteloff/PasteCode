@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 
-import { BrowserWindow } from 'electron';
+import { app, BrowserWindow } from 'electron';
 
 import { devServerOrigin, devServerUrl } from '../environment.js';
 import { watchMaximizedState } from '../ipc/window.js';
@@ -36,6 +36,7 @@ export function createMainWindow(): BrowserWindow {
     // hasta que la barra de menús se coma la caja de comandos.
     minWidth: 680,
     minHeight: 420,
+    ...windowIcon(),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -76,4 +77,23 @@ export function createMainWindow(): BrowserWindow {
   void window.loadURL(devServerUrl ?? `${APP_ORIGIN}/index.html`);
 
   return window;
+}
+
+/**
+ * El ícono de la ventana, sólo en Linux.
+ *
+ * En Windows la ventana toma el del `.exe` y en macOS el del bundle, que
+ * electron-builder graba desde `build/icon.png`. En Linux el ejecutable no
+ * lleva ícono: el escritorio lo saca del `.desktop` del instalador, y la
+ * ventana, si no se le da uno, muestra el genérico. El PNG viaja a
+ * `resources/` por `extraResources` (electron-builder.yml).
+ */
+function windowIcon(): { icon?: string } {
+  if (process.platform !== 'linux') return {};
+  return {
+    icon: app.isPackaged
+      ? join(process.resourcesPath, 'icon.png')
+      : // `out/main/` → `apps/desktop/build/`.
+        join(__dirname, '..', '..', 'build', 'icon.png'),
+  };
 }
