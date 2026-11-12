@@ -37,6 +37,36 @@ files:
   # 1,3MB de sourcemap de un servidor que no depuramos nosotros.
   - '!node_modules/typescript-language-server/**/*.map'
 
+# Los fuses se graban en el binario de Electron al empaquetar y no se pueden
+# cambiar en runtime: son la política de la app instalada, no de quien la
+# lanza. Sin ellos, el ejecutable distribuido obedece `NODE_OPTIONS` y
+# `--inspect` y no valida la integridad del asar (hallazgo S4). Ver
+# docs/adr/0033-hardening-de-la-app-empaquetada.md.
+electronFuses:
+  # **Excepción, y a propósito.** El servidor de TypeScript empaquetado se
+  # lanza con el binario de Electron y `ELECTRON_RUN_AS_NODE=1`, hablando LSP
+  # por stdio. `utilityProcess` no da stdin, así que no lo reemplaza; apagar
+  # este fuse es apagar el LSP de TypeScript. El costo es que cualquiera que
+  # pueda lanzar el `.exe` con esa variable tiene un Node: lo mismo que ya
+  # tiene con el Node del sistema.
+  runAsNode: true
+  enableCookieEncryption: true
+  # Apaga también `NODE_EXTRA_CA_CERTS`: los certificados de un proxy
+  # corporativo tienen que estar en el almacén del sistema, que es el que usa
+  # Chromium.
+  enableNodeOptionsEnvironmentVariable: false
+  # Sin esto, `--inspect` le abre un depurador al proceso main de la app
+  # instalada a cualquiera que la lance. Con esto apagado Playwright tampoco
+  # puede adjuntarse al binario empaquetado: para el E2E del asar está
+  # `pnpm package:unfused` (electron-builder.unfused.yml).
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  # Gratis: el renderer se sirve por `pastecode://` desde ADR-0012, así que
+  # ninguna página de la app vive en `file://`. El `net.fetch` de
+  # `app-protocol.ts` corre en el main y este fuse no lo toca.
+  grantFileProtocolExtraPrivileges: false
+
 # Ni un `.node` ni un `.exe` se pueden usar desde adentro del asar: el sistema
 # operativo necesita un archivo de verdad en el disco para mapearlo o para
 # lanzarlo. `asarUnpack` los deja en `resources/app.asar.unpacked`.
