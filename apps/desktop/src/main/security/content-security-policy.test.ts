@@ -25,6 +25,18 @@ describe('buildContentSecurityPolicy', () => {
     expect(production).toContain("base-uri 'none'");
   });
 
+  // No heredan de default-src: si faltan, quedan abiertas aunque todo lo demás
+  // diga 'self'. Y el dev server no tiene por qué relajarlas.
+  it.each([
+    ['producción', undefined],
+    ['desarrollo', 'http://localhost:5173'],
+  ])('cierra form-action y frame-ancestors en %s', (_mode, devServerOrigin) => {
+    const policy = buildContentSecurityPolicy(devServerOrigin);
+
+    expect(policy).toContain("form-action 'none'");
+    expect(policy).toContain("frame-ancestors 'none'");
+  });
+
   it('habilita el WebSocket de HMR sólo en desarrollo', () => {
     const development = buildContentSecurityPolicy('http://localhost:5173');
 

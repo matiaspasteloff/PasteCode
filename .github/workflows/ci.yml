@@ -11,6 +11,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Lo mínimo para todos los jobs: leer el repositorio. Sin esto, el token de
+# cada job hereda los permisos por omisión del repositorio, y un paso
+# comprometido —una acción de terceros, un script de postinstall— tendría
+# escritura. El job que necesita más (`perf-budget`, para comentar en el PR) lo
+# declara él mismo.
+permissions:
+  contents: read
+
 env:
   NODE_VERSION: '24'
 

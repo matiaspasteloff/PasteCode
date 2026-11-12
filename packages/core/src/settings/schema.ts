@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL } from './zoom.js';
+
 /**
  * Versión del formato del archivo de settings.
  *
@@ -125,7 +127,7 @@ const windowFields = {
    * desinstalada no puede dejar al IDE sin colores.
    */
   colorTheme: z.string(),
-  zoomLevel: z.number().min(-5).max(5),
+  zoomLevel: z.number().min(MIN_ZOOM_LEVEL).max(MAX_ZOOM_LEVEL),
 };
 
 /**

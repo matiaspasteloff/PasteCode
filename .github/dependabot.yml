@@ -1,0 +1,37 @@
+# Revisión semanal de dependencias (docs/convenciones/seguridad.md#dependencias).
+#
+# Minor y patch van agrupados en un solo PR por ecosistema: uno por paquete
+# son decenas de PRs por semana que nadie revisa, y un PR que nadie revisa es
+# peor que no tenerlo. Las majors llegan sueltas, porque cada una es una
+# decisión.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      minor-y-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # ADR-0009: typescript-eslint declara el peer `typescript <6.1.0` y
+      # electron-vite el de `vite ^5 || ^6 || ^7`. Un PR que los sube rompe el
+      # install por `strictPeerDependencies`; se revisan a mano cuando los
+      # upstream se pongan al día.
+      - dependency-name: typescript
+        versions: ['>=6.1.0']
+      - dependency-name: vite
+        versions: ['>=8.0.0']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      acciones:
+        update-types:
+          - minor
+          - patch

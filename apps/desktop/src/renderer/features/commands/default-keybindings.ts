@@ -41,6 +41,14 @@ export const DEFAULT_KEYBINDINGS: readonly Keybinding[] = [
   // convención que arrastra todo el mundo desde VS Code para las acciones que
   // no tienen una tecla obvia, y la primera de este proyecto.
   { key: 'ctrl+k ctrl+t', command: 'view.selectTheme' },
+  // Zoom. Las teclas son el carácter de `event.key`, no la tecla física: en un
+  // teclado español el `=` sale con Shift, así que `Ctrl+=` llega como
+  // `ctrl+shift+=` y sin la segunda entrada no habría forma de acercar. El `-`
+  // y el `0` no llevan Shift en ninguna de las dos distribuciones.
+  { key: 'ctrl+=', command: 'view.zoomIn' },
+  { key: 'ctrl+shift+=', command: 'view.zoomIn' },
+  { key: 'ctrl+-', command: 'view.zoomOut' },
+  { key: 'ctrl+0', command: 'view.zoomReset' },
   { key: 'ctrl+shift+c', command: 'terminal.copy', when: 'terminalFocus' },
   { key: 'ctrl+shift+v', command: 'terminal.paste', when: 'terminalFocus' },
 ];

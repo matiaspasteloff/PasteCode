@@ -1,11 +1,12 @@
 import { join } from 'node:path';
 
-import { BrowserWindow, shell } from 'electron';
+import { BrowserWindow } from 'electron';
 
 import { devServerOrigin, devServerUrl } from '../environment.js';
 import { watchMaximizedState } from '../ipc/window.js';
 import { applyContentSecurityPolicy } from '../security/content-security-policy.js';
-import { isAllowedNavigation, isSafeExternalUrl } from '../security/navigation.js';
+import { applyPermissionPolicy } from '../security/permissions.js';
+import { currentSettings } from '../services/settings.js';
 
 import { APP_ORIGIN } from './app-protocol.js';
 
@@ -46,6 +47,7 @@ export function createMainWindow(): BrowserWindow {
   });
 
   applyContentSecurityPolicy(window.webContents.session, devServerOrigin);
+  applyPermissionPolicy(window.webContents.session, APP_ORIGIN, devServerOrigin);
 
   // El botón de maximizar cambia de glifo también cuando nadie lo aprieta:
   // arrastrar la ventana al borde superior la maximiza. Ver ADR-0030.
@@ -55,15 +57,18 @@ export function createMainWindow(): BrowserWindow {
     window.show();
   });
 
-  window.webContents.on('will-navigate', (event, url) => {
-    if (!isAllowedNavigation(url, APP_ORIGIN, devServerOrigin)) event.preventDefault();
+  // `window.zoomLevel` en cada carga y no una sola vez: Chromium guarda el
+  // zoom por origen y lo puede reponer al recargar, y el que manda es el de
+  // las settings. Los cambios posteriores los aplica el broadcast de
+  // `ipc/settings.ts`.
+  window.webContents.on('did-finish-load', () => {
+    window.webContents.setZoomLevel(currentSettings().window.zoomLevel);
   });
 
-  // Los links externos abren en el navegador del sistema, nunca en la app.
-  window.webContents.setWindowOpenHandler(({ url }) => {
-    if (isSafeExternalUrl(url)) void shell.openExternal(url);
-    return { action: 'deny' };
-  });
+  // La navegación, las redirecciones, los `<webview>` y las ventanas nuevas
+  // no se controlan acá: los cubre la guarda global de
+  // `security/web-contents-guard.ts`, que se engancha a **todo** webContents
+  // que se cree y no sólo a éste.
 
   // En producción se carga por el esquema propio y no con `loadFile`: bajo
   // `file://` el origen es opaco, y con eso Chromium no deja construir web

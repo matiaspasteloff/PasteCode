@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -85,6 +85,41 @@ test('reabre las mismas pestañas, y descarta la del archivo que ya no está', a
     'data-testid',
     'tab-dos.ts'
   );
+
+  await second.close();
+});
+
+/** El zoom que tiene aplicado la ventana, leído desde el main. */
+async function zoomLevelOf(app: ElectronApplication): Promise<number | undefined> {
+  return app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()[0]?.webContents.getZoomLevel()
+  );
+}
+
+test('el zoom se cambia desde la paleta, queda en settings.json y vuelve al reabrir', async () => {
+  const first = await launch();
+  const window = await first.firstWindow();
+  await window.getByRole('button', { name: 'Abrir carpeta' }).waitFor();
+  await window.locator('.status-bar').click();
+
+  await window.keyboard.press('Control+Shift+P');
+  await window.keyboard.type('Acercar');
+  await expect(window.getByRole('option').first()).toHaveText('Acercar');
+  await window.keyboard.press('Enter');
+
+  await expect.poll(async () => zoomLevelOf(first)).toBe(0.5);
+
+  const written: unknown = JSON.parse(await readFile(join(home, 'settings.json'), 'utf8'));
+  expect(written).toMatchObject({ window: { zoomLevel: 0.5 } });
+
+  await first.close();
+
+  // Que persista es la otra mitad: el zoom es una setting, no un estado de la
+  // ventana que se pierde al cerrarla.
+  const second = await launch();
+  await (await second.firstWindow()).getByRole('button', { name: 'Abrir carpeta' }).waitFor();
+
+  await expect.poll(async () => zoomLevelOf(second)).toBe(0.5);
 
   await second.close();
 });

@@ -276,8 +276,15 @@ Decirlo explícitamente es parte de la documentación:
   hasta que exista.
 - **No hay UI propia.** Una extensión no puede dibujar un panel ni un webview.
   Aporta comandos, ítems de status bar y temas.
-- **No hay acceso al filesystem.** Ni a `node:fs` de forma útil: todo lo
-  privilegiado pasa por el main, que valida contra el workspace.
+- **La API no ofrece filesystem.** No hay nada en `api` que lea o escriba
+  archivos, y todo lo privilegiado que sí ofrece pasa por el main, que valida
+  contra el workspace. **Pero el proceso todavía no está confinado:** el host
+  es un proceso Node completo, así que `node:fs`, `node:child_process` y
+  `fetch` están ahí. Las capabilities limitan la API de PasteCode, no lo que
+  tu código puede hacer con Node. No te apoyes en eso —el confinamiento llega
+  con el [modelo de confianza](../planes/etapa-03-confianza.md) y lo que hoy
+  funciona va a dejar de funcionar—, y como usuario, instalá sólo extensiones
+  en las que confiarías como en cualquier programa.
 - **No hay `require('electron')`.** El host corre sin la superficie de Electron a
   propósito ([ADR-0003](../adr/0003-extension-host-aislado.md)).
 - **No podés hablarle al renderer.** Todo pasa por el main, que es lo que permite

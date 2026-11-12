@@ -13,11 +13,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
  * guarde**, que la clave se recuerde en memoria, y que un blob que ya no
  * descifra no tumbe nada.
  */
-const storage = vi.hoisted((): { available: boolean; fails: boolean; userData: string } => ({
-  available: true,
-  fails: false,
-  userData: '',
-}));
+const storage = vi.hoisted(
+  (): { available: boolean; fails: boolean; userData: string; backend: string } => ({
+    available: true,
+    fails: false,
+    userData: '',
+    backend: 'gnome_libsecret',
+  })
+);
 
 const PREFIX = 'cifrado:';
 
@@ -25,6 +28,7 @@ vi.mock('electron', () => ({
   app: { getPath: (): string => storage.userData },
   safeStorage: {
     isEncryptionAvailable: (): boolean => storage.available,
+    getSelectedStorageBackend: (): string => storage.backend,
     encryptString: (value: string): Buffer => Buffer.from(PREFIX + value, 'utf8'),
     decryptString: (buffer: Buffer): string => {
       if (storage.fails) throw new Error('no descifra');
@@ -45,6 +49,7 @@ beforeEach(async () => {
   vi.resetModules();
   storage.available = true;
   storage.fails = false;
+  storage.backend = 'gnome_libsecret';
   storage.userData = await mkdtemp(join(tmpdir(), 'pastecode-ai-'));
 
   credentials = await import('./credentials.js');
@@ -155,5 +160,50 @@ describe('canPersistApiKey', () => {
     storage.available = false;
 
     expect(credentials.canPersistApiKey()).toBe(false);
+  });
+
+  describe('el backend basic_text de Linux', () => {
+    const realPlatform = process.platform;
+
+    /** `process.platform` es de sólo lectura; se redefine para el test. */
+    function pretendPlatform(platform: NodeJS.Platform): void {
+      Object.defineProperty(process, 'platform', { value: platform, configurable: true });
+    }
+
+    afterEach(() => {
+      pretendPlatform(realPlatform);
+    });
+
+    it('cuenta como "no hay cifrado" aunque isEncryptionAvailable diga que sí', () => {
+      pretendPlatform('linux');
+      storage.backend = 'basic_text';
+
+      expect(credentials.canPersistApiKey()).toBe(false);
+    });
+
+    it('deja guardar con un keyring de verdad', () => {
+      pretendPlatform('linux');
+      storage.backend = 'kwallet6';
+
+      expect(credentials.canPersistApiKey()).toBe(true);
+    });
+
+    it('fuera de Linux no pregunta el backend', () => {
+      pretendPlatform('win32');
+      storage.backend = 'basic_text';
+
+      expect(credentials.canPersistApiKey()).toBe(true);
+    });
+
+    it('con basic_text tampoco guarda la clave', async () => {
+      pretendPlatform('linux');
+      storage.backend = 'basic_text';
+
+      const thrown: unknown = await credentials
+        .saveApiKey('sk')
+        .catch((cause: unknown) => cause);
+
+      expect(codeOf(thrown)).toBe('AI_ENCRYPTION_UNAVAILABLE');
+    });
   });
 });

@@ -142,10 +142,15 @@ test('el extension host se reinicia solo cuando crashea, y el IDE sigue vivo', a
  * entenderlo pueden leerlo.
  *
  * Se saltea si no hay build empaquetado en vez de fallar: `pnpm test:e2e` corre
- * sobre `out/` y no tiene por qué exigir dos minutos de `pnpm package` antes.
+ * sobre `out/` y no tiene por qué exigir dos minutos de empaquetado antes. Corre
+ * contra `release-unfused/` y no contra el paquete que se distribuye, que tiene
+ * apagado el fuse de `--inspect` con el que Playwright se adjunta (ADR-0033).
  */
 test('el extension host arranca desde adentro del asar', async () => {
-  test.skip(PACKAGED_APP === undefined, 'No hay build empaquetado; corré `pnpm package`.');
+  test.skip(
+    PACKAGED_APP === undefined,
+    'No hay build empaquetado sin fuses de depuración; corré `pnpm --filter @pastecode/desktop package:unfused`.'
+  );
 
   await app.close();
   app = await electron.launch({ executablePath: PACKAGED_APP ?? '' });

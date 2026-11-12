@@ -1,0 +1,19 @@
+# El mismo paquete que electron-builder.yml, con un solo fuse distinto:
+# `--inspect` encendido. Existe para el E2E que corre contra el binario
+# empaquetado (`e2e/tests/extension-host.spec.ts`): Playwright se adjunta al
+# proceso main con `--inspect`, y el paquete que se distribuye lo tiene
+# apagado. **No se distribuye nunca**; por eso sale a otro directorio.
+extends: electron-builder.yml
+
+directories:
+  output: release-unfused
+  buildResources: build
+
+electronFuses:
+  runAsNode: true
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: true
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  grantFileProtocolExtraPrivileges: false
