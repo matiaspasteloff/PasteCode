@@ -31,6 +31,10 @@
       "dependsOn": ["build"],
       "outputs": ["release/**"]
     },
+    "@pastecode/desktop#package": {
+      "dependsOn": ["build", "word-count#build"],
+      "outputs": ["release/**"]
+    },
     "test:e2e": {
       "dependsOn": ["^build"],
       "cache": false

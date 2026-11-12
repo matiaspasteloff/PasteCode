@@ -37,6 +37,29 @@ files:
   # 1,3MB de sourcemap de un servidor que no depuramos nosotros.
   - '!node_modules/typescript-language-server/**/*.map'
 
+# Las extensiones de ejemplo viajan **fuera** del asar, en
+# `resources/extensions/`, que es donde `main/extensions/directories.ts` las
+# busca en la app instalada: el host las carga con un `import()` dinámico, y
+# `import()` no sabe leer de un asar (ADR-0027). Se copia sólo lo que el host
+# lee —el manifest y lo que el manifest nombra—, no las fuentes ni el README.
+extraResources:
+  - from: ../../extensions/theme-nord
+    to: extensions/theme-nord
+    filter:
+      - package.json
+      - themes/**
+  # `dist/` lo genera el `build` de la extensión, y `turbo.json` lo pone como
+  # dependencia del `package` de este paquete: en un checkout limpio nadie más
+  # garantiza que exista. El `.js` emitido no tiene imports de runtime
+  # —`@pastecode/extension-api` se importa sólo como tipos—, lo que importa
+  # porque en la app instalada no hay `node_modules` para resolverlos.
+  - from: ../../extensions/word-count
+    to: extensions/word-count
+    filter:
+      - package.json
+      - dist/**
+      - '!dist/**/*.map'
+
 # Los fuses se graban en el binario de Electron al empaquetar y no se pueden
 # cambiar en runtime: son la política de la app instalada, no de quien la
 # lanza. Sin ellos, el ejecutable distribuido obedece `NODE_OPTIONS` y
