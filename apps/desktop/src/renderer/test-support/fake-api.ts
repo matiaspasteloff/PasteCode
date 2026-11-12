@@ -3,6 +3,7 @@ import type {
   EventName,
   EventPayload,
   IpcResult,
+  Platform,
   Response,
 } from '@pastecode/ipc-contract';
 import { vi } from 'vitest';
@@ -31,13 +32,17 @@ let listeners = new Map<EventName, Set<(payload: never) => void>>();
  * y fijarlo de antemano perdería justamente lo que hay que testear —qué hace
  * la UI cuando llega, y si se desuscribe al desmontarse—.
  *
+ * El sistema operativo por omisión es Windows, la plataforma primaria
+ * (RNF-26); un test de macOS o Linux lo pide con el segundo argumento.
+ *
  * @param responses Respuestas por canal.
+ * @param platform El `window.pastecode.platform` que va a ver el renderer.
  * @returns El espía de `invoke`, para verificar con qué se lo llamó.
  * @example
  * const invoke = installFakeApi({ 'fs:readDirectory': { ok: true, value: { entries: [] } } });
  * expect(invoke).toHaveBeenCalledWith('fs:readDirectory', { path: 'C:\\p' });
  */
-export function installFakeApi(responses: FakeResponses) {
+export function installFakeApi(responses: FakeResponses, platform: Platform = 'win32') {
   const invoke = vi.fn((channel: ChannelName, _payload: unknown): Promise<unknown> => {
     const configured = responses[channel];
 
@@ -69,7 +74,7 @@ export function installFakeApi(responses: FakeResponses) {
   // contextBridge y nadie más debería tocarlo. En un test hay que instalarlo,
   // y `defineProperty` es la forma de hacerlo sin mentir sobre el tipo.
   Object.defineProperty(window, 'pastecode', {
-    value: { invoke, subscribe },
+    value: { platform, invoke, subscribe },
     configurable: true,
     writable: true,
   });

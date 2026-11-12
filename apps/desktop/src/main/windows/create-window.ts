@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 
+import type { BrowserWindowConstructorOptions } from 'electron';
 import { app, BrowserWindow } from 'electron';
 
 import { devServerOrigin, devServerUrl } from '../environment.js';
@@ -31,7 +32,7 @@ export function createMainWindow(): BrowserWindow {
     // decoración de la ventana, no un permiso del renderer, así que la regla 1
     // de CLAUDE.md ni se roza. El arrastre y el doble click para maximizar
     // salen de `-webkit-app-region` en el CSS, sin una línea de JavaScript.
-    frame: false,
+    ...frameOptions(),
     // El mínimo existe porque sin marco no hay quien impida achicar la ventana
     // hasta que la barra de menús se coma la caja de comandos.
     minWidth: 680,
@@ -77,6 +78,24 @@ export function createMainWindow(): BrowserWindow {
   void window.loadURL(devServerUrl ?? `${APP_ORIGIN}/index.html`);
 
   return window;
+}
+
+/**
+ * El marco de la ventana según el sistema.
+ *
+ * En Windows y Linux, `frame: false`: la barra propia dibuja también los
+ * botones de ventana. En macOS eso dejaría la ventana sin semáforo, que es
+ * donde cualquiera busca cerrar y achicar; `titleBarStyle: 'hidden'` esconde la
+ * barra pero conserva el semáforo nativo, y `trafficLightPosition` lo centra
+ * en los 36px de la barra propia (`--toolbar-height`): 12px de semáforo, 12 de
+ * margen arriba y abajo. El renderer le deja lugar con `.title-toolbar--mac`.
+ */
+function frameOptions(): Pick<
+  BrowserWindowConstructorOptions,
+  'frame' | 'titleBarStyle' | 'trafficLightPosition'
+> {
+  if (process.platform !== 'darwin') return { frame: false };
+  return { titleBarStyle: 'hidden', trafficLightPosition: { x: 12, y: 12 } };
 }
 
 /**

@@ -50,7 +50,23 @@ const STRIPPED_VARIABLES = [
 function defaultShell(): ShellCommand {
   if (process.platform === 'win32') return windowsShell();
 
-  return { file: process.env.SHELL ?? '/bin/sh', args: [] };
+  return { file: unixShell(process.env.SHELL), args: [] };
+}
+
+/**
+ * `$SHELL` si es una ruta absoluta que se puede ejecutar, y si no `/bin/sh`.
+ *
+ * `$SHELL` lo hereda la app de quien la lanzó, y no siempre es lo que dice ser:
+ * vacío en algunos lanzadores de escritorio, relativo si alguien lo exportó a
+ * mano, o apuntando a un shell que ya se desinstaló. Un nombre suelto se
+ * resolvería por `PATH`, que es justo lo que `windowsShell` evita; uno que no
+ * existe deja la terminal sin abrir. `/bin/sh` está en todo sistema POSIX.
+ */
+function unixShell(fromEnvironment: string | undefined): string {
+  if (fromEnvironment !== undefined && assertExecutable(fromEnvironment) === null) {
+    return fromEnvironment;
+  }
+  return '/bin/sh';
 }
 
 /**

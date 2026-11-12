@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useCommandStore } from '../stores/command-store.js';
 import { useKeybindingsStore } from '../stores/keybindings-store.js';
+import { installFakeApi } from '../test-support/fake-api.js';
 
 import { MenuBar } from './MenuBar.js';
 
@@ -14,6 +15,9 @@ function register(id: string, title: string, handler = (): void => undefined): v
 }
 
 beforeEach(() => {
+  // El menú no llama a ningún canal, pero lee `window.pastecode.platform`
+  // para escribir los atajos como los escribe el sistema.
+  installFakeApi({});
   useCommandStore.setState({ registry: new CommandRegistry(), revision: 0 });
   useKeybindingsStore.setState({ bindings: [] });
 });

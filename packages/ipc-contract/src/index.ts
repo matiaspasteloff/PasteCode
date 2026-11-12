@@ -1,4 +1,4 @@
-export type { PasteCodeApi } from './api.js';
+export type { PasteCodeApi, Platform } from './api.js';
 export type { ChannelName, IpcChannels, Request, RequestSchema, Response } from './channels.js';
 export {
   AI_TOOL_OUTCOMES,

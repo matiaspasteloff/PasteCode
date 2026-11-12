@@ -32,13 +32,19 @@ import { WindowControls } from './WindowControls.js';
  * el síntoma no se parece a la causa. Por eso el asistente es un `<button>` y
  * no un `<div>` clickeable: la regla del CSS cubre `button`, `input`, `select`
  * y `[role='menu']`, y nada más.
+ *
+ * **En macOS los botones de ventana son los del sistema**: la ventana se crea
+ * con `titleBarStyle: 'hidden'`, que esconde la barra pero conserva el
+ * semáforo, así que `WindowControls` no se dibuja y la barra le deja lugar a
+ * la izquierda (`.title-toolbar--mac`).
  */
 export function TitleToolbar(): React.JSX.Element {
   const workspace = useWorkspaceStore((state) => state.workspace);
   const openPalette = useCommandStore((state) => state.openPalette);
+  const isMac = window.pastecode.platform === 'darwin';
 
   return (
-    <header className="title-toolbar">
+    <header className={isMac ? 'title-toolbar title-toolbar--mac' : 'title-toolbar'}>
       <MenuBar />
 
       <button
@@ -55,7 +61,7 @@ export function TitleToolbar(): React.JSX.Element {
 
       <AiToggle />
 
-      <WindowControls />
+      {isMac ? null : <WindowControls />}
     </header>
   );
 }
