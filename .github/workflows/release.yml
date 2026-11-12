@@ -1,0 +1,125 @@
+name: Release
+
+# Un tag `v*` produce un release **en borrador** con los instaladores de las
+# cinco plataformas, `SHA256SUMS.txt` y la attestation de procedencia. Publicar
+# es decisión del autor: el borrador existe para escribirle notas legibles por
+# un humano (convenciones/build-y-release.md) antes de que nadie lo vea.
+#
+# Ningún agente empuja tags: este workflow se escribió y se verificó por
+# partes (`package.yml` corre en cada PR), pero el primer release real lo
+# dispara el autor.
+on:
+  push:
+    tags: ['v*']
+
+# Nada por omisión: cada job declara lo que necesita.
+permissions: {}
+
+# Dos pushes del mismo tag no arman dos releases a la vez.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validar el tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: El tag coincide con la versión de la app
+        id: version
+        # Falla antes de construir nada: un release `v0.4.0` con instaladores
+        # que dicen 0.3.1 no se arregla después, porque electron-updater
+        # compara contra la versión que trae cada `latest*.yml`.
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=$(node -p "require('./apps/desktop/package.json').version")
+          if [ "$TAG" != "v$version" ]; then
+            echo "::error::El tag $TAG no coincide con la versión $version de apps/desktop/package.json"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          # Un sufijo (`-beta.1`, `-rc.2`) es un prerelease.
+          if [[ "$version" == *-* ]]; then prerelease=true; else prerelease=false; fi
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+
+  package:
+    name: Empaquetado
+    needs: validate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/package.yml
+
+  release:
+    name: Borrador del release
+    needs: [validate, package]
+    runs-on: ubuntu-latest
+    permissions:
+      # Crear el release y subirle los archivos.
+      contents: write
+      # La attestation se firma con el token OIDC del workflow (Sigstore) y se
+      # guarda en el repositorio.
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bajar los instaladores
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pastecode-*
+          path: artifacts
+
+      - name: Juntar lo que se publica
+        # Cada fila de la matriz trae su `latest*.yml`, y en el release hay
+        # lugar para uno por sistema:
+        # - Windows: el de x64. El de arm64 no se publica: esa variante avisa
+        #   de versiones nuevas y no se actualiza sola (ADR-0034).
+        # - macOS: los dos unidos, para que electron-updater encuentre el
+        #   archivo de cada arquitectura.
+        # - Linux: hay uno solo.
+        run: |
+          mkdir release
+          rm artifacts/pastecode-windows-arm64/latest.yml
+          node scripts/merge-update-info.mjs \
+            artifacts/pastecode-macos-arm64/latest-mac.yml \
+            artifacts/pastecode-macos-x64/latest-mac.yml \
+            release/latest-mac.yml
+          rm artifacts/pastecode-macos-*/latest-mac.yml
+          find artifacts -type f -exec mv -n {} release/ \;
+          # `mv -n` no pisa: si quedó algo sin mover, dos filas produjeron el
+          # mismo nombre, y eso es un error de configuración.
+          if [ -n "$(find artifacts -type f)" ]; then
+            echo "::error::Archivos con el mismo nombre en dos filas de la matriz:"
+            find artifacts -type f
+            exit 1
+          fi
+          (cd release && sha256sum -- * > SHA256SUMS.txt)
+          ls -la release
+
+      - name: Attestation de procedencia
+        # Prueba verificable de que cada archivo salió de este workflow, en
+        # este repositorio y en este commit: `gh attestation verify <archivo>
+        # --repo matiaspasteloff/PasteCode`. Es gratis porque el repositorio es
+        # público, y es lo que reemplaza a la firma mientras no haya
+        # certificado (ADR-0034).
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: release/*
+
+      - name: Crear el borrador
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          PRERELEASE: ${{ needs.validate.outputs.prerelease }}
+        run: |
+          flags=(--draft --verify-tag --title "PasteCode $TAG" --generate-notes)
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+          gh release create "$TAG" "${flags[@]}" release/*
