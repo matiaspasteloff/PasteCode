@@ -6,6 +6,7 @@ import { devServerOrigin, devServerUrl } from '../environment.js';
 import { watchMaximizedState } from '../ipc/window.js';
 import { applyContentSecurityPolicy } from '../security/content-security-policy.js';
 import { isAllowedNavigation, isSafeExternalUrl } from '../security/navigation.js';
+import { applyPermissionPolicy } from '../security/permissions.js';
 
 import { APP_ORIGIN } from './app-protocol.js';
 
@@ -46,6 +47,7 @@ export function createMainWindow(): BrowserWindow {
   });
 
   applyContentSecurityPolicy(window.webContents.session, devServerOrigin);
+  applyPermissionPolicy(window.webContents.session, APP_ORIGIN, devServerOrigin);
 
   // El botón de maximizar cambia de glifo también cuando nadie lo aprieta:
   // arrastrar la ventana al borde superior la maximiza. Ver ADR-0030.
